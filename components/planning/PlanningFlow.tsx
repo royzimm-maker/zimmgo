@@ -11,6 +11,7 @@ import { LodgingStep }        from "@/components/planning/steps/LodgingStep";
 import { AirlinesStep }       from "@/components/planning/steps/AirlinesStep";
 import { TransportationStep } from "@/components/planning/steps/TransportationStep";
 import { ItineraryStep }      from "@/components/planning/steps/ItineraryStep";
+import { RefineStep }         from "@/components/planning/steps/RefineStep";
 import { ChatPanel }          from "@/components/chat/ChatPanel";
 import { Button }             from "@/components/ui/Button";
 import { MessageSquare, X }   from "lucide-react";
@@ -26,6 +27,7 @@ const STEP_COMPONENTS: Record<StepId, React.ComponentType> = {
   airlines:       AirlinesStep,
   transportation: TransportationStep,
   itinerary:      ItineraryStep,
+  refine:         RefineStep,
 };
 
 export function PlanningFlow() {

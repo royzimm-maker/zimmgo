@@ -8,7 +8,8 @@ export type StepId =
   | "lodging"
   | "airlines"
   | "transportation"
-  | "itinerary";
+  | "itinerary"
+  | "refine";
 
 export interface PlanningStep {
   id: StepId;
@@ -102,6 +103,17 @@ export interface TripPreferences {
   transportation: TransportMode[];
 }
 
+// ─── Neighborhood option ──────────────────────────────────────────────────────
+export interface NeighborhoodOption {
+  id: string;
+  name: string;
+  description: string;
+  vibe: string;
+  bestFor: string;
+  emoji: string;
+  priceRange: "$" | "$$" | "$$$";
+}
+
 // ─── Recommendation outputs ────────────────────────────────────────────────────
 export interface FlightOption {
   id: string;
@@ -169,8 +181,9 @@ export interface GeneratedItinerary {
   activities: ActivityOption[];
   totalEstimatedCost: number;
   currency: string;
-  aiSummary: string;      // 2–3 sentence overview from the AI
-  whyThisWorks: string;   // AI explanation of why this plan fits the user
+  aiSummary: string;
+  whyThisWorks: string;
+  neighborhoods?: NeighborhoodOption[];
 }
 
 // ─── Top-level Trip entity ─────────────────────────────────────────────────────
@@ -213,6 +226,7 @@ export const ORDERED_STEPS: StepId[] = [
   "airlines",
   "transportation",
   "itinerary",
+  "refine",
 ];
 
 export const STEP_META: Record<StepId, Omit<PlanningStep, "completed">> = {
@@ -225,6 +239,7 @@ export const STEP_META: Record<StepId, Omit<PlanningStep, "completed">> = {
   airlines:       { id: "airlines",       label: "Flights",        description: "Any airline preferences?",       skippable: true  },
   transportation: { id: "transportation", label: "Getting Around", description: "How will you move locally?",     skippable: false },
   itinerary:      { id: "itinerary",      label: "Itinerary",      description: "Your personalised day-by-day plan", skippable: false },
+  refine:         { id: "refine",         label: "Personalize",    description: "Fine-tune your plan",              skippable: true  },
 };
 
 export function calcProgress(completedSteps: StepId[]): number {

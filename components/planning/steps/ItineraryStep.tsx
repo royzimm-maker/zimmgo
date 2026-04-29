@@ -45,7 +45,7 @@ export function ItineraryStep() {
   return (
     <StepShell
       stepId="itinerary"
-      continueLabel="Done"
+      continueLabel="Personalize my plan →"
       continueDisabled={!latest}
       subtitle="Your personalised day-by-day itinerary, built around your preferences."
     >

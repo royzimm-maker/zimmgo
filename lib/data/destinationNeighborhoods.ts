@@ -1,0 +1,403 @@
+import type { NeighborhoodOption } from "@/types/trip";
+
+interface DestinationNeighborhoods {
+  keywords: string[];
+  neighborhoods: NeighborhoodOption[];
+}
+
+const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
+  {
+    keywords: ["greece", "athens", "santorini", "mykonos"],
+    neighborhoods: [
+      {
+        id: "plaka",
+        name: "Plaka, Athens",
+        description: "The oldest continuously inhabited neighbourhood in Athens, draped beneath the Acropolis. Cobbled lanes lead to neoclassical mansions, Byzantine churches, and roof terraces with iconic views.",
+        vibe: "Historic & romantic",
+        bestFor: "First-time visitors, history lovers, couples",
+        emoji: "🏛️",
+        priceRange: "$$",
+      },
+      {
+        id: "oia-santorini",
+        name: "Oia, Santorini",
+        description: "Perched on the northern tip of the caldera, Oia is famous for its sugar-cube houses, blue-domed churches, and the most celebrated sunset in the Mediterranean. Cave hotels carved into the cliff face are unforgettable.",
+        vibe: "Romantic & iconic",
+        bestFor: "Couples, photographers, bucket-list seekers",
+        emoji: "🌅",
+        priceRange: "$$$",
+      },
+      {
+        id: "monastiraki",
+        name: "Monastiraki, Athens",
+        description: "A lively, eclectic square in the heart of Athens, flanked by a flea market, Ottoman-era mosque, and the Ancient Agora. Street food, vintage finds, and rooftop bars with Acropolis views make it the city's beating pulse.",
+        vibe: "Vibrant & energetic",
+        bestFor: "Foodies, bargain hunters, nightlife lovers",
+        emoji: "🎪",
+        priceRange: "$",
+      },
+    ],
+  },
+  {
+    keywords: ["istanbul", "turkey"],
+    neighborhoods: [
+      {
+        id: "sultanahmet",
+        name: "Sultanahmet",
+        description: "Istanbul's historic peninsula, home to Hagia Sophia, Topkapı Palace, and the Blue Mosque. Everything the city is famous for is within walking distance, making it ideal for first-time visitors.",
+        vibe: "Grand & historic",
+        bestFor: "First-timers, history and architecture enthusiasts",
+        emoji: "🕌",
+        priceRange: "$$",
+      },
+      {
+        id: "beyoglu-galata",
+        name: "Beyoğlu & Galata",
+        description: "Istanbul's cosmopolitan heart on the European side, centred on the pedestrian İstiklal Avenue. Art galleries, independent coffee shops, rooftop bars, and a buzzing restaurant scene sit in the shadow of the medieval Galata Tower.",
+        vibe: "Cosmopolitan & creative",
+        bestFor: "Foodies, nightlife, art lovers, repeat visitors",
+        emoji: "🗼",
+        priceRange: "$$",
+      },
+      {
+        id: "karakoy",
+        name: "Karaköy",
+        description: "A reimagined waterfront district where 19th-century Ottoman warehouses now host specialty-coffee roasters, gallery spaces, and some of the city's most inventive restaurants. A short ferry ride delivers you to the Asian side.",
+        vibe: "Hip & waterfront",
+        bestFor: "Design lovers, food enthusiasts, travellers who like to explore",
+        emoji: "⚓",
+        priceRange: "$$",
+      },
+    ],
+  },
+  {
+    keywords: ["tokyo", "japan"],
+    neighborhoods: [
+      {
+        id: "shinjuku",
+        name: "Shinjuku",
+        description: "Tokyo's most frenetic hub: a neon-lit labyrinth of department stores, Kabukicho's entertainment quarter, Golden Gai's tiny atmospheric bars, and world-class ramen alleys. Unbeatable transport connections.",
+        vibe: "Electric & never sleeps",
+        bestFor: "Nightlife, foodies, city explorers, convenience",
+        emoji: "🌃",
+        priceRange: "$$",
+      },
+      {
+        id: "shibuya",
+        name: "Shibuya",
+        description: "Home to the world's busiest pedestrian crossing and Japan's most concentrated fashion and pop-culture scene. Excellent for shopping, youth culture, and easy access to quieter Daikanyama and Nakameguro nearby.",
+        vibe: "Youth culture & fashion-forward",
+        bestFor: "Shoppers, pop-culture fans, first-timers",
+        emoji: "🚦",
+        priceRange: "$$",
+      },
+      {
+        id: "yanaka",
+        name: "Yanaka",
+        description: "One of Tokyo's few neighbourhoods that survived WWII largely intact, Yanaka retains an Edo-period atmosphere of wooden shophouses, small temples, and unhurried alley cats. A slow-travel antidote to Tokyo's pace.",
+        vibe: "Old Tokyo & tranquil",
+        bestFor: "Photographers, culture seekers, off-the-beaten-path travellers",
+        emoji: "🏮",
+        priceRange: "$",
+      },
+    ],
+  },
+  {
+    keywords: ["kyoto", "japan"],
+    neighborhoods: [
+      {
+        id: "gion",
+        name: "Gion",
+        description: "Kyoto's most iconic district, where machiya wooden townhouses line stone-paved lanes and geiko (geisha) still move between ochaya teahouses at dusk. Staying here puts you at the centre of traditional Japan.",
+        vibe: "Traditional & cinematic",
+        bestFor: "Culture lovers, photographers, Japan enthusiasts",
+        emoji: "🏯",
+        priceRange: "$$$",
+      },
+      {
+        id: "arashiyama",
+        name: "Arashiyama",
+        description: "A scenic western district framed by forested mountains, the famous bamboo grove, the Togetsukyo bridge, and a cluster of Zen temples set along the Oi River. Quieter than central Kyoto and supremely atmospheric.",
+        vibe: "Zen & scenic",
+        bestFor: "Nature lovers, temple enthusiasts, photographers",
+        emoji: "🎋",
+        priceRange: "$$",
+      },
+      {
+        id: "higashiyama",
+        name: "Higashiyama",
+        description: "The preserved temple district running from Kiyomizudera down to Gion through a ridge of ancient shrines, tea houses, and craft shops selling pottery, fans, and lacquerware. The city's most walkable historic corridor.",
+        vibe: "Serene & curated",
+        bestFor: "Walkers, shoppers, those who want immersive culture without crowds",
+        emoji: "⛩️",
+        priceRange: "$$",
+      },
+    ],
+  },
+  {
+    keywords: ["paris", "france"],
+    neighborhoods: [
+      {
+        id: "le-marais",
+        name: "Le Marais",
+        description: "Paris's most eclectic arrondissement: medieval hôtels particuliers converted to contemporary art galleries, the historic Jewish Quarter, concept stores, and the beautiful Place des Vosges. Young, trendy, and endlessly walkable.",
+        vibe: "Trendy & cultural",
+        bestFor: "Art lovers, foodies, LGBTQ+ travellers, design enthusiasts",
+        emoji: "🎨",
+        priceRange: "$$",
+      },
+      {
+        id: "saint-germain",
+        name: "Saint-Germain-des-Prés",
+        description: "The Left Bank's intellectual heartland, where Sartre and Hemingway once debated over café crème at Les Deux Magots. Elegant boutiques, the Luxembourg Gardens, and some of the finest patisseries in the city.",
+        vibe: "Literary & elegant",
+        bestFor: "Culture lovers, couples, those who appreciate Parisian refinement",
+        emoji: "📚",
+        priceRange: "$$$",
+      },
+      {
+        id: "montmartre",
+        name: "Montmartre",
+        description: "The hilltop village above Paris that retains the feel of a self-contained town. Artists' studios, the vineyard, tiny squares, and the white dome of Sacré-Cœur define the neighbourhood, along with spectacular city views.",
+        vibe: "Bohemian & romantic",
+        bestFor: "Romantics, artists, photographers, first-time visitors",
+        emoji: "🎭",
+        priceRange: "$",
+      },
+    ],
+  },
+  {
+    keywords: ["amalfi", "italy", "positano", "ravello", "sorrento"],
+    neighborhoods: [
+      {
+        id: "positano",
+        name: "Positano",
+        description: "The cliff-hugging poster child of the Amalfi Coast: pastel-coloured houses tumbling to a pebble beach, bougainvillea-draped terraces, and a main street of boutique ceramics and linen shops. Steep stairs are part of the charm.",
+        vibe: "Iconic & glamorous",
+        bestFor: "Couples, photographers, luxury travellers",
+        emoji: "🌺",
+        priceRange: "$$$",
+      },
+      {
+        id: "ravello",
+        name: "Ravello",
+        description: "Perched 350m above the sea, Ravello trades beaches for panoramic gardens, medieval architecture, and the tranquil Villa Rufolo and Villa Cimbrone. Home to an annual classical music festival — and far fewer crowds than the coast below.",
+        vibe: "Elevated & peaceful",
+        bestFor: "Culture lovers, music fans, travellers escaping the crowds",
+        emoji: "🎵",
+        priceRange: "$$",
+      },
+      {
+        id: "sorrento",
+        name: "Sorrento",
+        description: "The practical and charming gateway city perched on cliffs above the Bay of Naples. Wider restaurant choice and better value than Positano, with easy ferry access to Capri, Naples, and Pompeii.",
+        vibe: "Lively & convenient",
+        bestFor: "Families, day-trippers, those who want flexibility and value",
+        emoji: "🍋",
+        priceRange: "$$",
+      },
+    ],
+  },
+  {
+    keywords: ["morocco", "marrakech", "fès", "fez"],
+    neighborhoods: [
+      {
+        id: "marrakech-medina",
+        name: "Marrakech Medina",
+        description: "One of the world's great urban spectacles: a labyrinth of souks radiating from Jemaa el-Fna square, where snake charmers, food stalls, and storytellers converge at dusk. Staying in a riad here is the quintessential Morocco experience.",
+        vibe: "Sensory & vibrant",
+        bestFor: "First-timers, adventurous travellers, culture lovers",
+        emoji: "🏺",
+        priceRange: "$$",
+      },
+      {
+        id: "fes-medina",
+        name: "Fès el-Bali Medina",
+        description: "The world's largest car-free urban area and a UNESCO World Heritage Site. Ancient madrasas, leather tanneries viewed from rooftop terraces, and 9,000+ alleyways create the most authentic medina experience in North Africa.",
+        vibe: "Ancient & authentic",
+        bestFor: "History buffs, photographers, travellers seeking the real Morocco",
+        emoji: "🕌",
+        priceRange: "$",
+      },
+      {
+        id: "gueliz",
+        name: "Gueliz (New Marrakech)",
+        description: "The French-built ville nouvelle of Marrakech offers wide boulevards, air-conditioned galleries, contemporary restaurants, and boutique design hotels. A comfortable base from which to explore the medina without staying inside it.",
+        vibe: "Modern & comfortable",
+        bestFor: "Travellers who want convenience with easy medina day trips",
+        emoji: "🌿",
+        priceRange: "$$",
+      },
+    ],
+  },
+  {
+    keywords: ["new york", "nyc", "usa"],
+    neighborhoods: [
+      {
+        id: "west-village",
+        name: "West Village / SoHo",
+        description: "Cobblestone streets, brownstone townhouses, and a density of excellent independent restaurants make the West Village Manhattan's most charming neighbourhood. SoHo next door adds gallery hopping and flagship boutiques.",
+        vibe: "Charming & foodie",
+        bestFor: "Foodies, shoppers, couples, boutique hotel lovers",
+        emoji: "🗽",
+        priceRange: "$$$",
+      },
+      {
+        id: "brooklyn",
+        name: "Brooklyn (Williamsburg / DUMBO)",
+        description: "DUMBO's cobblestoned streets under the Brooklyn Bridge offer Manhattan skyline views that rival any in the world. Williamsburg next door brings the city's best brunch spots, record stores, and rooftop bars.",
+        vibe: "Creative & cool",
+        bestFor: "Hip travellers, foodies, art lovers, photographers",
+        emoji: "🌉",
+        priceRange: "$$",
+      },
+      {
+        id: "upper-west-side",
+        name: "Upper West Side",
+        description: "A residential neighbourhood beloved by New Yorkers for its access to Central Park, the Natural History Museum, Lincoln Center, and excellent everyday dining. Quieter and more local-feeling than Midtown.",
+        vibe: "Residential & cultured",
+        bestFor: "Families, museum-goers, Central Park walkers",
+        emoji: "🌳",
+        priceRange: "$$",
+      },
+    ],
+  },
+  {
+    keywords: ["iceland", "reykjavik"],
+    neighborhoods: [
+      {
+        id: "downtown-101",
+        name: "Downtown Reykjavik (101)",
+        description: "Iceland's compact capital is almost entirely walkable from the 101 postcode. Hallgrímskirkja church, Laugavegur shopping street, the harbour, and the best coffee and restaurants in the country are all within a 15-minute stroll.",
+        vibe: "Compact & vibrant",
+        bestFor: "First-timers, those on short trips, foodies",
+        emoji: "🌋",
+        priceRange: "$$",
+      },
+      {
+        id: "grandi-harbour",
+        name: "Grandi Harbour District",
+        description: "Reykjavik's revitalised old harbour is now home to the Whales of Iceland exhibition, the Aurora Reykjavik museum, street-food market, and the Marshall House arts centre. A quieter, creative alternative to the main drag.",
+        vibe: "Cultural & waterfront",
+        bestFor: "Art and culture lovers, foodies, photographers",
+        emoji: "🐋",
+        priceRange: "$$",
+      },
+      {
+        id: "laugardalur",
+        name: "Laugardalur",
+        description: "A local residential valley east of downtown centred on Reykjavik's main geothermal swimming pool and botanic garden. Fewer tourists, great access to the hot-pot culture that defines Icelandic social life.",
+        vibe: "Local & relaxed",
+        bestFor: "Those who want a local experience, families, wellness seekers",
+        emoji: "♨️",
+        priceRange: "$",
+      },
+    ],
+  },
+  {
+    keywords: ["patagonia", "el calafate", "puerto natales", "torres del paine"],
+    neighborhoods: [
+      {
+        id: "puerto-natales",
+        name: "Puerto Natales, Chile",
+        description: "The small, friendly gateway town to Torres del Paine, strung along the Ultima Esperanza Sound. Excellent trekking outfitters, cosy restaurants serving lamb and centolla crab, and a backdrop of glaciers and mountains.",
+        vibe: "Adventurer's base camp",
+        bestFor: "Hikers, trekkers, those doing the W or O circuit",
+        emoji: "🏔️",
+        priceRange: "$",
+      },
+      {
+        id: "el-calafate",
+        name: "El Calafate, Argentina",
+        description: "The Argentine gateway to Perito Moreno Glacier and Los Glaciares National Park. A tourist-oriented but charming town on Lago Argentino with a strong Patagonian ranch culture and excellent local cuisine.",
+        vibe: "Glacial gateway",
+        bestFor: "Glacier visitors, wildlife watchers, Argentina-side explorers",
+        emoji: "🧊",
+        priceRange: "$$",
+      },
+      {
+        id: "torres-del-paine",
+        name: "Torres del Paine (In-park lodges)",
+        description: "Staying inside the national park itself — at EcoCamp, Las Torres, or one of the refugios along the trekking circuits — puts you in the mountains at sunrise, with the iconic towers lit by first light. Requires advance booking.",
+        vibe: "Immersive wilderness",
+        bestFor: "Serious trekkers and nature lovers who want zero commute to the trail",
+        emoji: "⛺",
+        priceRange: "$$$",
+      },
+    ],
+  },
+  {
+    keywords: ["southeast asia", "bangkok", "chiang mai", "hanoi", "vietnam", "thailand"],
+    neighborhoods: [
+      {
+        id: "bangkok-riverside",
+        name: "Bangkok Riverside / Rattanakosin",
+        description: "The historic island at the heart of Bangkok, home to the Grand Palace, Wat Pho, and Wat Arun across the river. The Chao Phraya Express boat is the best way to move between temples and the many riverside fine-dining options.",
+        vibe: "Grand & historic",
+        bestFor: "First-timers, temple enthusiasts, history and culture lovers",
+        emoji: "🛕",
+        priceRange: "$$",
+      },
+      {
+        id: "chiang-mai-old-city",
+        name: "Chiang Mai Old City",
+        description: "Enclosed by a moat and ancient wall, Chiang Mai's Old City packs over 300 temples into a compact area walkable in an afternoon. The Sunday Walking Street market and the slow pace of life make it Southeast Asia's most liveable city.",
+        vibe: "Peaceful & cultural",
+        bestFor: "Culture seekers, slow travellers, foodies, digital nomads",
+        emoji: "🌸",
+        priceRange: "$",
+      },
+      {
+        id: "hanoi-old-quarter",
+        name: "Hanoi Old Quarter",
+        description: "Vietnam's most atmospheric urban neighbourhood: 36 ancient guild streets, each historically specialising in a single craft or trade. Morning pho, bia hoi corner beer stands, and a tangle of motorbikes define the sensory experience.",
+        vibe: "Authentic & chaotic",
+        bestFor: "Adventurous travellers, foodies, those who want real Southeast Asia",
+        emoji: "🍜",
+        priceRange: "$",
+      },
+    ],
+  },
+  {
+    keywords: ["queenstown", "new zealand"],
+    neighborhoods: [
+      {
+        id: "town-centre",
+        name: "Queenstown Town Centre",
+        description: "Queenstown's compact lakefront centre puts the gondola, bungee operators, restaurants, and the legendary Fergburger queue all within five minutes on foot. Best base for those who want everything immediately accessible.",
+        vibe: "Energetic & convenient",
+        bestFor: "Adventure seekers, first-timers, those on short stays",
+        emoji: "🏔️",
+        priceRange: "$$",
+      },
+      {
+        id: "frankton",
+        name: "Frankton",
+        description: "A quieter, more residential area near the airport and Frankton Arm of Lake Wakatipu. The Saturday market is a local institution, and it's a 10-minute drive from the main Queenstown action.",
+        vibe: "Local & relaxed",
+        bestFor: "Families, longer stays, those who prefer a calmer base",
+        emoji: "🛶",
+        priceRange: "$",
+      },
+      {
+        id: "arrowtown",
+        name: "Arrowtown",
+        description: "A perfectly preserved gold-rush village 25 minutes from Queenstown, with a tree-lined main street of boutique shops, excellent restaurants, and easy walking trails into the Arrow River gorge. Beautiful in every season.",
+        vibe: "Historic & charming",
+        bestFor: "Culture lovers, foodies, photography, wine touring",
+        emoji: "🍂",
+        priceRange: "$$",
+      },
+    ],
+  },
+];
+
+export function getNeighborhoodsByDestination(displayName: string): NeighborhoodOption[] {
+  const lower = displayName.toLowerCase();
+  for (const entry of NEIGHBORHOOD_DATA) {
+    if (entry.keywords.some((kw) => lower.includes(kw))) {
+      return entry.neighborhoods;
+    }
+  }
+  return [];
+}

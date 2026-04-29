@@ -7,6 +7,7 @@ import { buildItineraryPrompt } from "@/lib/ai/prompts";
 import { searchFlights } from "@/lib/api/flights";
 import { searchHotels } from "@/lib/api/hotels";
 import { searchActivities } from "@/lib/api/activities";
+import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, ItineraryDay } from "@/types/trip";
 
 // Tool dispatcher — maps tool_name → actual function call
@@ -151,6 +152,9 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     `matches your ${preferences.budgetRange?.replace(/_/g, " ") ?? "chosen"} budget tier, ` +
     `and prioritises the ${(preferences.vibes ?? []).slice(0, 2).join(" and ")} vibe you're after.`;
 
+  const destName = preferences.destination?.displayName ?? "";
+  const neighborhoods = getNeighborhoodsByDestination(destName);
+
   return {
     id: uuid(),
     tripId,
@@ -164,6 +168,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     currency: "USD",
     aiSummary: summaryFallback,
     whyThisWorks: whyFallback,
+    neighborhoods: neighborhoods.length ? neighborhoods : undefined,
   };
 }
 
