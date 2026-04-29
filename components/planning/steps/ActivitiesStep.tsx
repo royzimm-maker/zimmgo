@@ -10,16 +10,18 @@ import { getActivitiesByDestination } from "@/lib/data/destinationActivities";
 import type { ActivityCategory } from "@/types/trip";
 
 const GENERAL: { id: ActivityCategory; label: string; icon: string; sublabel: string }[] = [
-  { id: "hiking",      label: "Hiking",           icon: "🥾", sublabel: "Trails, peaks, national parks" },
-  { id: "skiing",      label: "Skiing",            icon: "⛷️", sublabel: "Downhill, backcountry, snow" },
-  { id: "sailing",     label: "Sailing",           icon: "⛵", sublabel: "Charters, coastal cruising" },
-  { id: "food",        label: "Food Experiences",  icon: "🍜", sublabel: "Markets, tastings, restaurants" },
-  { id: "diving",      label: "Diving & Snorkel",  icon: "🤿", sublabel: "Reefs, wrecks, marine life" },
-  { id: "cycling",     label: "Cycling",           icon: "🚴", sublabel: "Road biking, mountain biking" },
-  { id: "cultural",    label: "Cultural",          icon: "🏛️", sublabel: "History, arts, local traditions" },
-  { id: "photography", label: "Photography",       icon: "📷", sublabel: "Landscapes, architecture, street" },
-  { id: "wellness",    label: "Wellness & Spa",    icon: "🧘", sublabel: "Retreats, yoga, thermal baths" },
-  { id: "adventure",   label: "Adventure Sports",  icon: "🪂", sublabel: "Paragliding, bungee, white water" },
+  { id: "guided_walking_tour", label: "Guided Walking Tour", icon: "🚶", sublabel: "Expert-led neighbourhood & history walks" },
+  { id: "guided_food_tour",    label: "Guided Food Tour",    icon: "🍽️", sublabel: "Curated culinary walks with a local expert" },
+  { id: "hiking",              label: "Hiking",              icon: "🥾", sublabel: "Trails, peaks, national parks" },
+  { id: "skiing",              label: "Skiing",              icon: "⛷️", sublabel: "Downhill, backcountry, snow" },
+  { id: "sailing",             label: "Sailing",             icon: "⛵", sublabel: "Charters, coastal cruising" },
+  { id: "food",                label: "Food Experiences",    icon: "🍜", sublabel: "Markets, tastings, restaurants" },
+  { id: "diving",              label: "Diving & Snorkel",    icon: "🤿", sublabel: "Reefs, wrecks, marine life" },
+  { id: "cycling",             label: "Cycling",             icon: "🚴", sublabel: "Road biking, mountain biking" },
+  { id: "cultural",            label: "Cultural",            icon: "🏛️", sublabel: "History, arts, local traditions" },
+  { id: "photography",         label: "Photography",         icon: "📷", sublabel: "Landscapes, architecture, street" },
+  { id: "wellness",            label: "Wellness & Spa",      icon: "🧘", sublabel: "Retreats, yoga, thermal baths" },
+  { id: "adventure",           label: "Adventure Sports",    icon: "🪂", sublabel: "Paragliding, bungee, white water" },
 ];
 
 export function ActivitiesStep() {
