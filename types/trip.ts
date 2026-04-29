@@ -83,10 +83,11 @@ export interface LodgingPreference {
 }
 
 export interface AirlinePreference {
-  airlines: string[];     // e.g. ["Delta Air Lines", "United Airlines"]
+  airlines: string[];
   alliances: AirlineAlliance[];
   preferNonstop: boolean;
   cabinClass: "economy" | "premium_economy" | "business" | "first";
+  prioritizeLowestFare?: boolean; // overrides airline/alliance selections
 }
 
 // ─── User preferences (the planning form state) ───────────────────────────────
@@ -140,7 +141,8 @@ export interface HotelOption {
   location: string;
   pricePerNight: number;
   currency: string;
-  rating: number;         // 0–10
+  rating: number;
+  ratingSource?: string;  // e.g. "Google Reviews", "TripAdvisor"
   reviewCount: number;
   highlights: string[];
   imageUrl?: string;

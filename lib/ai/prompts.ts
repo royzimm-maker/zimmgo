@@ -61,13 +61,17 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
 
   if (preferences.airlinePrefs) {
     const a = preferences.airlinePrefs;
-    const airlineStr = [
-      a.airlines.length ? `preferred airlines: ${a.airlines.join(", ")}` : null,
-      a.alliances.length ? `alliances: ${a.alliances.join(", ")}` : null,
-      `cabin class: ${a.cabinClass}`,
-      a.preferNonstop ? "nonstop preferred" : null,
-    ].filter(Boolean).join("; ");
-    parts.push(`Flight preferences: ${airlineStr}.`);
+    if (a.prioritizeLowestFare) {
+      parts.push(`Flight preferences: lowest available fares — ignore airline/alliance preferences, prioritise economy class and cheapest options.`);
+    } else {
+      const airlineStr = [
+        a.airlines.length ? `preferred airlines: ${a.airlines.join(", ")}` : null,
+        a.alliances.length ? `alliances: ${a.alliances.join(", ")}` : null,
+        `cabin class: ${a.cabinClass}`,
+        a.preferNonstop ? "nonstop preferred" : null,
+      ].filter(Boolean).join("; ");
+      parts.push(`Flight preferences: ${airlineStr}.`);
+    }
   }
 
   if (preferences.transportation.length) {

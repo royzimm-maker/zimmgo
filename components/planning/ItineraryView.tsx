@@ -187,10 +187,17 @@ function FlightCard({ flight }: { flight: FlightOption }) {
 }
 
 function HotelCard({ hotel }: { hotel: HotelOption }) {
+  const sourceIcon: Record<string, string> = {
+    "Google Reviews": "🔵",
+    "TripAdvisor": "🟢",
+    "Booking.com": "🔷",
+  };
+  const icon = hotel.ratingSource ? (sourceIcon[hotel.ratingSource] ?? "⭐") : "⭐";
+
   return (
     <Card padding="sm" className="flex items-start gap-3">
       <div className="flex-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <span className="font-semibold text-slate-800 text-sm">{hotel.name}</span>
           <div className="flex">
             {Array.from({ length: hotel.stars }).map((_, i) => (
@@ -206,14 +213,32 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
         </div>
       </div>
       <div className="text-right shrink-0">
-        <p className="font-bold text-slate-900 text-sm">{formatCurrency(hotel.pricePerNight)}<span className="font-normal text-xs text-slate-400">/night</span></p>
-        <p className="text-xs text-sage-600 mt-0.5">{hotel.rating}/10 · {hotel.reviewCount.toLocaleString()} reviews</p>
-        {hotel.bookingUrl && (
-          <a href={hotel.bookingUrl} target="_blank" rel="noreferrer"
-            className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 justify-end mt-0.5">
-            Book <ExternalLink size={10} />
-          </a>
+        <p className="font-bold text-slate-900 text-sm">
+          {formatCurrency(hotel.pricePerNight)}<span className="font-normal text-xs text-slate-400">/night</span>
+        </p>
+        <p className="text-xs text-slate-500 mt-0.5">
+          <span className="font-medium text-sage-600">{hotel.rating}/10</span>
+          {" · "}{hotel.reviewCount.toLocaleString()} reviews
+        </p>
+        {hotel.ratingSource && (
+          <p className="text-[10px] text-slate-400 mt-0.5">{icon} {hotel.ratingSource}</p>
         )}
+        <div className="flex items-center gap-2 justify-end mt-1.5">
+          <a
+            href={`https://www.google.com/maps/search/${encodeURIComponent(hotel.name + " " + hotel.location)}`}
+            target="_blank" rel="noreferrer"
+            className="text-xs text-slate-400 hover:text-slate-600 hover:underline flex items-center gap-0.5"
+            title="View on Google Maps"
+          >
+            Map <ExternalLink size={9} />
+          </a>
+          {hotel.bookingUrl && (
+            <a href={hotel.bookingUrl} target="_blank" rel="noreferrer"
+              className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 font-medium">
+              Book <ExternalLink size={9} />
+            </a>
+          )}
+        </div>
       </div>
     </Card>
   );
@@ -263,9 +288,20 @@ function DayCard({ day, expanded, onToggle }: { day: ItineraryDay; expanded: boo
             <div>
               <p className="text-xs font-semibold text-slate-500 mb-1">🍽️ Meal suggestions</p>
               {day.meals.map((m) => (
-                <p key={m.type} className="text-xs text-slate-700">
-                  <span className="capitalize text-slate-400">{m.type}: </span>{m.suggestion}
-                </p>
+                <div key={m.type} className="flex items-start justify-between gap-2 py-0.5">
+                  <p className="text-xs text-slate-700 flex-1">
+                    <span className="capitalize text-slate-400">{m.type}: </span>{m.suggestion}
+                  </p>
+                  <a
+                    href={`https://www.google.com/search?q=${encodeURIComponent(m.suggestion)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-brand-500 transition-colors"
+                    title="Search on Google"
+                  >
+                    <ExternalLink size={9} />
+                  </a>
+                </div>
               ))}
             </div>
           )}

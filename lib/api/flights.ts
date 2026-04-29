@@ -13,6 +13,7 @@ interface FlightSearchParams {
   cabin_class?: string;
   preferred_airlines?: string[];
   nonstop_only?: boolean;
+  lowest_fare_mode?: boolean;
 }
 
 // Realistic mock data keyed by destination region
@@ -54,11 +55,19 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
   // return transformAmadeusResponse(response);
 
   // Mock response — realistic price ranges
-  const basePrice = randomInt(600, 2400);
-  const cabinMult = CABIN_MULTIPLIER[params.cabin_class ?? "business"];
-  const airlines  = pickAirlines(params.preferred_airlines ?? [], 3);
+  const cabinMult = CABIN_MULTIPLIER[params.cabin_class ?? "economy"];
 
-  return airlines.map((airline, idx) => ({
+  // Lowest-fare mode: ignore airline prefs, use all carriers, economy default
+  const lowestFare = params.lowest_fare_mode ?? false;
+  const effectiveCabin = lowestFare ? "economy" : (params.cabin_class ?? "economy");
+  const effectiveMult  = CABIN_MULTIPLIER[effectiveCabin];
+  const airlines = lowestFare
+    ? [...MOCK_AIRLINES].sort(() => Math.random() - 0.5).slice(0, 3)
+    : pickAirlines(params.preferred_airlines ?? [], 3);
+
+  const basePrice = lowestFare ? randomInt(300, 900) : randomInt(600, 2400);
+
+  const results = airlines.map((airline, idx) => ({
     id: uuid(),
     airline: airline.name,
     flightNumber: `${airline.code}${randomInt(100, 999)}`,
@@ -67,10 +76,13 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
     departureTime: `${params.departure_date}T${randomInt(6, 14).toString().padStart(2, "0")}:${["00","15","30","45"][idx % 4]}:00`,
     arrivalTime: `${params.departure_date}T${randomInt(14, 23).toString().padStart(2, "0")}:${["00","30"][idx % 2]}:00`,
     duration: `${randomInt(9, 17)}h ${randomInt(0, 59)}m`,
-    stops: params.nonstop_only ? 0 : (idx === 0 ? 0 : randomInt(0, 1)),
-    price: Math.round((basePrice + idx * randomInt(150, 400)) * cabinMult),
+    stops: params.nonstop_only && !lowestFare ? 0 : (idx === 0 ? 0 : randomInt(0, 1)),
+    price: Math.round((basePrice + idx * randomInt(80, 250)) * effectiveMult),
     currency: "USD",
-    cabinClass: params.cabin_class ?? "business",
+    cabinClass: effectiveCabin,
     bookingUrl: undefined, // Would be populated by real Amadeus deep-link
   }));
+
+  // In lowest-fare mode, sort cheapest first
+  return lowestFare ? results.sort((a, b) => a.price - b.price) : results;
 }

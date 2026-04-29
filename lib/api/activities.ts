@@ -79,6 +79,7 @@ export async function searchActivities(params: ActivitySearchParams): Promise<Ac
     reviewCount: a.reviewCount!,
     isLocalFavorite: a.isLocalFavorite!,
     description: a.description!,
-    bookingUrl: undefined, // Would be GetYourGuide or Viator affiliate link
+    // Placeholder — swap for real GetYourGuide / Viator affiliate link
+    bookingUrl: `https://www.getyourguide.com/s/?q=${encodeURIComponent(a.name + " " + params.destination)}`,
   }));
 }
