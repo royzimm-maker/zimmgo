@@ -54,9 +54,6 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
   // const response = await fetch(`https://test.api.amadeus.com/v2/shopping/flight-offers?...`);
   // return transformAmadeusResponse(response);
 
-  // Mock response — realistic price ranges
-  const cabinMult = CABIN_MULTIPLIER[params.cabin_class ?? "economy"];
-
   // Lowest-fare mode: ignore airline prefs, use all carriers, economy default
   const lowestFare = params.lowest_fare_mode ?? false;
   const effectiveCabin = lowestFare ? "economy" : (params.cabin_class ?? "economy");

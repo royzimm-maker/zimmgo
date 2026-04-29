@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plane, Hotel, Star, Clock, Users, MapPin, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
-import { Card, CardTitle, CardBody } from "@/components/ui/Card";
+import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, ItineraryDay } from "@/types/trip";

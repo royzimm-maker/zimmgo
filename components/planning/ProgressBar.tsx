@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Lock } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import { ORDERED_STEPS, STEP_META, type StepId } from "@/types/trip";

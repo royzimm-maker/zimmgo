@@ -17,7 +17,6 @@ export function ChatPanel() {
   const [input,   setInput  ] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef       = useRef<HTMLTextAreaElement>(null);
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -176,7 +175,6 @@ export function ChatPanel() {
       <div className="shrink-0 border-t border-slate-200 p-3">
         <div className="flex items-end gap-2">
           <textarea
-            ref={inputRef}
             rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}

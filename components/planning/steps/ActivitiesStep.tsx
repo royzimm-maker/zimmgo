@@ -7,7 +7,6 @@ import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { useTripStore } from "@/lib/store/tripStore";
 import { getActivitiesByDestination } from "@/lib/data/destinationActivities";
-import type { DestinationActivity } from "@/lib/data/destinationActivities";
 import type { ActivityCategory } from "@/types/trip";
 
 const GENERAL: { id: ActivityCategory; label: string; icon: string; sublabel: string }[] = [

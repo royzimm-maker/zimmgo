@@ -9,14 +9,14 @@ import { StepShell } from "@/components/planning/StepShell";
 import { Badge } from "@/components/ui/Badge";
 import { useTripStore } from "@/lib/store/tripStore";
 import { formatCurrency } from "@/lib/utils";
-import type { ActivityOption, NeighborhoodOption } from "@/types/trip";
+import type { ActivityOption, NeighborhoodOption, TripPreferences } from "@/types/trip";
 
 // ─── Inline AI Q&A panel ──────────────────────────────────────────────────────
 
 interface AskPanelProps {
   itemName: string;
   itemType: "activity" | "neighborhood";
-  preferences: import("@/types/trip").TripPreferences;
+  preferences: TripPreferences;
   onClose: () => void;
 }
 
@@ -98,7 +98,7 @@ interface NeighborhoodCardProps {
   onSelect: () => void;
   onAsk: () => void;
   showAsk: boolean;
-  preferences: import("@/types/trip").TripPreferences;
+  preferences: TripPreferences;
   onCloseAsk: () => void;
 }
 
@@ -179,7 +179,7 @@ interface ActivityRowProps {
   onToggle: () => void;
   onAsk: () => void;
   showAsk: boolean;
-  preferences: import("@/types/trip").TripPreferences;
+  preferences: TripPreferences;
   onCloseAsk: () => void;
 }
 
@@ -270,15 +270,9 @@ export function RefineStep() {
     setAskingAbout((prev) => (prev === id ? null : id));
   }
 
-  // Called by StepShell's Done button. Navigate back to the itinerary so the
-  // user lands on their finished plan. Includes a console breadcrumb for debugging.
+  // Navigate back to the itinerary view so the user lands on their finished plan.
   function handleDone() {
-    try {
-      console.info("[ZimmGo] Refine step complete — navigating to itinerary view.");
-      goToStep("itinerary");
-    } catch (err) {
-      console.error("[ZimmGo] handleDone failed:", err);
-    }
+    goToStep("itinerary");
   }
 
   const includedCount = includedIds.size;

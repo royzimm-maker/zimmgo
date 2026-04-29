@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Pencil, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,10 +22,8 @@ export function OtherInput({
   onToggle,
   placeholder = "Describe it…",
 }: OtherInputProps) {
-  const [committed, setCommitted] = useState(!!value);
-
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && value.trim()) setCommitted(true);
+    if (e.key === "Enter" && value.trim()) { /* value is committed — parent reads it on continue */ }
     if (e.key === "Escape") { onToggle(); }
   }
 
@@ -52,19 +49,15 @@ export function OtherInput({
         autoFocus
         type="text"
         value={value}
-        onChange={(e) => { onChange(e.target.value); setCommitted(false); }}
+        onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
       />
       {value.trim() && (
-        <button
-          type="button"
-          onClick={() => setCommitted(true)}
-          className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500 text-white hover:bg-brand-600"
-        >
+        <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500 text-white">
           <Check size={11} strokeWidth={3} />
-        </button>
+        </span>
       )}
       <button
         type="button"

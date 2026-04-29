@@ -15,9 +15,6 @@ interface HotelSearchParams {
   amenities?: string[];
 }
 
-// Rating sources cycled per hotel to show variety
-const RATING_SOURCES = ["Google Reviews", "TripAdvisor", "Booking.com", "Google Reviews", "TripAdvisor"];
-
 // Curated mock hotel data per destination keyword
 const HOTEL_DB: Record<string, Partial<HotelOption>[]> = {
   tokyo: [

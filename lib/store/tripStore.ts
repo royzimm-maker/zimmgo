@@ -17,7 +17,6 @@ import type {
   VibeTag,
   TransportMode,
   BudgetRange,
-  ORDERED_STEPS,
 } from "@/types/trip";
 import { calcProgress } from "@/types/trip";
 
