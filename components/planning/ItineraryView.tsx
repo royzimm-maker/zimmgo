@@ -18,9 +18,13 @@ export function ItineraryView({ itinerary }: Props) {
     <div className="flex flex-col gap-6">
       {/* AI Summary */}
       <div className="rounded-xl bg-gradient-to-br from-brand-50 to-sage-50 border border-brand-100 p-4">
-        <p className="text-sm font-semibold text-brand-700 mb-1">Your trip at a glance</p>
-        <p className="text-sm text-slate-700 leading-relaxed">{itinerary.aiSummary}</p>
-        <p className="mt-3 text-xs text-slate-500 italic">{itinerary.whyThisWorks}</p>
+        <p className="text-sm font-semibold text-brand-700 mb-3">Your trip at a glance</p>
+        <RichText text={itinerary.aiSummary} className="text-sm text-slate-700" />
+        {itinerary.whyThisWorks && (
+          <div className="mt-3 pt-3 border-t border-brand-100">
+            <RichText text={itinerary.whyThisWorks} className="text-xs text-slate-500 italic" />
+          </div>
+        )}
       </div>
 
       {/* Stats bar */}
@@ -70,6 +74,61 @@ export function ItineraryView({ itinerary }: Props) {
           </div>
         </Section>
       )}
+    </div>
+  );
+}
+
+// ─── RichText: renders paragraphs, bullet lists, and **bold** without a library ─
+
+function renderInline(text: string): React.ReactNode[] {
+  // Split on **bold** markers
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i} className="font-semibold text-slate-800">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
+function RichText({ text, className = "" }: { text: string; className?: string }) {
+  if (!text?.trim()) return null;
+
+  // Split into blocks on blank lines
+  const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      {blocks.map((block, bi) => {
+        const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+
+        // Bullet list block: every line starts with - / • / *
+        const isList = lines.every((l) => /^[-•*]\s/.test(l));
+        if (isList) {
+          return (
+            <ul key={bi} className="space-y-1 pl-1">
+              {lines.map((line, li) => (
+                <li key={li} className="flex gap-2 leading-relaxed">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-400" />
+                  <span>{renderInline(line.replace(/^[-•*]\s/, ""))}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        // Plain paragraph (preserve intentional single line-breaks)
+        return (
+          <p key={bi} className="leading-relaxed">
+            {lines.map((line, li) => (
+              <span key={li}>
+                {li > 0 && <br />}
+                {renderInline(line)}
+              </span>
+            ))}
+          </p>
+        );
+      })}
     </div>
   );
 }

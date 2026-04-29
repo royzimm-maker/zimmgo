@@ -35,10 +35,20 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     parts.push(`Trip vibe: ${preferences.vibes.join(", ")}.`);
   }
 
+  if (preferences.travelers || preferences.rooms) {
+    const t = preferences.travelers ?? 2;
+    const r = preferences.rooms ?? 1;
+    parts.push(`Group: ${t} traveller${t !== 1 ? "s" : ""}, ${r} room${r !== 1 ? "s" : ""} per night.`);
+  }
+
   if (preferences.budgetRange) {
     const label = BUDGET_LABELS[preferences.budgetRange];
     const max   = BUDGET_MAX[preferences.budgetRange];
-    parts.push(`Daily budget: ${label} (max $${max}/day per person including lodging and meals).`);
+    parts.push(`Lodging budget: ${label} (max $${max} per room per night).`);
+  }
+
+  if (preferences.dailyFoodBudgetPerPerson) {
+    parts.push(`Food budget: $${preferences.dailyFoodBudgetPerPerson} per person per day.`);
   }
 
   if (preferences.lodging) {
@@ -88,8 +98,16 @@ export function buildChatSystemPrompt(preferences: TripPreferences): string {
   if (preferences.vibes.length) {
     contextLines.push(`Vibe: ${preferences.vibes.join(", ")}`);
   }
+  if (preferences.travelers || preferences.rooms) {
+    const t = preferences.travelers ?? 2;
+    const r = preferences.rooms ?? 1;
+    contextLines.push(`Group: ${t} traveller${t !== 1 ? "s" : ""}, ${r} room${r !== 1 ? "s" : ""}`);
+  }
   if (preferences.budgetRange) {
-    contextLines.push(`Budget: ${BUDGET_LABELS[preferences.budgetRange]}`);
+    contextLines.push(`Lodging budget: ${BUDGET_LABELS[preferences.budgetRange]}`);
+  }
+  if (preferences.dailyFoodBudgetPerPerson) {
+    contextLines.push(`Food budget: $${preferences.dailyFoodBudgetPerPerson}/person/day`);
   }
 
   const context = contextLines.length

@@ -43,6 +43,7 @@ interface TripState {
   setVibes: (vibes: VibeTag[]) => void;
   setDates: (dates: DatePreference) => void;
   setBudget: (range: BudgetRange) => void;
+  setBudgetDetails: (details: { travelers?: number; rooms?: number; dailyFoodBudgetPerPerson?: number }) => void;
   setLodging: (lodging: LodgingPreference) => void;
   setAirlines: (prefs: AirlinePreference) => void;
   setTransportation: (modes: TransportMode[]) => void;
@@ -178,6 +179,15 @@ export const useTripStore = create<TripState>()(
           trip: {
             ...s.trip,
             preferences: { ...s.trip.preferences, budgetRange },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setBudgetDetails: (details) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, ...details },
             updatedAt: new Date().toISOString(),
           },
         })),

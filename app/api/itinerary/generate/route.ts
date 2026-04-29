@@ -137,20 +137,27 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
 
   const days: ItineraryDay[] = buildDays(start, numDays, activities, preferences);
 
-  const hotelTotal   = hotels[0]  ? hotels[0].pricePerNight * numDays : 0;
-  const flightTotal  = flights.reduce((s, f) => s + f.price, 0);
-  const actTotal     = activities.slice(0, 4).reduce((s, a) => s + a.price, 0);
+  const travelers    = preferences.travelers ?? 2;
+  const rooms        = preferences.rooms ?? 1;
+  const hotelTotal   = hotels[0]  ? hotels[0].pricePerNight * numDays * rooms : 0;
+  const flightTotal  = flights.reduce((s, f) => s + f.price, 0) * travelers;
+  const actTotal     = activities.slice(0, 4).reduce((s, a) => s + a.price, 0) * travelers;
 
   const dest = preferences.destination?.displayName ?? "your destination";
+  const acts = (preferences.activities ?? []).slice(0, 3).join(", ");
+  const vibeList = (preferences.vibes ?? []).slice(0, 2).join(" and ");
+
   const summaryFallback = aiSummary ||
-    `Here's your personalised ${numDays}-day itinerary for ${dest}. ` +
-    `The plan balances your key interests — ${(preferences.activities ?? []).slice(0, 3).join(", ")} — ` +
-    `with local discoveries and logistical efficiency.`;
+    `**${numDays}-day itinerary for ${dest}**\n\n` +
+    `Your plan is built around what matters most to you:\n` +
+    `- ${acts || "local experiences"}\n` +
+    `- Hand-picked restaurants and neighbourhood discoveries\n` +
+    `- Logical day-by-day sequencing to minimise travel time`;
 
   const whyFallback =
-    `This itinerary works because it sequences nearby experiences on the same day, ` +
-    `matches your ${preferences.budgetRange?.replace(/_/g, " ") ?? "chosen"} budget tier, ` +
-    `and prioritises the ${(preferences.vibes ?? []).slice(0, 2).join(" and ")} vibe you're after.`;
+    `- Activities near each other are grouped on the same day\n` +
+    `- Lodging matches your ${preferences.budgetRange?.replace(/_/g, " ") ?? "chosen"} budget tier\n` +
+    (vibeList ? `- Itinerary leans into the **${vibeList}** vibe you selected` : "- Balanced mix of culture, food, and exploration");
 
   const destName = preferences.destination?.displayName ?? "";
   const neighborhoods = getNeighborhoodsByDestination(destName);
@@ -250,7 +257,10 @@ function buildMeals(
   dayIndex: number,
   preferences: TripPreferences
 ): ItineraryDay["meals"] {
-  const isHighBudget = preferences.budgetRange === "750_1000" || preferences.budgetRange === "1000_plus";
+  const foodBudget = preferences.dailyFoodBudgetPerPerson;
+  const isHighBudget =
+    (foodBudget !== undefined && foodBudget >= 150) ||
+    (foodBudget === undefined && (preferences.budgetRange === "750_1000" || preferences.budgetRange === "1000_plus"));
   const dest = preferences.destination?.displayName ?? "local";
 
   const breakfasts = [

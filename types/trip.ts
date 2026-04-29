@@ -93,11 +93,13 @@ export interface AirlinePreference {
 export interface TripPreferences {
   destination?: Destination;
   activities: ActivityCategory[];
-  activityRankings: Partial<Record<ActivityCategory, number>>; // 1 = top priority
+  activityRankings: Partial<Record<ActivityCategory, number>>;
   vibes: VibeTag[];
   dates?: DatePreference;
-  budgetRange?: BudgetRange;
-  budgetDailyMax?: number;
+  travelers?: number;                    // number of people in the group
+  rooms?: number;                        // number of rooms needed
+  budgetRange?: BudgetRange;             // lodging tier per room / night
+  dailyFoodBudgetPerPerson?: number;     // food spend in $ per person per day
   lodging?: LodgingPreference;
   airlinePrefs?: AirlinePreference;
   transportation: TransportMode[];
@@ -249,15 +251,15 @@ export function calcProgress(completedSteps: StepId[]): number {
 }
 
 export const BUDGET_LABELS: Record<BudgetRange, string> = {
-  under_500: "Under $500 / day",
-  "500_750": "$500 – $750 / day",
-  "750_1000": "$750 – $1,000 / day",
-  "1000_plus": "$1,000+ / day",
+  under_500:  "Under $200 / room / night",
+  "500_750":  "$200 – $400 / room / night",
+  "750_1000": "$400 – $700 / room / night",
+  "1000_plus": "$700+ / room / night",
 };
 
 export const BUDGET_MAX: Record<BudgetRange, number> = {
-  under_500: 499,
-  "500_750": 750,
-  "750_1000": 1000,
-  "1000_plus": 2500,
+  under_500:  200,
+  "500_750":  400,
+  "750_1000": 700,
+  "1000_plus": 1500,
 };
