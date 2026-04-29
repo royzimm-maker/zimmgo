@@ -37,6 +37,16 @@ export function LandingHero() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+      {/* Beta banner */}
+      <div className="bg-amber-400/10 border-b border-amber-400/20 px-4 py-1.5 text-center">
+        <p className="text-xs text-amber-300">
+          <span className="inline-flex items-center gap-1 font-semibold mr-1">
+            <span className="rounded bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">Beta</span>
+          </span>
+          ZimmGo is an early prototype — recommendations are illustrative and not live booking data.
+        </p>
+      </div>
+
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4">
         <span className="text-xl font-bold text-white tracking-tight">ZimmGo</span>
