@@ -245,7 +245,7 @@ function ActivityRow({
 // ─── Main RefineStep ──────────────────────────────────────────────────────────
 
 export function RefineStep() {
-  const { trip } = useTripStore();
+  const { trip, goToStep } = useTripStore();
   const itinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
   const neighborhoods = itinerary?.neighborhoods ?? [];
@@ -270,12 +270,23 @@ export function RefineStep() {
     setAskingAbout((prev) => (prev === id ? null : id));
   }
 
+  // Called by StepShell's Done button. Navigate back to the itinerary so the
+  // user lands on their finished plan. Includes a console breadcrumb for debugging.
+  function handleDone() {
+    try {
+      console.info("[ZimmGo] Refine step complete — navigating to itinerary view.");
+      goToStep("itinerary");
+    } catch (err) {
+      console.error("[ZimmGo] handleDone failed:", err);
+    }
+  }
+
   const includedCount = includedIds.size;
   const totalCount = activities.length;
 
   if (!itinerary) {
     return (
-      <StepShell stepId="refine" continueLabel="Done">
+      <StepShell stepId="refine" continueLabel="Done" onContinue={handleDone}>
         <div className="flex flex-col items-center gap-3 py-12 text-center">
           <p className="text-slate-500 text-sm">No itinerary generated yet.</p>
           <p className="text-xs text-slate-400">Go back to the Itinerary step to generate your plan.</p>
@@ -287,7 +298,8 @@ export function RefineStep() {
   return (
     <StepShell
       stepId="refine"
-      continueLabel="Done"
+      continueLabel="Done — view my plan"
+      onContinue={handleDone}
       subtitle="Choose your neighbourhood, select the activities you want, and ask our AI any questions."
     >
       {/* ── Neighbourhood picker ── */}

@@ -14,9 +14,9 @@ type DateMode = "exact" | "flexible";
 const DURATIONS = [7, 10, 14, 21];
 
 const MONTHS = [
-  "2025-06", "2025-07", "2025-08", "2025-09",
-  "2025-10", "2025-11", "2025-12", "2026-01",
-  "2026-02", "2026-03", "2026-04", "2026-05",
+  "2026-05", "2026-06", "2026-07", "2026-08",
+  "2026-09", "2026-10", "2026-11", "2026-12",
+  "2027-01", "2027-02", "2027-03", "2027-04",
 ].map((m) => ({
   value: m,
   label: new Date(m + "-01").toLocaleString("default", { month: "long", year: "numeric" }),
@@ -27,6 +27,7 @@ export function DatesStep() {
   const existing = trip.preferences.dates;
 
   const [mode, setMode] = useState<DateMode>(existing?.type ?? "exact");
+  const today = new Date().toISOString().slice(0, 10); // always current year
   const [startDate, setStartDate] = useState(existing?.startDate?.slice(0, 10) ?? "");
   const [endDate,   setEndDate  ] = useState(existing?.endDate?.slice(0, 10) ?? "");
   const [flexMonth, setFlexMonth] = useState(existing?.flexibleMonth ?? MONTHS[0].value);
@@ -79,14 +80,14 @@ export function DatesStep() {
             label="Departure"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            min={new Date().toISOString().slice(0, 10)}
+            min={today}
           />
           <Input
             type="date"
             label="Return"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            min={startDate || new Date().toISOString().slice(0, 10)}
+            min={startDate || today}
           />
         </div>
       ) : (
