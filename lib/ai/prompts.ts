@@ -5,8 +5,18 @@ import { BUDGET_LABELS, BUDGET_MAX } from "@/types/trip";
 export function buildItineraryPrompt(preferences: TripPreferences): string {
   const parts: string[] = [];
 
-  const dest = preferences.destination?.displayName ?? "the destination";
-  parts.push(`Please create a comprehensive travel plan for **${dest}**.`);
+  const destNames = preferences.destination?.displayName ?? "the destination";
+  const destList  = destNames.split(", ").filter(Boolean);
+  const isMulti   = destList.length > 1;
+
+  if (isMulti) {
+    parts.push(
+      `Please create a comprehensive **multi-destination** travel plan covering: **${destNames}**.` +
+      ` Allocate days across all destinations and include logical travel connections between them.`
+    );
+  } else {
+    parts.push(`Please create a comprehensive travel plan for **${destNames}**.`);
+  }
 
   if (preferences.dates) {
     const d = preferences.dates;
@@ -67,7 +77,10 @@ export function buildChatSystemPrompt(preferences: TripPreferences): string {
   const contextLines: string[] = [];
 
   if (preferences.destination) {
-    contextLines.push(`Current destination: ${preferences.destination.displayName}`);
+    const label = preferences.destination.displayName.includes(", ")
+      ? `Destinations: ${preferences.destination.displayName}`
+      : `Destination: ${preferences.destination.displayName}`;
+    contextLines.push(label);
   }
   if (preferences.activities.length) {
     contextLines.push(`Activities: ${preferences.activities.join(", ")}`);
