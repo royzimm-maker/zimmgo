@@ -1,0 +1,76 @@
+// Flights API module
+// Production: swap mock data for real Amadeus API calls
+// Amadeus docs: https://developers.amadeus.com/self-service/category/flights
+
+import { v4 as uuid } from "uuid";
+import type { FlightOption } from "@/types/trip";
+
+interface FlightSearchParams {
+  origin: string;
+  destination: string;
+  departure_date: string;
+  return_date?: string;
+  cabin_class?: string;
+  preferred_airlines?: string[];
+  nonstop_only?: boolean;
+}
+
+// Realistic mock data keyed by destination region
+const MOCK_AIRLINES = [
+  { name: "Delta Air Lines",    code: "DL", alliance: "skyteam"       },
+  { name: "United Airlines",    code: "UA", alliance: "star_alliance"  },
+  { name: "American Airlines",  code: "AA", alliance: "oneworld"       },
+  { name: "Singapore Airlines", code: "SQ", alliance: "star_alliance"  },
+  { name: "Emirates",           code: "EK", alliance: "none"           },
+  { name: "British Airways",    code: "BA", alliance: "oneworld"       },
+  { name: "Lufthansa",          code: "LH", alliance: "star_alliance"  },
+  { name: "Air France",         code: "AF", alliance: "skyteam"        },
+];
+
+const CABIN_MULTIPLIER: Record<string, number> = {
+  economy: 1, premium_economy: 2.2, business: 4.5, first: 8,
+};
+
+function randomInt(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function pickAirlines(
+  preferred: string[] = [],
+  count = 3
+): typeof MOCK_AIRLINES[number][] {
+  const matched = MOCK_AIRLINES.filter((a) =>
+    preferred.some((p) => a.name.toLowerCase().includes(p.toLowerCase()))
+  );
+  const rest = MOCK_AIRLINES.filter((a) => !matched.includes(a));
+  const pool = [...matched, ...rest];
+  return pool.slice(0, count);
+}
+
+export async function searchFlights(params: FlightSearchParams): Promise<FlightOption[]> {
+  // --- PRODUCTION SWAP POINT ---
+  // const amadeusToken = await getAmadeusToken();
+  // const response = await fetch(`https://test.api.amadeus.com/v2/shopping/flight-offers?...`);
+  // return transformAmadeusResponse(response);
+
+  // Mock response — realistic price ranges
+  const basePrice = randomInt(600, 2400);
+  const cabinMult = CABIN_MULTIPLIER[params.cabin_class ?? "business"];
+  const airlines  = pickAirlines(params.preferred_airlines ?? [], 3);
+
+  return airlines.map((airline, idx) => ({
+    id: uuid(),
+    airline: airline.name,
+    flightNumber: `${airline.code}${randomInt(100, 999)}`,
+    origin: params.origin,
+    destination: params.destination,
+    departureTime: `${params.departure_date}T${randomInt(6, 14).toString().padStart(2, "0")}:${["00","15","30","45"][idx % 4]}:00`,
+    arrivalTime: `${params.departure_date}T${randomInt(14, 23).toString().padStart(2, "0")}:${["00","30"][idx % 2]}:00`,
+    duration: `${randomInt(9, 17)}h ${randomInt(0, 59)}m`,
+    stops: params.nonstop_only ? 0 : (idx === 0 ? 0 : randomInt(0, 1)),
+    price: Math.round((basePrice + idx * randomInt(150, 400)) * cabinMult),
+    currency: "USD",
+    cabinClass: params.cabin_class ?? "business",
+    bookingUrl: undefined, // Would be populated by real Amadeus deep-link
+  }));
+}

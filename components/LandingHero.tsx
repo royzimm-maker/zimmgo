@@ -1,0 +1,134 @@
+"use client";
+
+import { ArrowRight, MapPin, Star, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { useTripStore } from "@/lib/store/tripStore";
+import { useRouter } from "next/navigation";
+
+const DESTINATIONS = [
+  { name: "Tokyo",      flag: "🇯🇵" },
+  { name: "Patagonia",  flag: "🏔️" },
+  { name: "Amalfi",     flag: "🇮🇹" },
+  { name: "Iceland",    flag: "🇮🇸" },
+  { name: "Kyoto",      flag: "🇯🇵" },
+  { name: "Morocco",    flag: "🇲🇦" },
+];
+
+const STEPS = [
+  { icon: "📍", label: "Destination" },
+  { icon: "🎯", label: "Activities" },
+  { icon: "✨", label: "Vibe" },
+  { icon: "📅", label: "Dates" },
+  { icon: "💰", label: "Budget" },
+  { icon: "🏨", label: "Lodging" },
+  { icon: "✈️", label: "Flights" },
+  { icon: "🚗", label: "Transport" },
+  { icon: "🗺️", label: "Itinerary" },
+];
+
+export function LandingHero() {
+  const { resetTrip } = useTripStore();
+  const router = useRouter();
+
+  function startPlanning() {
+    resetTrip();
+    router.push("/plan");
+  }
+
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+      {/* Nav */}
+      <nav className="flex items-center justify-between px-6 py-4">
+        <span className="text-xl font-bold text-white tracking-tight">ZimmGo</span>
+        <button
+          onClick={startPlanning}
+          className="text-sm text-slate-400 hover:text-white transition-colors"
+        >
+          Start planning →
+        </button>
+      </nav>
+
+      {/* Hero */}
+      <div className="mx-auto max-w-4xl px-6 pt-16 pb-24 text-center">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5">
+          <Sparkles size={14} className="text-brand-400" />
+          <span className="text-xs font-medium text-brand-300">AI-powered travel planning</span>
+        </div>
+
+        <h1 className="text-balance text-5xl font-bold text-white leading-tight sm:text-6xl">
+          Plan trips like a{" "}
+          <span className="bg-gradient-to-r from-brand-400 to-sage-400 bg-clip-text text-transparent">
+            seasoned traveller
+          </span>
+        </h1>
+
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 leading-relaxed">
+          ZimmGo acts as your personal AI travel advisor — guiding you step-by-step from
+          destination to a complete day-by-day itinerary, with curated flights, hotels, and
+          experiences matched to your taste and budget.
+        </p>
+
+        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <Button size="lg" onClick={startPlanning} className="px-8">
+            Start planning your trip
+            <ArrowRight size={16} />
+          </Button>
+          <p className="text-sm text-slate-500">Free · No sign-up required</p>
+        </div>
+
+        {/* Progress steps preview */}
+        <div className="mt-16 flex items-center justify-center gap-1 overflow-x-auto pb-2">
+          {STEPS.map((step, idx) => (
+            <div key={step.label} className="flex items-center">
+              <div className="flex shrink-0 flex-col items-center gap-1">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 text-base">
+                  {step.icon}
+                </div>
+                <span className="text-[10px] text-slate-500">{step.label}</span>
+              </div>
+              {idx < STEPS.length - 1 && (
+                <div className="mx-1 h-px w-4 bg-slate-700 shrink-0" />
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-slate-600">
+          9 guided steps · complete what matters, skip what doesn&apos;t
+        </p>
+      </div>
+
+      {/* Popular destinations */}
+      <div className="border-t border-slate-800 bg-slate-900/60 py-12 px-6">
+        <p className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-slate-600">
+          Popular destinations
+        </p>
+        <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-3">
+          {DESTINATIONS.map((d) => (
+            <button
+              key={d.name}
+              onClick={startPlanning}
+              className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-300 transition-all hover:border-brand-500 hover:text-white"
+            >
+              <span>{d.flag}</span>
+              <MapPin size={12} className="text-slate-500" />
+              {d.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Social proof */}
+      <div className="border-t border-slate-800 py-10 px-6 text-center">
+        <div className="flex items-center justify-center gap-1 mb-2">
+          {[1,2,3,4,5].map((i) => (
+            <Star key={i} size={14} className="fill-amber-400 text-amber-400" />
+          ))}
+        </div>
+        <p className="text-slate-400 text-sm">
+          &ldquo;Finally a trip planner that makes <em>actual recommendations</em> instead of endless lists.&rdquo;
+        </p>
+        <p className="mt-1 text-xs text-slate-600">— Early beta user</p>
+      </div>
+    </main>
+  );
+}
