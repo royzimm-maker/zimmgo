@@ -81,7 +81,7 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
         ratingSource: h.ratingSource,
         reviewCount: h.reviewCount!,
         highlights: h.highlights!,
-        imageUrl: undefined,
+        imageUrl: `https://picsum.photos/seed/${encodeURIComponent(h.name!)}/800/400`,
         // Placeholder — swap for real Booking.com affiliate deep-link
         bookingUrl: `https://www.booking.com/search.html?ss=${encodeURIComponent(h.name + " " + params.destination)}`,
       };

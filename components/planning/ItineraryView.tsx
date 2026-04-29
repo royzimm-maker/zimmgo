@@ -195,7 +195,22 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
   const icon = hotel.ratingSource ? (sourceIcon[hotel.ratingSource] ?? "⭐") : "⭐";
 
   return (
-    <Card padding="sm" className="flex items-start gap-3">
+    <Card padding="none" className="overflow-hidden">
+      {/* Hotel image */}
+      {hotel.imageUrl && (
+        <div className="relative w-full h-36 bg-slate-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={hotel.imageUrl}
+            alt={hotel.name}
+            className="w-full h-full object-cover"
+          />
+          <span className="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white/80 font-medium tracking-wide">
+            Illustrative
+          </span>
+        </div>
+      )}
+      <div className="flex items-start gap-3 p-3">
       <div className="flex-1">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <span className="font-semibold text-slate-800 text-sm">{hotel.name}</span>
@@ -239,6 +254,7 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
             </a>
           )}
         </div>
+      </div>
       </div>
     </Card>
   );
