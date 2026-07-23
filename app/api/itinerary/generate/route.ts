@@ -247,8 +247,9 @@ function buildTimeBlock(
   };
 
   const base = slots[period][dayIndex % slots[period].length];
-  if (activities.length) {
-    base.push(activities[0].name);
+  // Add one activity per day in the morning slot only, rotating through the pool
+  if (period === "morning" && activities.length) {
+    base.push(activities[dayIndex % activities.length].name);
   }
   return base;
 }

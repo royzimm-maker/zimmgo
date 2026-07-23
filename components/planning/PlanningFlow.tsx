@@ -2,6 +2,7 @@
 
 import { useTripStore } from "@/lib/store/tripStore";
 import { ProgressBar } from "@/components/planning/ProgressBar";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DestinationStep }    from "@/components/planning/steps/DestinationStep";
 import { ActivitiesStep }     from "@/components/planning/steps/ActivitiesStep";
 import { VibeStep }           from "@/components/planning/steps/VibeStep";
@@ -44,7 +45,9 @@ export function PlanningFlow() {
       {/* ── Main content ── */}
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-          <StepComponent />
+          <ErrorBoundary>
+            <StepComponent />
+          </ErrorBoundary>
         </div>
       </main>
 

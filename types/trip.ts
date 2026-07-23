@@ -93,7 +93,7 @@ export interface AirlinePreference {
 // ─── User preferences (the planning form state) ───────────────────────────────
 export interface TripPreferences {
   destination?: Destination;
-  activities: ActivityCategory[];
+  activities: (ActivityCategory | string)[];   // may include free-text "Other" entries
   activityRankings: Partial<Record<ActivityCategory, number>>;
   vibes: VibeTag[];
   dates?: DatePreference;
@@ -174,6 +174,11 @@ export interface ItineraryDay {
   notes?: string;
 }
 
+export interface ItineraryRefinements {
+  neighborhoodId?: string;
+  excludedActivityIds?: string[];
+}
+
 export interface GeneratedItinerary {
   id: string;
   tripId: string;
@@ -188,6 +193,7 @@ export interface GeneratedItinerary {
   aiSummary: string;
   whyThisWorks: string;
   neighborhoods?: NeighborhoodOption[];
+  refinements?: ItineraryRefinements;
 }
 
 // ─── Top-level Trip entity ─────────────────────────────────────────────────────

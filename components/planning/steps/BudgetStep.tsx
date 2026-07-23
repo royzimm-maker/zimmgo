@@ -4,10 +4,9 @@ import { useState } from "react";
 import { DollarSign, Minus, Plus } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { Card } from "@/components/ui/Card";
-import { SelectChip } from "@/components/ui/SelectChip";
 import { cn } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
-import { BUDGET_LABELS, type BudgetRange, type LodgingType } from "@/types/trip";
+import { BUDGET_LABELS, type BudgetRange } from "@/types/trip";
 
 // ─── Lodging tier options ─────────────────────────────────────────────────────
 const LODGING_TIERS: {
@@ -28,14 +27,6 @@ const FOOD_PRESETS: { value: number; label: string; sublabel: string; emoji: str
   { value: 100, label: "$70–150 / person / day", sublabel: "Good restaurants daily",        emoji: "🍷" },
   { value: 200, label: "$150–300 / person / day", sublabel: "Fine dining most nights",      emoji: "🥂" },
   { value: 400, label: "$300+ / person / day",   sublabel: "Chef's table & omakase",        emoji: "⭐" },
-];
-
-// ─── Lodging types (same as LodgingStep, pre-selects lodging.types) ───────────
-const LODGING_TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[] = [
-  { id: "hotel",    label: "Hotel",        icon: "🏨", sublabel: "Traditional hotel, full service" },
-  { id: "airbnb",   label: "Airbnb / Apt", icon: "🏠", sublabel: "Home-like, flexible, local feel" },
-  { id: "boutique", label: "Boutique",     icon: "🛎️", sublabel: "Design-led, intimate, unique" },
-  { id: "resort",   label: "Resort",       icon: "🌴", sublabel: "All-inclusive, amenities-rich" },
 ];
 
 // ─── Stepper control ──────────────────────────────────────────────────────────
@@ -77,23 +68,16 @@ function Stepper({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function BudgetStep() {
-  const { trip, setBudget, setBudgetDetails, setLodging } = useTripStore();
+  const { trip, setBudget, setBudgetDetails } = useTripStore();
   const prefs = trip.preferences;
 
-  const [travelers,    setTravelers   ] = useState(prefs.travelers ?? 2);
-  const [rooms,        setRooms       ] = useState(prefs.rooms ?? 1);
-  const [lodgingTypes, setLodgingTypes] = useState<LodgingType[]>(prefs.lodging?.types ?? []);
-  const [lodgingTier,  setLodgingTier ] = useState<BudgetRange | "other" | null>(prefs.budgetRange ?? null);
+  const [travelers,   setTravelers  ] = useState(prefs.travelers ?? 2);
+  const [rooms,       setRooms      ] = useState(prefs.rooms ?? 1);
+  const [lodgingTier, setLodgingTier] = useState<BudgetRange | "other" | null>(prefs.budgetRange ?? null);
   const [customNight,  setCustomNight ] = useState("");
   const [foodPreset,   setFoodPreset  ] = useState<number | "custom" | null>(prefs.dailyFoodBudgetPerPerson ?? null);
   const [customFood,   setCustomFood  ] = useState("");
   const [errors,       setErrors      ] = useState<{ night?: string; food?: string }>({});
-
-  function toggleType(t: LodgingType) {
-    setLodgingTypes((prev) =>
-      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
-    );
-  }
 
   function handleContinue() {
     const errs: { night?: string; food?: string } = {};
@@ -125,14 +109,6 @@ export function BudgetStep() {
 
     if (resolvedTier) setBudget(resolvedTier);
     setBudgetDetails({ travelers, rooms, dailyFoodBudgetPerPerson: resolvedFood });
-    if (lodgingTypes.length) {
-      const existing = prefs.lodging;
-      setLodging({
-        types: lodgingTypes,
-        minStars: existing?.minStars ?? 4,
-        amenities: existing?.amenities ?? [],
-      });
-    }
   }
 
   const canContinue = lodgingTier !== null;
@@ -167,26 +143,7 @@ export function BudgetStep() {
           </div>
         </div>
 
-        {/* ── Section 2: Lodging type ── */}
-        <div>
-          <p className="mb-3 text-sm font-semibold text-slate-700">
-            Accommodation type <span className="font-normal text-slate-400">(optional)</span>
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {LODGING_TYPES.map((t) => (
-              <SelectChip
-                key={t.id}
-                label={t.label}
-                icon={t.icon}
-                sublabel={t.sublabel}
-                selected={lodgingTypes.includes(t.id)}
-                onClick={() => toggleType(t.id)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* ── Section 3: Lodging budget per room / night ── */}
+        {/* ── Section 2: Lodging budget per room / night ── */}
         <div>
           <p className="mb-1 text-sm font-semibold text-slate-700">Lodging budget</p>
           <p className="mb-3 text-xs text-slate-400">Per room per night — we&apos;ll match hotels and rentals to this range.</p>
@@ -253,7 +210,7 @@ export function BudgetStep() {
           </div>
         </div>
 
-        {/* ── Section 4: Daily food budget ── */}
+        {/* ── Section 3: Daily food budget ── */}
         <div>
           <p className="mb-1 text-sm font-semibold text-slate-700">
             Daily food budget <span className="font-normal text-slate-400">(optional)</span>
@@ -318,7 +275,7 @@ export function BudgetStep() {
         </div>
 
         {/* ── Summary line ── */}
-        {(travelers !== 2 || rooms !== 1 || lodgingTier || (foodPreset && foodPreset !== "custom")) && (
+        {(travelers !== 2 || rooms !== 1 || lodgingTier !== null || (foodPreset && foodPreset !== "custom")) && (
           <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-xs text-slate-600 space-y-1">
             <p className="font-semibold text-slate-700 mb-1">Your group summary</p>
             <p>👥 {travelers} traveller{travelers !== 1 ? "s" : ""}, {rooms} room{rooms !== 1 ? "s" : ""} per night</p>

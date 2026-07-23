@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   MapPin, CheckCircle2, Circle, MessageCircle, Send, RefreshCw,
   Sparkles, Hotel, Star, X
@@ -245,17 +245,26 @@ function ActivityRow({
 // ─── Main RefineStep ──────────────────────────────────────────────────────────
 
 export function RefineStep() {
-  const { trip, goToStep } = useTripStore();
+  const { trip, goToStep, updateItineraryRefinements } = useTripStore();
   const itinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
   const neighborhoods = itinerary?.neighborhoods ?? [];
   const activities: ActivityOption[] = itinerary?.activities ?? [];
 
-  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(null);
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(
+    itinerary?.refinements?.neighborhoodId ?? null
+  );
   const [includedIds, setIncludedIds] = useState<Set<string>>(
     () => new Set(activities.map((a) => a.id))
   );
   const [askingAbout, setAskingAbout] = useState<string | null>(null);
+
+  // Reset when a new itinerary is generated (new id = new activities)
+  useEffect(() => {
+    setIncludedIds(new Set(activities.map((a) => a.id)));
+    setSelectedNeighborhood(itinerary?.refinements?.neighborhoodId ?? null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itinerary?.id]);
 
   const toggleActivity = useCallback((id: string) => {
     setIncludedIds((prev) => {
@@ -270,8 +279,16 @@ export function RefineStep() {
     setAskingAbout((prev) => (prev === id ? null : id));
   }
 
-  // Navigate back to the itinerary view so the user lands on their finished plan.
+  // Persist refinement choices then navigate back to the itinerary view.
   function handleDone() {
+    if (itinerary) {
+      updateItineraryRefinements(itinerary.id, {
+        neighborhoodId: selectedNeighborhood ?? undefined,
+        excludedActivityIds: activities
+          .filter((a) => !includedIds.has(a.id))
+          .map((a) => a.id),
+      });
+    }
     goToStep("itinerary");
   }
 

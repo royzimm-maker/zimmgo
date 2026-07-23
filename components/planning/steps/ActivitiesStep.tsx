@@ -36,9 +36,9 @@ export function ActivitiesStep() {
   const [selectedSpecific, setSelectedSpecific] = useState<string[]>([]);
   // Track selected general categories
   const [selectedGeneral,  setSelectedGeneral ] = useState<ActivityCategory[]>(
-    trip.preferences.activities.filter((a) =>
+    trip.preferences.activities.filter((a): a is ActivityCategory =>
       GENERAL.some((g) => g.id === a)
-    ) as ActivityCategory[]
+    )
   );
   const [otherOpen,  setOtherOpen ] = useState(false);
   const [otherValue, setOtherValue] = useState("");
@@ -72,7 +72,7 @@ export function ActivitiesStep() {
       ...selectedSpecific,
       ...(otherOpen && otherValue.trim() ? [otherValue.trim()] : []),
     ];
-    setActivities(all as ActivityCategory[]);
+    setActivities(all);
   }
 
   const totalSelected =

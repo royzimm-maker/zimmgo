@@ -8,6 +8,7 @@ import type {
   TripPreferences,
   StepId,
   GeneratedItinerary,
+  ItineraryRefinements,
   ChatMessage,
   Destination,
   DatePreference,
@@ -38,7 +39,7 @@ interface TripState {
 
   // Individual preference setters
   setDestination: (dest: Destination) => void;
-  setActivities: (activities: ActivityCategory[]) => void;
+  setActivities: (activities: (ActivityCategory | string)[]) => void;
   setVibes: (vibes: VibeTag[]) => void;
   setDates: (dates: DatePreference) => void;
   setBudget: (range: BudgetRange) => void;
@@ -49,6 +50,7 @@ interface TripState {
 
   // Itinerary
   addItinerary: (itinerary: GeneratedItinerary) => void;
+  updateItineraryRefinements: (itineraryId: string, refinements: ItineraryRefinements) => void;
 
   // Chat
   addMessage: (msg: Omit<ChatMessage, "id" | "createdAt">) => void;
@@ -227,6 +229,17 @@ export const useTripStore = create<TripState>()(
           },
         })),
 
+      updateItineraryRefinements: (itineraryId, refinements) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            itineraries: s.trip.itineraries.map((it) =>
+              it.id === itineraryId ? { ...it, refinements } : it
+            ),
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
       addMessage: (msg) =>
         set((s) => ({
           chatMessages: [
@@ -244,6 +257,12 @@ export const useTripStore = create<TripState>()(
     {
       name: "zimmgo-trip",
       storage: createJSONStorage(() => localStorage),
+      // isGenerating and sidebarOpen are transient UI state — never persist them
+      partialize: (state) => ({
+        trip: state.trip,
+        chatMessages: state.chatMessages,
+        progress: state.progress,
+      }),
     }
   )
 );

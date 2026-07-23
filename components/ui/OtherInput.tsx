@@ -23,8 +23,7 @@ export function OtherInput({
   placeholder = "Describe it…",
 }: OtherInputProps) {
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && value.trim()) { /* value is committed — parent reads it on continue */ }
-    if (e.key === "Escape") { onToggle(); }
+    if (e.key === "Escape") onToggle();
   }
 
   // Collapsed chip

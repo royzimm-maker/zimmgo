@@ -1,4 +1,5 @@
 import { PlanningFlow } from "@/components/planning/PlanningFlow";
+import { StartOverButton } from "@/components/StartOverButton";
 
 export const metadata = {
   title: "Plan your trip — ZimmGo",
@@ -24,12 +25,7 @@ export default function PlanPage() {
             <span className="text-xl font-bold text-brand-600 tracking-tight">ZimmGo</span>
             <span className="hidden text-xs text-slate-400 sm:block">AI Travel Planner</span>
           </a>
-          <a
-            href="/"
-            className="text-xs text-slate-500 hover:text-slate-700 transition-colors"
-          >
-            Start new trip
-          </a>
+          <StartOverButton />
         </div>
       </header>
 
