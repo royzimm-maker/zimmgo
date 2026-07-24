@@ -103,11 +103,18 @@ const STATUS_MESSAGES = [
   "Curating local experiences…",
   "Building your day-by-day plan…",
   "Checking restaurant picks…",
-  "Adding finishing touches…",
+  "Negotiating with the concierge…",
+  "Bribing the maître d' for a better table…",
+  "Convincing the locals you're not a tourist…",
+  "Building a trip you'll never forget…",
+  "This will be worth the wait…",
+  "Adding the secret gems only locals know…",
+  "Perfecting your itinerary one detail at a time…",
+  "Almost there — good things take time…",
+  "Packing in more adventures…",
 ];
 const RING_R = 34;
 const RING_CIRC = 2 * Math.PI * RING_R;
-const ESTIMATED_SECONDS = 28; // typical generation time
 
 function GeneratingProgress() {
   const [elapsed, setElapsed] = useState(0);
@@ -118,9 +125,11 @@ function GeneratingProgress() {
     return () => clearInterval(intervalRef.current);
   }, []);
 
-  const progress = Math.min(elapsed / ESTIMATED_SECONDS, 0.9);
+  // Exponential easing: fast start, then slows dramatically, caps at 80%
+  // At 10s ≈ 45%, 20s ≈ 63%, 30s ≈ 75%, 60s ≈ 80% — never looks "almost done"
+  const progress = (1 - Math.exp(-elapsed * 0.05)) * 0.80;
   const dashOffset = RING_CIRC * (1 - progress);
-  const statusIdx = Math.floor(elapsed / 5) % STATUS_MESSAGES.length;
+  const statusIdx = Math.floor(elapsed / 6) % STATUS_MESSAGES.length;
   const mm = String(Math.floor(elapsed / 60)).padStart(1, "0");
   const ss = String(elapsed % 60).padStart(2, "0");
 
@@ -139,7 +148,7 @@ function GeneratingProgress() {
             strokeDasharray={RING_CIRC}
             strokeDashoffset={dashOffset}
             transform="rotate(-90 44 44)"
-            style={{ transition: "stroke-dashoffset 1s linear" }}
+            style={{ transition: "stroke-dashoffset 1s ease-out" }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">

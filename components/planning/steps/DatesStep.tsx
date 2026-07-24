@@ -11,6 +11,7 @@ import type { DatePreference } from "@/types/trip";
 type DateMode = "exact" | "flexible";
 
 const DURATIONS = [7, 10, 14, 21];
+const DURATION_MAX = 90;
 
 // 18 months forward from today — no past dates
 function generateMonths() {
@@ -36,7 +37,9 @@ export function DatesStep() {
   const [startDate, setStartDate] = useState(existing?.startDate?.slice(0, 10) ?? "");
   const [endDate,   setEndDate  ] = useState(existing?.endDate?.slice(0, 10) ?? "");
   const [flexMonth, setFlexMonth] = useState(existing?.flexibleMonth ?? MONTHS[0].value);
-  const [duration,  setDuration ] = useState(existing?.flexibleDuration ?? 10);
+  const [duration,     setDuration    ] = useState(existing?.flexibleDuration ?? 10);
+  const [customDur,    setCustomDur   ] = useState(false);
+  const [customDurVal, setCustomDurVal] = useState("");
 
   const endDateRef = useRef<HTMLInputElement>(null);
 
@@ -134,15 +137,15 @@ export function DatesStep() {
           </div>
           <div>
             <p className="mb-2 text-sm font-medium text-slate-700">Trip duration</p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {DURATIONS.map((d) => (
                 <button
                   key={d}
                   type="button"
-                  onClick={() => setDuration(d)}
+                  onClick={() => { setDuration(d); setCustomDur(false); }}
                   className={cn(
                     "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
-                    duration === d
+                    !customDur && duration === d
                       ? "border-brand-500 bg-brand-50 text-brand-700"
                       : "border-slate-200 text-slate-600 hover:border-slate-300"
                   )}
@@ -150,7 +153,37 @@ export function DatesStep() {
                   {d} days
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setCustomDur(true)}
+                className={cn(
+                  "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                  customDur
+                    ? "border-brand-500 bg-brand-50 text-brand-700"
+                    : "border-slate-200 text-slate-600 hover:border-slate-300"
+                )}
+              >
+                Other…
+              </button>
             </div>
+            {customDur && (
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={DURATION_MAX}
+                  value={customDurVal}
+                  onChange={(e) => {
+                    setCustomDurVal(e.target.value);
+                    const n = parseInt(e.target.value, 10);
+                    if (!isNaN(n) && n >= 1 && n <= DURATION_MAX) setDuration(n);
+                  }}
+                  placeholder="e.g. 21"
+                  className="w-24 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                />
+                <span className="text-sm text-slate-500">days</span>
+              </div>
+            )}
           </div>
         </div>
       )}

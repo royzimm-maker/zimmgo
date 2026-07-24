@@ -133,16 +133,26 @@ interface AssembleParams {
 function assembleItinerary(p: AssembleParams): GeneratedItinerary {
   const { preferences, flights, hotels, activities, restaurants, aiSummary, tripId } = p;
 
-  const startDate = preferences.dates?.startDate
-    ?? new Date().toISOString().slice(0, 10);
-  const endDate   = preferences.dates?.endDate
-    ?? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  let startDate: string;
+  let numDays: number;
 
-  const start   = new Date(startDate);
-  const end     = new Date(endDate);
-  const numDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
+  if (preferences.dates?.type === "flexible") {
+    // Parse "YYYY-MM" and land on the 15th of that month as a placeholder start
+    const [yr, mo] = (preferences.dates.flexibleMonth ?? new Date().toISOString().slice(0, 7))
+      .split("-").map(Number);
+    const d = new Date(yr, mo - 1, 15);
+    startDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-15`;
+    numDays   = Math.max(1, preferences.dates.flexibleDuration ?? 10);
+  } else {
+    startDate = preferences.dates?.startDate ?? new Date().toISOString().slice(0, 10);
+    const endDate = preferences.dates?.endDate
+      ?? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    const start = new Date(startDate);
+    const end   = new Date(endDate);
+    numDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
+  }
 
-  const days: ItineraryDay[] = buildDays(start, numDays, activities, preferences);
+  const days: ItineraryDay[] = buildDays(new Date(startDate), numDays, activities, preferences);
 
   const travelers    = preferences.travelers ?? 2;
   const rooms        = preferences.rooms ?? 1;
