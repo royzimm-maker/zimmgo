@@ -5,10 +5,20 @@ import { MapPin, Search, X, Plane, ChevronDown, Lightbulb, Route } from "lucide-
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { useTripStore } from "@/lib/store/tripStore";
-import { getRoutingSuggestion, searchAirports } from "@/lib/data/airportRouting";
+import { getFilteredRoutingSuggestion, searchAirports } from "@/lib/data/airportRouting";
 import type { Destination } from "@/types/trip";
 import type { RoutingSuggestion, Airport } from "@/lib/data/airportRouting";
 import { cn } from "@/lib/utils";
+
+function capitalize(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function mentionsExcluded(text: string, excluded: string[]): boolean {
+  return excluded.some((p) =>
+    new RegExp(`\\b${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)
+  );
+}
 
 const POPULAR = [
   "Greece — Athens & the Islands",
@@ -32,6 +42,7 @@ export function DestinationStep() {
   const [freeText,    setFreeText   ] = useState(saved?.freeText ?? saved?.displayName ?? "");
   const [departure,   setDeparture  ] = useState(saved?.departureAirport ?? "");
   const [routing,     setRouting    ] = useState<RoutingSuggestion | null>(null);
+  const [excluded,    setExcluded   ] = useState<string[]>([]);
   const [depResults,  setDepResults ] = useState<Airport[]>([]);
   const [depOpen,     setDepOpen    ] = useState(false);
   const [showRouting, setShowRouting] = useState(true);
@@ -44,9 +55,12 @@ export function DestinationStep() {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       if (freeText.trim().length > 3) {
-        setRouting(getRoutingSuggestion(freeText));
+        const { routing: r, excludedPlaces } = getFilteredRoutingSuggestion(freeText);
+        setRouting(r);
+        setExcluded(excludedPlaces);
       } else {
         setRouting(null);
+        setExcluded([]);
       }
     }, 400);
     return () => clearTimeout(debounceRef.current);
@@ -75,8 +89,20 @@ export function DestinationStep() {
     setDepOpen(false);
   }
 
+  function handleFreeTextChange(value: string) {
+    setFreeText(value);
+    // Persist draft so text survives any re-mount (e.g. parent re-renders)
+    const existing = useTripStore.getState().trip.preferences.destination;
+    setDestination({
+      cities: [],
+      ...(existing ?? {}),
+      freeText: value,
+      displayName: value,
+    });
+  }
+
   function applyQuickPick(label: string) {
-    setFreeText(label);
+    handleFreeTextChange(label);
   }
 
   function handleContinue() {
@@ -87,13 +113,15 @@ export function DestinationStep() {
     const displayName = text;
     const bestArrival = routing?.arrivalAirports.find((a) => a.recommended)?.code;
 
+    // Don't persist canned route prose that references places the user excluded
+    const routeUsable = routing && !mentionsExcluded(routing.suggestedRoute, excluded) && !mentionsExcluded(routing.routingWhy, excluded);
     const dest: Destination = {
       displayName,
       freeText: text,
       cities: routing?.arrivalAirports.map((a) => a.city) ?? [],
       departureAirport: departure.trim() || undefined,
       arrivalAirport:   bestArrival,
-      routingNote:      routing ? `${routing.suggestedRoute}\n\nWhy this works: ${routing.routingWhy}` : undefined,
+      routingNote:      routeUsable ? `${routing.suggestedRoute}\n\nWhy this works: ${routing.routingWhy}` : undefined,
     };
     setDestination(dest);
   }
@@ -115,7 +143,7 @@ export function DestinationStep() {
         <textarea
           rows={3}
           value={freeText}
-          onChange={(e) => setFreeText(e.target.value)}
+          onChange={(e) => handleFreeTextChange(e.target.value)}
           placeholder={`e.g. "Italy, especially Tuscany and maybe the Dolomites, and I'd love to finish somewhere along the Amalfi Coast"\n\nor "Greece for 10 days — Athens, two islands, and maybe Istanbul at the end"`}
           className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 resize-none leading-relaxed"
         />
@@ -144,6 +172,17 @@ export function DestinationStep() {
 
           {showRouting && (
             <div className="px-4 pb-4 flex flex-col gap-4 border-t border-brand-100">
+              {/* Exclusions detected */}
+              {excluded.length > 0 && (
+                <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    <span className="font-semibold">Noted — skipping {excluded.map(capitalize).join(", ")}.</span>{" "}
+                    We&apos;ve filtered the suggestions below, and your generated itinerary will avoid{" "}
+                    {excluded.length === 1 ? "it" : "them"} too.
+                  </p>
+                </div>
+              )}
+
               {/* Arrival airports */}
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-500 mt-3 mb-2 flex items-center gap-1">
@@ -177,21 +216,25 @@ export function DestinationStep() {
                 </div>
               </div>
 
-              {/* Route suggestion */}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-500 mb-2 flex items-center gap-1">
-                  <MapPin size={10} /> Suggested route
-                </p>
-                <p className="text-xs text-slate-700 leading-relaxed">{routing.suggestedRoute}</p>
-              </div>
+              {/* Route suggestion — hidden if the canned prose mentions an excluded place */}
+              {!mentionsExcluded(routing.suggestedRoute, excluded) && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-500 mb-2 flex items-center gap-1">
+                    <MapPin size={10} /> Suggested route
+                  </p>
+                  <p className="text-xs text-slate-700 leading-relaxed">{routing.suggestedRoute}</p>
+                </div>
+              )}
 
               {/* Why it works */}
-              <div className="rounded-lg bg-brand-100/60 px-3 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-600 mb-1">
-                  Why this routing makes sense
-                </p>
-                <p className="text-xs text-brand-800 leading-relaxed">{routing.routingWhy}</p>
-              </div>
+              {!mentionsExcluded(routing.routingWhy, excluded) && (
+                <div className="rounded-lg bg-brand-100/60 px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-600 mb-1">
+                    Why this routing makes sense
+                  </p>
+                  <p className="text-xs text-brand-800 leading-relaxed">{routing.routingWhy}</p>
+                </div>
+              )}
 
               {/* Tips */}
               {routing.travelTips.length > 0 && (
@@ -260,8 +303,8 @@ export function DestinationStep() {
         )}
       </div>
 
-      {/* ── Popular quick-picks ── */}
-      <div>
+      {/* ── Popular quick-picks — only shown before user types anything ── */}
+      {!freeText.trim() && <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
           Quick picks — tap to fill
         </p>
@@ -283,7 +326,7 @@ export function DestinationStep() {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
     </StepShell>
   );
 }

@@ -261,6 +261,66 @@ export function getRoutingSuggestion(text: string): RoutingSuggestion | null {
   return ROUTING_DB.find((r) => r.keywords.some((kw) => lower.includes(kw))) ?? null;
 }
 
+// ── Exclusion detection ────────────────────────────────────────────────────────
+// Detects places the user explicitly does NOT want (e.g. "somewhere that's not
+// Rome, Florence or Venice", "avoid Venice", "skip Madrid") so the routing card
+// can filter its suggestions instead of recommending excluded cities.
+
+const NEGATION_RE =
+  /\b(?:not|avoid(?:ing)?|skip(?:ping)?|except(?:ing)?|excluding|other than|besides|instead of|already (?:been to|seen|done|visited)|no interest in)\s+([^.!?;\n]+)/gi;
+
+// Every place keyword we know about, longest first so "cinque terre" wins over
+// partial words. Derived from the routing DB keywords.
+const KNOWN_PLACES: string[] = Array.from(
+  new Set(ROUTING_DB.flatMap((r) => r.keywords))
+).sort((a, b) => b.length - a.length);
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Word-boundary match so "nice" doesn't match inside "Venice"
+function containsPlace(text: string, place: string): boolean {
+  return new RegExp(`\\b${escapeRegExp(place)}\\b`, "i").test(text);
+}
+
+export function getExcludedPlaces(text: string): string[] {
+  const excluded = new Set<string>();
+  let match: RegExpExecArray | null;
+  NEGATION_RE.lastIndex = 0;
+  while ((match = NEGATION_RE.exec(text)) !== null) {
+    const clause = match[1];
+    for (const place of KNOWN_PLACES) {
+      if (containsPlace(clause, place)) excluded.add(place);
+    }
+  }
+  return Array.from(excluded);
+}
+
+// Returns the routing suggestion with any excluded cities removed from the
+// arrival-airport list. If the recommended airport was excluded, promotes the
+// next best option.
+export function getFilteredRoutingSuggestion(text: string): {
+  routing: RoutingSuggestion | null;
+  excludedPlaces: string[];
+} {
+  const routing = getRoutingSuggestion(text);
+  const excludedPlaces = getExcludedPlaces(text);
+  if (!routing || !excludedPlaces.length) return { routing, excludedPlaces };
+
+  const airports = routing.arrivalAirports.filter(
+    (ap) => !excludedPlaces.some((p) => containsPlace(ap.city, p))
+  );
+  // Keep at least one gateway even if everything matched an exclusion
+  const kept = airports.length ? airports : routing.arrivalAirports.slice(0, 1);
+  // If the recommended gateway was filtered out, promote the first remaining one
+  const withRecommended = kept.some((ap) => ap.recommended)
+    ? kept
+    : kept.map((ap, i) => (i === 0 ? { ...ap, recommended: true } : ap));
+
+  return { routing: { ...routing, arrivalAirports: withRecommended }, excludedPlaces };
+}
+
 export function searchAirports(query: string): Airport[] {
   if (!query.trim()) return [];
   const q = query.toLowerCase();
