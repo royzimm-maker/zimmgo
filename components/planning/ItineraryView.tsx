@@ -20,6 +20,7 @@ interface Props {
 export function ItineraryView({ itinerary }: Props) {
   const [expandedDay, setExpandedDay] = useState<number>(0);
   const [copied, setCopied] = useState(false);
+  const [selectedHotelId, setSelectedHotelId] = useState<string | null>(null);
   const { trip } = useTripStore();
   const preferences = trip.preferences;
 
@@ -89,9 +90,20 @@ export function ItineraryView({ itinerary }: Props) {
 
       {/* Hotels */}
       {itinerary.hotels.length > 0 && (
-        <Section title="Recommended Lodging" icon={<Hotel size={16} />}>
-          <div className="flex flex-col gap-2">
-            {itinerary.hotels.map((h) => <HotelCard key={h.id} hotel={h} />)}
+        <Section
+          title={itinerary.hotels.length > 1 ? "Choose Your Stay" : "Recommended Lodging"}
+          icon={<Hotel size={16} />}
+          subtitle={itinerary.hotels.length > 1 ? "Three options at different price points — tap the one that feels right." : undefined}
+        >
+          <div className="flex flex-col gap-3">
+            {itinerary.hotels.map((h) => (
+              <HotelCard
+                key={h.id}
+                hotel={h}
+                selected={selectedHotelId === h.id}
+                onSelect={() => setSelectedHotelId((prev) => prev === h.id ? null : h.id)}
+              />
+            ))}
           </div>
         </Section>
       )}
@@ -228,13 +240,15 @@ function RichText({ text, className = "" }: { text: string; className?: string }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, icon, subtitle, children }: { title: string; icon: React.ReactNode; subtitle?: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-1">
         <span className="text-brand-500">{icon}</span>
         <h3 className="font-semibold text-slate-800 text-sm">{title}</h3>
       </div>
+      {subtitle && <p className="text-xs text-slate-400 mb-3 pl-6">{subtitle}</p>}
+      {!subtitle && <div className="mb-3" />}
       {children}
     </div>
   );
@@ -280,12 +294,12 @@ function FlightCard({ flight }: { flight: FlightOption }) {
 }
 
 const HOTEL_TIER: Record<number, { label: string }> = {
-  5: { label: "Michelin or bust" },
-  4: { label: "Great beds, no drama" },
+  5: { label: "The full five-star treatment" },
+  4: { label: "Seriously comfortable, no drama" },
   3: { label: "Sleep well, spend the savings" },
 };
 
-function HotelCard({ hotel }: { hotel: HotelOption }) {
+function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelOption; selected?: boolean; onSelect?: () => void }) {
   const sourceIcon: Record<string, string> = {
     "Google Reviews": "🔵",
     "TripAdvisor": "🟢",
@@ -295,7 +309,19 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
   const tierLabel = (HOTEL_TIER[hotel.stars] ?? HOTEL_TIER[4]).label;
 
   return (
-    <Card padding="none" className="overflow-hidden">
+    <div
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onClick={onSelect}
+      onKeyDown={(e) => e.key === "Enter" && onSelect?.()}
+      className={`rounded-xl border overflow-hidden transition-all duration-150 ${
+        selected
+          ? "border-brand-500 ring-2 ring-brand-200"
+          : onSelect
+            ? "border-slate-200 hover:border-slate-300 cursor-pointer"
+            : "border-slate-200"
+      }`}
+    >
       {/* Hotel image */}
       {hotel.imageUrl && (
         <div className="relative w-full h-36 bg-slate-100">
@@ -308,6 +334,11 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
           <span className="absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide shadow-sm" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>
             {tierLabel}
           </span>
+          {selected && (
+            <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-brand-600 px-2.5 py-1 text-[10px] font-bold text-white shadow">
+              ✓ Your pick
+            </span>
+          )}
           <span className="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white/80 font-medium tracking-wide">
             Illustrative
           </span>
@@ -316,7 +347,7 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
       <div className="flex items-start gap-3 p-3">
         <div className="flex-1">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <span className="font-semibold text-slate-800 text-sm">{hotel.name}</span>
+            <span className={`font-semibold text-sm ${selected ? "text-brand-700" : "text-slate-800"}`}>{hotel.name}</span>
             <div className="flex">
               {Array.from({ length: hotel.stars }).map((_, i) => (
                 <Star key={i} size={10} className="fill-amber-400 text-amber-400" />
@@ -345,6 +376,7 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
             <a
               href={`https://www.google.com/maps/search/${encodeURIComponent(hotel.name + " " + hotel.location)}`}
               target="_blank" rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="text-xs text-slate-400 hover:text-slate-600 hover:underline flex items-center gap-0.5"
               title="View on Google Maps"
             >
@@ -352,6 +384,7 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
             </a>
             {hotel.bookingUrl && (
               <a href={hotel.bookingUrl} target="_blank" rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 font-medium">
                 Book <ExternalLink size={9} />
               </a>
@@ -359,7 +392,7 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 

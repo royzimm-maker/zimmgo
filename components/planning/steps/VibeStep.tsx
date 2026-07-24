@@ -8,15 +8,12 @@ import { useTripStore } from "@/lib/store/tripStore";
 import type { VibeTag } from "@/types/trip";
 
 const VIBES: { id: VibeTag; label: string; icon: string; sublabel: string }[] = [
-  { id: "great_food",           label: "Great Food",         icon: "🍷", sublabel: "Michelin stars to street stalls" },
-  { id: "outdoor",              label: "Outdoors & Nature",  icon: "🌿", sublabel: "Wide open spaces, fresh air" },
-  { id: "nightlife",            label: "Nightlife",          icon: "🎉", sublabel: "Bars, clubs, late nights" },
-  { id: "museums",              label: "Museums & Culture",  icon: "🖼️", sublabel: "Art, history, science" },
-  { id: "shopping",             label: "Shopping",           icon: "🛍️", sublabel: "Local markets to luxury boutiques" },
-  { id: "beaches",              label: "Beaches",            icon: "🏖️", sublabel: "Sun, sand, and sea" },
-  { id: "architecture",         label: "Architecture",       icon: "🏰", sublabel: "Iconic buildings and design" },
-  { id: "romantic",             label: "Romantic",           icon: "💑", sublabel: "Couple-focused experiences" },
-  { id: "family_friendly",      label: "Family Friendly",   icon: "👨‍👩‍👧", sublabel: "Great for all ages" },
+  { id: "romantic",             label: "Romantic",            icon: "💑",  sublabel: "Couple-focused, slow-paced, indulgent" },
+  { id: "nightlife",            label: "Nightlife",           icon: "🎉",  sublabel: "Bars, clubs, late nights" },
+  { id: "beaches",              label: "Beaches",             icon: "🏖️",  sublabel: "Sun, sand, and sea" },
+  { id: "shopping",             label: "Shopping",            icon: "🛍️",  sublabel: "Local markets to luxury boutiques" },
+  { id: "architecture",         label: "Architecture",        icon: "🏰",  sublabel: "Iconic buildings and design" },
+  { id: "family_friendly",      label: "Family Friendly",    icon: "👨‍👩‍👧", sublabel: "Great for all ages" },
   { id: "off_the_beaten_path",  label: "Off the Beaten Path", icon: "🗺️", sublabel: "Local gems, no tour groups" },
 ];
 

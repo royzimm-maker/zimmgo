@@ -181,10 +181,10 @@ export function AirlinesStep() {
         {gateways.length > 0 && (
           <div>
             <p className="mb-1.5 text-sm font-medium text-slate-700">
-              Which airport will you fly into?
+              Which airport will you fly into? <span className="text-slate-400 font-normal">(optional)</span>
             </p>
             <p className="mb-2.5 text-[11px] text-slate-400">
-              Based on your destination — tap to select your arrival airport.
+              We've pre-selected the best gateway based on your destination — change it if you have a preference.
             </p>
             <div className="flex flex-col gap-2">
               {gateways.map((ap) => (
