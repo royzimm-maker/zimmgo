@@ -62,7 +62,7 @@ export function PlanningFlow() {
       >
         {/* Mobile close button */}
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 lg:hidden">
-          <p className="font-semibold text-slate-700 text-sm">AI Travel Advisor</p>
+          <p className="font-semibold text-slate-700 text-sm">ZiGy</p>
           <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
             <X size={16} />
           </Button>

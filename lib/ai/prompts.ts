@@ -59,6 +59,13 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     );
   }
 
+  if (preferences.destination?.departureAirport) {
+    parts.push(`Departing from: ${preferences.destination.departureAirport}.`);
+  }
+  if (preferences.destination?.arrivalAirport) {
+    parts.push(`Flying into: ${preferences.destination.arrivalAirport} (preferred gateway).`);
+  }
+
   if (preferences.airlinePrefs) {
     const a = preferences.airlinePrefs;
     if (a.prioritizeLowestFare) {

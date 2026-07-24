@@ -191,6 +191,7 @@ export interface ItineraryDay {
   date: string;           // ISO date
   dayNumber: number;
   theme: string;          // e.g. "Arrival & Old Town Exploration"
+  location?: string;      // city or region for this day
   morning: string[];
   afternoon: string[];
   evening: string[];

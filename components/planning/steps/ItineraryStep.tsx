@@ -10,7 +10,7 @@ import { useTripStore } from "@/lib/store/tripStore";
 import type { GeneratedItinerary } from "@/types/trip";
 
 export function ItineraryStep() {
-  const { trip, isGenerating, setGenerating, addItinerary, completeStep } = useTripStore();
+  const { trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep } = useTripStore();
   const latest = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
   const [error, setError] = useState<string | null>(null);
@@ -52,8 +52,9 @@ export function ItineraryStep() {
   return (
     <StepShell
       stepId="itinerary"
-      continueLabel="Personalize my plan →"
+      continueLabel="Personalize my plan"
       continueDisabled={!latest}
+      onContinue={() => goToStep("refine")}
       subtitle="Your personalised day-by-day itinerary, built around your preferences."
     >
       {/* Unlock celebration */}

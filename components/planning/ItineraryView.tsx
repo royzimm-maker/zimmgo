@@ -63,7 +63,7 @@ export function ItineraryView({ itinerary }: Props) {
 
       {/* AI Summary */}
       <div className="rounded-xl bg-gradient-to-br from-brand-50 to-sage-50 border border-brand-100 p-4">
-        <p className="text-sm font-semibold text-brand-700 mb-3">Your trip at a glance</p>
+        <p className="text-sm font-semibold text-brand-700 mb-3">ZiGy's Take</p>
         <RichText text={itinerary.aiSummary} className="text-sm text-slate-700" />
         {itinerary.whyThisWorks && (
           <div className="mt-3 pt-3 border-t border-brand-100">
@@ -489,7 +489,10 @@ function DayCard({ day, expanded, onToggle }: { day: ItineraryDay; expanded: boo
           </span>
           <div>
             <p className="font-medium text-slate-800 text-sm">{day.theme}</p>
-            <p className="text-xs text-slate-400">{formatDate(day.date)}</p>
+            <p className="text-xs text-slate-400">
+              {formatDate(day.date)}
+              {day.location && <span className="ml-1.5 text-brand-500">· {day.location}</span>}
+            </p>
           </div>
         </div>
         {expanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}

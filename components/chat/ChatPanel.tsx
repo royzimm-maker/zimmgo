@@ -10,6 +10,9 @@ const STARTER_PROMPTS = [
   "What should I pack for this trip?",
   "Any local customs I should know?",
   "What are the must-eat dishes?",
+  "Can you swap a day for something more adventurous?",
+  "Add a free day with local recommendations.",
+  "What hidden gems should I not miss?",
 ];
 
 export function ChatPanel() {
@@ -75,8 +78,8 @@ export function ChatPanel() {
             <Sparkles size={13} className="text-brand-600" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-800">AI Travel Advisor</p>
-            <p className="text-xs text-slate-400">Ask me anything about your trip</p>
+            <p className="text-sm font-semibold text-slate-800">ZiGy</p>
+            <p className="text-xs text-slate-400">Your personal AI travel advisor</p>
           </div>
         </div>
       </div>
@@ -116,9 +119,9 @@ export function ChatPanel() {
               <Sparkles size={20} className="text-brand-500" />
             </div>
             <div>
-              <p className="font-medium text-slate-800 text-sm">Your AI travel advisor</p>
+              <p className="font-medium text-slate-800 text-sm">ZiGy</p>
               <p className="text-xs text-slate-500 mt-1">
-                I know your destination and preferences. Ask me anything.
+                Your personal AI travel advisor — ask me anything about your trip or itinerary.
               </p>
             </div>
             <div className="w-full mt-2 flex flex-col gap-1.5">

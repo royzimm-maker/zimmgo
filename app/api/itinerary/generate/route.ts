@@ -205,6 +205,7 @@ function buildDays(
   preferences: TripPreferences
 ): ItineraryDay[] {
   const dest = preferences.destination?.displayName ?? "the destination";
+  const cities = preferences.destination?.cities?.filter(Boolean) ?? [];
   const themes = generateThemes(numDays, preferences);
 
   return Array.from({ length: numDays }, (_, i) => {
@@ -214,10 +215,16 @@ function buildDays(
 
     const dayActivities = activities.filter((_, idx) => idx % numDays === i % numDays);
 
+    // Distribute cities evenly across days; fall back to full destination name
+    const location = cities.length > 1
+      ? cities[Math.floor((i / numDays) * cities.length)]
+      : (cities[0] ?? dest);
+
     return {
       date: isoDate,
       dayNumber: i + 1,
       theme: themes[i],
+      location,
       morning:   buildTimeBlock("morning",   i, dayActivities, dest),
       afternoon: buildTimeBlock("afternoon", i, dayActivities, dest),
       evening:   buildTimeBlock("evening",   i, dayActivities, dest),
