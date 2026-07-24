@@ -140,13 +140,25 @@ export function DestinationStep() {
         <label className="block text-sm font-medium text-slate-700 mb-1.5">
           Where do you dream of going?
         </label>
-        <textarea
-          rows={3}
-          value={freeText}
-          onChange={(e) => handleFreeTextChange(e.target.value)}
-          placeholder={`e.g. "Italy, especially Tuscany and maybe the Dolomites, and I'd love to finish somewhere along the Amalfi Coast"\n\nor "Greece for 10 days — Athens, two islands, and maybe Istanbul at the end"`}
-          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 resize-none leading-relaxed"
-        />
+        <div className="relative">
+          <textarea
+            rows={3}
+            value={freeText}
+            onChange={(e) => handleFreeTextChange(e.target.value)}
+            placeholder={`e.g. "Italy, especially Tuscany and maybe the Dolomites, and I'd love to finish somewhere along the Amalfi Coast"\n\nor "Greece for 10 days — Athens, two islands, and maybe Istanbul at the end"`}
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 resize-none leading-relaxed"
+          />
+          {freeText && (
+            <button
+              type="button"
+              onClick={() => handleFreeTextChange("")}
+              className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors"
+              aria-label="Clear destination"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
         <p className="mt-1 text-[11px] text-slate-400">
           Be as specific or as vague as you like — we'll work with it.
         </p>
