@@ -107,6 +107,7 @@ export interface TripPreferences {
   budgetRange?: BudgetRange;             // lodging tier per room / night
   dailyFoodBudgetPerPerson?: number;     // food spend in $ per person per day
   lodging?: LodgingPreference;
+  selectedHotel?: HotelOption;
   airlinePrefs?: AirlinePreference;
   transportation: TransportMode[];
 }

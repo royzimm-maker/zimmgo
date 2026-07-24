@@ -12,6 +12,7 @@ import type {
   ChatMessage,
   Destination,
   DatePreference,
+  HotelOption,
   LodgingPreference,
   AirlinePreference,
   ActivityCategory,
@@ -45,6 +46,7 @@ interface TripState {
   setBudget: (range: BudgetRange) => void;
   setBudgetDetails: (details: { travelers?: number; rooms?: number; dailyFoodBudgetPerPerson?: number }) => void;
   setLodging: (lodging: LodgingPreference) => void;
+  setSelectedHotel: (hotel: HotelOption | null) => void;
   setAirlines: (prefs: AirlinePreference) => void;
   setTransportation: (modes: TransportMode[]) => void;
 
@@ -198,6 +200,18 @@ export const useTripStore = create<TripState>()(
           trip: {
             ...s.trip,
             preferences: { ...s.trip.preferences, lodging },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setSelectedHotel: (selectedHotel) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: {
+              ...s.trip.preferences,
+              selectedHotel: selectedHotel ?? undefined,
+            },
             updatedAt: new Date().toISOString(),
           },
         })),

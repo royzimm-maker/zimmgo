@@ -89,7 +89,11 @@ export function ItineraryView({ itinerary }: Props) {
       )}
 
       {/* Hotels */}
-      {itinerary.hotels.length > 0 && (
+      {preferences.selectedHotel ? (
+        <Section title="Your Confirmed Stay" icon={<Hotel size={16} />}>
+          <HotelCard hotel={preferences.selectedHotel} />
+        </Section>
+      ) : itinerary.hotels.length > 0 && (
         <Section
           title={itinerary.hotels.length > 1 ? "Choose Your Stay" : "Recommended Lodging"}
           icon={<Hotel size={16} />}

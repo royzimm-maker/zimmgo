@@ -131,7 +131,8 @@ interface AssembleParams {
 }
 
 function assembleItinerary(p: AssembleParams): GeneratedItinerary {
-  const { preferences, flights, hotels, activities, restaurants, aiSummary, tripId } = p;
+  const { preferences, flights, activities, restaurants, aiSummary, tripId } = p;
+  let hotels = p.hotels;
 
   let startDate: string;
   let numDays: number;
@@ -153,6 +154,11 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
   }
 
   const days: ItineraryDay[] = buildDays(new Date(startDate), numDays, activities, preferences);
+
+  // If user pre-selected a hotel in the Lodging step, use it; otherwise use AI-searched results
+  if (preferences.selectedHotel) {
+    hotels = [preferences.selectedHotel, ...hotels.filter((h) => h.id !== preferences.selectedHotel!.id)];
+  }
 
   const travelers    = preferences.travelers ?? 2;
   const rooms        = preferences.rooms ?? 1;
