@@ -47,24 +47,14 @@ export function DestinationStep() {
   const [depOpen,     setDepOpen    ] = useState(false);
   const [showRouting, setShowRouting] = useState(true);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-  const depRef      = useRef<HTMLDivElement>(null);
+  const depRef = useRef<HTMLDivElement>(null);
 
-  // Detect routing suggestions as user types (debounced 400ms)
-  useEffect(() => {
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      if (freeText.trim().length > 3) {
-        const { routing: r, excludedPlaces } = getFilteredRoutingSuggestion(freeText);
-        setRouting(r);
-        setExcluded(excludedPlaces);
-      } else {
-        setRouting(null);
-        setExcluded([]);
-      }
-    }, 400);
-    return () => clearTimeout(debounceRef.current);
-  }, [freeText]);
+  function findRoutes() {
+    const { routing: r, excludedPlaces } = getFilteredRoutingSuggestion(freeText);
+    setRouting(r);
+    setExcluded(excludedPlaces);
+    setShowRouting(true);
+  }
 
   // Close departure dropdown on outside click
   useEffect(() => {
@@ -91,6 +81,9 @@ export function DestinationStep() {
 
   function handleFreeTextChange(value: string) {
     setFreeText(value);
+    // Clear stale routing whenever the text changes
+    setRouting(null);
+    setExcluded([]);
     // Persist draft so text survives any re-mount (e.g. parent re-renders)
     const existing = useTripStore.getState().trip.preferences.destination;
     setDestination({
@@ -145,6 +138,12 @@ export function DestinationStep() {
             rows={3}
             value={freeText}
             onChange={(e) => handleFreeTextChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && freeText.trim().length > 3) {
+                e.preventDefault();
+                findRoutes();
+              }
+            }}
             placeholder={`e.g. "Italy, especially Tuscany and maybe the Dolomites, and I'd love to finish somewhere along the Amalfi Coast"\n\nor "Greece for 10 days — Athens, two islands, and maybe Istanbul at the end"`}
             className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 resize-none leading-relaxed"
           />
@@ -159,7 +158,18 @@ export function DestinationStep() {
             </button>
           )}
         </div>
-        <p className="mt-1 text-[11px] text-slate-400">
+        {freeText.trim().length > 3 && !routing && (
+          <button
+            type="button"
+            onClick={findRoutes}
+            className="mt-2 flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors"
+          >
+            <Route size={12} />
+            Find routes
+            <span className="ml-1 text-brand-300 font-normal hidden sm:inline">⌘↵</span>
+          </button>
+        )}
+        <p className="mt-1.5 text-[11px] text-slate-400">
           Be as specific or as vague as you like — we'll work with it.
         </p>
       </div>
@@ -189,8 +199,8 @@ export function DestinationStep() {
                 <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
                   <p className="text-[11px] text-amber-800 leading-relaxed">
                     <span className="font-semibold">Noted — skipping {excluded.map(capitalize).join(", ")}.</span>{" "}
-                    We&apos;ve filtered the suggestions below, and your generated itinerary will avoid{" "}
-                    {excluded.length === 1 ? "it" : "them"} too.
+                    Your itinerary will avoid {excluded.length === 1 ? "it" : "them"}, but some airports in excluded
+                    cities may still appear below as transit hubs — flying through isn&apos;t the same as visiting.
                   </p>
                 </div>
               )}
@@ -204,11 +214,15 @@ export function DestinationStep() {
                   {routing.arrivalAirports.map((ap) => (
                     <div key={ap.code} className={cn(
                       "flex items-start gap-3 rounded-lg border px-3 py-2.5",
-                      ap.recommended ? "border-brand-300 bg-white" : "border-slate-200 bg-white/60"
+                      ap.recommended ? "border-brand-300 bg-white" :
+                      ap.transitOnly ? "border-slate-200 bg-slate-50/60 opacity-70" :
+                      "border-slate-200 bg-white/60"
                     )}>
                       <div className={cn(
                         "shrink-0 rounded font-mono text-xs font-bold px-1.5 py-1 mt-0.5",
-                        ap.recommended ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600"
+                        ap.recommended ? "bg-brand-600 text-white" :
+                        ap.transitOnly ? "bg-slate-200 text-slate-500" :
+                        "bg-slate-100 text-slate-600"
                       )}>
                         {ap.code}
                       </div>
@@ -218,6 +232,11 @@ export function DestinationStep() {
                           {ap.recommended && (
                             <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-700">
                               Best gateway
+                            </span>
+                          )}
+                          {ap.transitOnly && (
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                              Transit hub
                             </span>
                           )}
                         </div>

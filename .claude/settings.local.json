@@ -6,7 +6,19 @@
       "PowerShell(Get-ChildItem \"C:\\\\Program Files\\\\\" -ErrorAction SilentlyContinue | Select-Object Name; Get-ChildItem \"$env:APPDATA\\\\npm\" -ErrorAction SilentlyContinue | Select-Object Name -First 5)",
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); node --version; npm --version)",
       "PowerShell(Start-Sleep -Seconds 4; try { $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -TimeoutSec 5 -UseBasicParsing; \"Status: $\\($r.StatusCode\\)\" } catch { \"Not yet ready: $_\" })",
-      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); cd \"C:\\\\Users\\\\royzi\\\\OneDrive\\\\Claude Code Travel Agent\"; $job = Start-Job -ScriptBlock { Set-Location \"C:\\\\Users\\\\royzi\\\\OneDrive\\\\Claude Code Travel Agent\"; $env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); & \"C:\\\\Program Files\\\\nodejs\\\\node.exe\" \"node_modules\\\\.bin\\\\next\" \"dev\" 2>&1 }; Start-Sleep -Seconds 8; Receive-Job $job)"
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); cd \"C:\\\\Users\\\\royzi\\\\OneDrive\\\\Claude Code Travel Agent\"; $job = Start-Job -ScriptBlock { Set-Location \"C:\\\\Users\\\\royzi\\\\OneDrive\\\\Claude Code Travel Agent\"; $env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); & \"C:\\\\Program Files\\\\nodejs\\\\node.exe\" \"node_modules\\\\.bin\\\\next\" \"dev\" 2>&1 }; Start-Sleep -Seconds 8; Receive-Job $job)",
+      "WebFetch(domain:zimmgo.vercel.app)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh auth *)",
+      "PowerShell(cd \"C:\\\\Users\\\\royzi\\\\OneDrive\\\\Claude Code Travel Agent\"; $env:GIT_TERMINAL_PROMPT = \"0\"; git push origin master 2>&1)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" node_modules/.bin/tsc --noEmit)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(Object.keys\\(p.dependencies\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(gh pr *)",
+      "Bash(git reset *)",
+      "PowerShell(cd \"C:\\\\Users\\\\royzi\\\\OneDrive\\\\Claude Code Travel Agent\"; $token = & \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth token; $b64 = [Convert]::ToBase64String\\([Text.Encoding]::ASCII.GetBytes\\(\"x:$token\"\\)\\); git -c \"credential.helper=\" -c \"http.extraheader=Authorization: Basic $b64\" push origin master 2>&1)"
     ]
   }
 }

@@ -13,6 +13,7 @@ export interface ArrivalSuggestion {
   city: string;
   reason: string;
   recommended?: boolean;
+  transitOnly?: boolean; // city is excluded as a destination but airport is still a valid entry point
 }
 
 export interface RoutingSuggestion {
@@ -308,15 +309,28 @@ export function getFilteredRoutingSuggestion(text: string): {
   const excludedPlaces = getExcludedPlaces(text);
   if (!routing || !excludedPlaces.length) return { routing, excludedPlaces };
 
-  const airports = routing.arrivalAirports.filter(
-    (ap) => !excludedPlaces.some((p) => containsPlace(ap.city, p))
-  );
-  // Keep at least one gateway even if everything matched an exclusion
-  const kept = airports.length ? airports : routing.arrivalAirports.slice(0, 1);
-  // If the recommended gateway was filtered out, promote the first remaining one
-  const withRecommended = kept.some((ap) => ap.recommended)
-    ? kept
-    : kept.map((ap, i) => (i === 0 ? { ...ap, recommended: true } : ap));
+  // Mark excluded-city airports as transit-only rather than removing them —
+  // FCO may still be the best entry point into Italy even if the user doesn't
+  // want to spend time in Rome.
+  const airports = routing.arrivalAirports.map((ap) => {
+    const isExcluded = excludedPlaces.some((p) => containsPlace(ap.city, p));
+    if (!isExcluded) return ap;
+    return {
+      ...ap,
+      transitOnly: true,
+      recommended: false,
+      reason: `Transit hub only — you won't be spending time here, but ${ap.code} remains one of the most accessible entry points. Fly in and head straight to your destination.`,
+    };
+  });
+
+  // If the recommended gateway was marked transit-only, promote the first non-transit one
+  const withRecommended = airports.some((ap) => ap.recommended)
+    ? airports
+    : airports.map((ap, i) =>
+        !ap.transitOnly && i === airports.findIndex((a) => !a.transitOnly)
+          ? { ...ap, recommended: true }
+          : ap
+      );
 
   return { routing: { ...routing, arrivalAirports: withRecommended }, excludedPlaces };
 }
