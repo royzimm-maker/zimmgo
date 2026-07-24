@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function ItineraryView({ itinerary }: Props) {
-  const [expandedDay, setExpandedDay] = useState<number>(0);
+  const [expandedDay, setExpandedDay] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(null);
   const { trip } = useTripStore();
