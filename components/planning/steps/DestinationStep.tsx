@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { MapPin, Search, X, Plane, ChevronDown, Lightbulb, Route } from "lucide-react";
+import { useRef, useState } from "react";
+import { MapPin, X, ChevronDown, Lightbulb, Route } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
-import { SelectChip } from "@/components/ui/SelectChip";
 import { useTripStore } from "@/lib/store/tripStore";
-import { getFilteredRoutingSuggestion, searchAirports } from "@/lib/data/airportRouting";
+import { getFilteredRoutingSuggestion } from "@/lib/data/airportRouting";
 import type { Destination } from "@/types/trip";
-import type { RoutingSuggestion, Airport } from "@/lib/data/airportRouting";
+import type { RoutingSuggestion } from "@/lib/data/airportRouting";
 import { cn } from "@/lib/utils";
 
 function capitalize(s: string): string {
@@ -40,14 +39,11 @@ export function DestinationStep() {
   const saved = trip.preferences.destination;
 
   const [freeText,    setFreeText   ] = useState(saved?.freeText ?? saved?.displayName ?? "");
-  const [departure,   setDeparture  ] = useState(saved?.departureAirport ?? "");
   const [routing,     setRouting    ] = useState<RoutingSuggestion | null>(null);
   const [excluded,    setExcluded   ] = useState<string[]>([]);
-  const [depResults,  setDepResults ] = useState<Airport[]>([]);
-  const [depOpen,     setDepOpen    ] = useState(false);
   const [showRouting, setShowRouting] = useState(true);
 
-  const depRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   function findRoutes() {
     const { routing: r, excludedPlaces } = getFilteredRoutingSuggestion(freeText);
@@ -56,35 +52,12 @@ export function DestinationStep() {
     setShowRouting(true);
   }
 
-  // Close departure dropdown on outside click
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (depRef.current && !depRef.current.contains(e.target as Node)) {
-        setDepOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
-
-  function handleDepInput(value: string) {
-    setDeparture(value);
-    const results = searchAirports(value);
-    setDepResults(results);
-    setDepOpen(results.length > 0);
-  }
-
-  function selectDeparture(airport: Airport) {
-    setDeparture(`${airport.city} (${airport.code})`);
-    setDepOpen(false);
-  }
-
   function handleFreeTextChange(value: string) {
     setFreeText(value);
-    // Clear stale routing whenever the text changes
     setRouting(null);
     setExcluded([]);
-    // Persist draft so text survives any re-mount (e.g. parent re-renders)
+    clearTimeout(debounceRef.current);
+    // Persist draft so text survives any re-mount
     const existing = useTripStore.getState().trip.preferences.destination;
     setDestination({
       cities: [],
@@ -102,19 +75,17 @@ export function DestinationStep() {
     const text = freeText.trim();
     if (!text) return;
 
-    // Extract a clean displayName from the free text (first clause before " — " or full text)
-    const displayName = text;
-    const bestArrival = routing?.arrivalAirports.find((a) => a.recommended)?.code;
-
-    // Don't persist canned route prose that references places the user excluded
+    const bestArrival = routing?.arrivalAirports.find((a) => a.recommended && !a.transitOnly)?.code;
     const routeUsable = routing && !mentionsExcluded(routing.suggestedRoute, excluded) && !mentionsExcluded(routing.routingWhy, excluded);
+
+    const existing = useTripStore.getState().trip.preferences.destination;
     const dest: Destination = {
-      displayName,
+      ...(existing ?? {}),
+      displayName: text,
       freeText: text,
-      cities: routing?.arrivalAirports.map((a) => a.city) ?? [],
-      departureAirport: departure.trim() || undefined,
-      arrivalAirport:   bestArrival,
-      routingNote:      routeUsable ? `${routing.suggestedRoute}\n\nWhy this works: ${routing.routingWhy}` : undefined,
+      cities: routing?.arrivalAirports.filter((a) => !a.transitOnly).map((a) => a.city) ?? [],
+      arrivalAirport: bestArrival ?? existing?.arrivalAirport,
+      routingNote: routeUsable ? `${routing.suggestedRoute}\n\nWhy this works: ${routing.routingWhy}` : undefined,
     };
     setDestination(dest);
   }
@@ -199,57 +170,15 @@ export function DestinationStep() {
                 <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
                   <p className="text-[11px] text-amber-800 leading-relaxed">
                     <span className="font-semibold">Noted — skipping {excluded.map(capitalize).join(", ")}.</span>{" "}
-                    Your itinerary will avoid {excluded.length === 1 ? "it" : "them"}, but some airports in excluded
-                    cities may still appear below as transit hubs — flying through isn&apos;t the same as visiting.
+                    Your itinerary will avoid {excluded.length === 1 ? "it" : "them"}.
+                    Gateway airport options for your trip are shown in the Flights step.
                   </p>
                 </div>
               )}
 
-              {/* Arrival airports */}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-500 mt-3 mb-2 flex items-center gap-1">
-                  <Plane size={10} /> Recommended gateway airports
-                </p>
-                <div className="flex flex-col gap-2">
-                  {routing.arrivalAirports.map((ap) => (
-                    <div key={ap.code} className={cn(
-                      "flex items-start gap-3 rounded-lg border px-3 py-2.5",
-                      ap.recommended ? "border-brand-300 bg-white" :
-                      ap.transitOnly ? "border-slate-200 bg-slate-50/60 opacity-70" :
-                      "border-slate-200 bg-white/60"
-                    )}>
-                      <div className={cn(
-                        "shrink-0 rounded font-mono text-xs font-bold px-1.5 py-1 mt-0.5",
-                        ap.recommended ? "bg-brand-600 text-white" :
-                        ap.transitOnly ? "bg-slate-200 text-slate-500" :
-                        "bg-slate-100 text-slate-600"
-                      )}>
-                        {ap.code}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs font-semibold text-slate-800">{ap.city}</p>
-                          {ap.recommended && (
-                            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-700">
-                              Best gateway
-                            </span>
-                          )}
-                          {ap.transitOnly && (
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
-                              Transit hub
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{ap.reason}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Route suggestion — hidden if the canned prose mentions an excluded place */}
+              {/* Route suggestion */}
               {!mentionsExcluded(routing.suggestedRoute, excluded) && (
-                <div>
+                <div className="mt-3">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-500 mb-2 flex items-center gap-1">
                     <MapPin size={10} /> Suggested route
                   </p>
@@ -287,52 +216,6 @@ export function DestinationStep() {
           )}
         </div>
       )}
-
-      {/* ── Departure airport ── */}
-      <div className="mb-6 relative" ref={depRef}>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">
-          Where are you flying from? <span className="text-slate-400 font-normal">(optional)</span>
-        </label>
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            value={departure}
-            onChange={(e) => handleDepInput(e.target.value)}
-            onFocus={() => departure && setDepOpen(depResults.length > 0)}
-            placeholder="City or airport code — e.g. New York, JFK, Chicago…"
-            className="w-full rounded-lg border border-slate-300 bg-white pl-8 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-          />
-          {departure && (
-            <button
-              type="button"
-              onClick={() => { setDeparture(""); setDepOpen(false); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            >
-              <X size={13} />
-            </button>
-          )}
-        </div>
-
-        {depOpen && depResults.length > 0 && (
-          <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-            {depResults.map((ap) => (
-              <button
-                key={ap.code}
-                type="button"
-                onClick={() => selectDeparture(ap)}
-                className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
-              >
-                <span className="font-mono text-xs font-bold text-brand-600 w-10 shrink-0">{ap.code}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-slate-800 truncate">{ap.city}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{ap.name} · {ap.country}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* ── Popular quick-picks — only shown before user types anything ── */}
       {!freeText.trim() && <div>
