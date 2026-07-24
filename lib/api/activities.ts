@@ -42,9 +42,8 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
 };
 
 function findActivityBase(destination: string): Partial<ActivityOption>[] {
-  const key = Object.keys(ACTIVITY_POOLS).find((k) =>
-    destination.toLowerCase().includes(k)
-  );
+  const lower = (destination ?? "").toLowerCase();
+  const key = Object.keys(ACTIVITY_POOLS).find((k) => lower.includes(k));
   return ACTIVITY_POOLS[key ?? "default"];
 }
 

@@ -41,9 +41,8 @@ const HOTEL_DB: Record<string, Partial<HotelOption>[]> = {
 };
 
 function findHotelBase(destination: string): Partial<HotelOption>[] {
-  const key = Object.keys(HOTEL_DB).find((k) =>
-    destination.toLowerCase().includes(k)
-  );
+  const lower = (destination ?? "").toLowerCase();
+  const key = Object.keys(HOTEL_DB).find((k) => lower.includes(k));
   return HOTEL_DB[key ?? "default"];
 }
 

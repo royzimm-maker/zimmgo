@@ -413,9 +413,8 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
 };
 
 function findRestaurantBase(destination: string): RestaurantSeed[] {
-  const key = Object.keys(RESTAURANT_DB).find((k) =>
-    destination.toLowerCase().includes(k)
-  );
+  const lower = (destination ?? "").toLowerCase();
+  const key = Object.keys(RESTAURANT_DB).find((k) => lower.includes(k));
   return RESTAURANT_DB[key ?? "default"];
 }
 

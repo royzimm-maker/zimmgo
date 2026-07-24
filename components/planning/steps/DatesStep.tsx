@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Calendar, Shuffle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { Input } from "@/components/ui/Input";
@@ -13,10 +13,10 @@ type DateMode = "exact" | "flexible";
 const DURATIONS = [7, 10, 14, 21];
 const DURATION_MAX = 90;
 
-// 18 months forward from today — no past dates
+// 11 months forward from today — airlines rarely open bookings beyond this
 function generateMonths() {
   const now = new Date();
-  return Array.from({ length: 18 }, (_, i) => {
+  return Array.from({ length: 11 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     return { value, label: d.toLocaleString("default", { month: "long", year: "numeric" }) };
@@ -41,8 +41,6 @@ export function DatesStep() {
   const [customDur,    setCustomDur   ] = useState(false);
   const [customDurVal, setCustomDurVal] = useState("");
 
-  const endDateRef = useRef<HTMLInputElement>(null);
-
   function isValid() {
     if (mode === "exact") return !!startDate && !!endDate && startDate <= endDate;
     return true;
@@ -52,12 +50,6 @@ export function DatesStep() {
     const val = e.target.value;
     setStartDate(val);
     if (endDate && endDate < val) setEndDate("");
-    if (val) {
-      setTimeout(() => {
-        endDateRef.current?.focus();
-        (endDateRef.current as HTMLInputElement & { showPicker?: () => void })?.showPicker?.();
-      }, 50);
-    }
   }
 
   function handleContinue() {
@@ -105,7 +97,6 @@ export function DatesStep() {
             min={today}
           />
           <Input
-            ref={endDateRef}
             type="date"
             label="Return"
             value={endDate}
