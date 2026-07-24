@@ -139,6 +139,23 @@ export function LandingHero() {
         </p>
         <p className="mt-1 text-xs text-slate-600">— Early beta user</p>
       </div>
+
+      {/* Powered by Claude */}
+      <div className="border-t border-slate-800 py-5 px-6 text-center">
+        <p className="text-xs text-slate-600 flex items-center justify-center gap-2">
+          <Sparkles size={11} className="text-slate-600" />
+          Powered by{" "}
+          <a
+            href="https://anthropic.com/claude"
+            target="_blank"
+            rel="noreferrer"
+            className="text-slate-500 hover:text-slate-300 transition-colors font-medium"
+          >
+            Claude
+          </a>
+          {" "}· Built with the Anthropic API
+        </p>
+      </div>
     </main>
   );
 }

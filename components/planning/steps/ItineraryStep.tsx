@@ -159,7 +159,7 @@ function GeneratingProgress() {
       <div>
         <p className="font-semibold text-slate-800">{STATUS_MESSAGES[statusIdx]}</p>
         <p className="text-sm text-slate-500 mt-1">
-          Usually takes about 20–30 seconds. Hang tight!
+          This usually takes a minute or two — good trips take time to build.
         </p>
       </div>
     </div>

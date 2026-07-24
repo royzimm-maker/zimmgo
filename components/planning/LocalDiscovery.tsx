@@ -22,7 +22,7 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
 ];
 
 export function LocalDiscovery({ preferences }: Props) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("scene");
 
   const destName = preferences.destination?.displayName ?? "";

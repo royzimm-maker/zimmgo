@@ -126,14 +126,15 @@ export function AirlinesStep() {
     <StepShell
       stepId="airlines"
       onContinue={handleContinue}
-      subtitle="Tell us where you're flying from and which airports work best. Skip the rest if you have no preference."
+      continueDisabled={!departure.trim()}
+      subtitle="Tell us where you're flying from — we'll use this to find the best routes."
     >
       <div className="flex flex-col gap-6">
 
         {/* ── Departure airport ── */}
         <div>
           <p className="mb-1.5 text-sm font-medium text-slate-700">
-            Where are you flying from? <span className="text-slate-400 font-normal">(optional)</span>
+            Where are you flying from? <span className="text-red-400 font-normal text-xs">required to continue</span>
           </p>
           <div className="relative" ref={depRef}>
             <div className="relative">

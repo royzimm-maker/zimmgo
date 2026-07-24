@@ -31,17 +31,17 @@ function saveToHistory(text: string) {
 }
 
 const POPULAR = [
-  "Greece — Athens & the Islands",
-  "Italy — Rome, Florence & Amalfi Coast",
   "Japan — Tokyo, Kyoto & Osaka",
   "France — Paris & Provence",
+  "Iceland — Reykjavik & the Ring Road",
+  "Italy — Rome, Florence & Amalfi Coast",
+  "Greece — Athens & the Islands",
+  "Morocco — Marrakech & the Sahara",
   "Spain — Barcelona & Andalusia",
   "Portugal — Lisbon & Porto",
-  "Iceland",
-  "Morocco — Marrakech & the Sahara",
+  "UK — London & Scotland",
   "Thailand & Southeast Asia",
   "Turkey — Istanbul & Cappadocia",
-  "UK — London & Scotland",
   "Patagonia",
 ];
 
