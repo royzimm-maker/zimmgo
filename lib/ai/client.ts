@@ -13,7 +13,7 @@ export function getAnthropicClient(): Anthropic {
   return _client;
 }
 
-export const DEFAULT_MODEL = "claude-sonnet-4-6";
+export const DEFAULT_MODEL = "claude-sonnet-5";
 
 // System prompt that gives the AI its persona and context
 export const TRAVEL_ADVISOR_SYSTEM_PROMPT = `You are an expert travel advisor with 20 years of experience planning high-end trips for discerning professionals. You combine deep destination knowledge with a warm, consultative style.
