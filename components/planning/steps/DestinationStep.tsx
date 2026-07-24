@@ -1,12 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, X, Route } from "lucide-react";
+import { MapPin, X, Clock } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { useTripStore } from "@/lib/store/tripStore";
 import { getFilteredRoutingSuggestion } from "@/lib/data/airportRouting";
 import type { Destination } from "@/types/trip";
 import { cn } from "@/lib/utils";
+
+const HISTORY_KEY = "zimmgo_recent_destinations";
+const HISTORY_MAX = 5;
+
+function readHistory(): string[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveToHistory(text: string) {
+  try {
+    const prev = readHistory();
+    const next = [text, ...prev.filter((h) => h !== text)].slice(0, HISTORY_MAX);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+  } catch {
+    // localStorage unavailable — silently skip
+  }
+}
 
 const POPULAR = [
   "Greece — Athens & the Islands",
@@ -28,6 +50,7 @@ export function DestinationStep() {
   const saved = trip.preferences.destination;
 
   const [freeText, setFreeText] = useState(saved?.freeText ?? saved?.displayName ?? "");
+  const [history, setHistory] = useState<string[]>(() => readHistory());
 
   function handleFreeTextChange(value: string) {
     setFreeText(value);
@@ -44,6 +67,8 @@ export function DestinationStep() {
   function handleContinue() {
     const text = freeText.trim();
     if (!text) return;
+    saveToHistory(text);
+    setHistory(readHistory());
 
     // Silently compute routing to pass context to the AI and pre-fill Flights step
     const { routing, excludedPlaces } = getFilteredRoutingSuggestion(text);
@@ -108,6 +133,30 @@ export function DestinationStep() {
           Be as specific or as vague as you like — we&apos;ll work with it.
         </p>
       </div>
+
+      {/* ── Recent searches — only shown before user types anything ── */}
+      {!freeText.trim() && history.length > 0 && (
+        <div className="mb-5">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <Clock size={10} />
+            Recent searches
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {history.map((h) => (
+              <button
+                key={h}
+                type="button"
+                onClick={() => handleFreeTextChange(h)}
+                className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-left text-xs text-slate-600 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 transition-all group"
+              >
+                <Clock size={11} className="text-slate-300 group-hover:text-brand-400 shrink-0" />
+                <span className="truncate flex-1">{h}</span>
+                <span className="text-[10px] text-slate-300 group-hover:text-brand-300 shrink-0">tap to edit</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Popular quick-picks — only shown before user types anything ── */}
       {!freeText.trim() && (

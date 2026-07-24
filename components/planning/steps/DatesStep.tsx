@@ -34,6 +34,9 @@ export function DatesStep() {
   // users west of UTC in the evening (blocking same-day departures).
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  // Max bookable date: 11 months out (airline booking window)
+  const maxDateObj = new Date(now.getFullYear(), now.getMonth() + 11, now.getDate());
+  const maxDate = `${maxDateObj.getFullYear()}-${String(maxDateObj.getMonth() + 1).padStart(2, "0")}-${String(maxDateObj.getDate()).padStart(2, "0")}`;
   const [startDate, setStartDate] = useState(existing?.startDate?.slice(0, 10) ?? "");
   const [endDate,   setEndDate  ] = useState(existing?.endDate?.slice(0, 10) ?? "");
   const [flexMonth, setFlexMonth] = useState(existing?.flexibleMonth ?? MONTHS[0].value);
@@ -95,6 +98,7 @@ export function DatesStep() {
             value={startDate}
             onChange={handleStartDateChange}
             min={today}
+            max={maxDate}
           />
           <Input
             type="date"
@@ -102,6 +106,7 @@ export function DatesStep() {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             min={startDate || today}
+            max={maxDate}
           />
         </div>
       ) : (
