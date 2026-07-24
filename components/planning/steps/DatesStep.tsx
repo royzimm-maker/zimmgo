@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Calendar, Shuffle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
-import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -13,29 +12,49 @@ type DateMode = "exact" | "flexible";
 
 const DURATIONS = [7, 10, 14, 21];
 
-const MONTHS = [
-  "2026-05", "2026-06", "2026-07", "2026-08",
-  "2026-09", "2026-10", "2026-11", "2026-12",
-  "2027-01", "2027-02", "2027-03", "2027-04",
-].map((m) => ({
-  value: m,
-  label: new Date(m + "-01").toLocaleString("default", { month: "long", year: "numeric" }),
-}));
+// 18 months forward from today — no past dates
+function generateMonths() {
+  const now = new Date();
+  return Array.from({ length: 18 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return { value, label: d.toLocaleString("default", { month: "long", year: "numeric" }) };
+  });
+}
+
+const MONTHS = generateMonths();
 
 export function DatesStep() {
   const { trip, setDates } = useTripStore();
   const existing = trip.preferences.dates;
 
   const [mode, setMode] = useState<DateMode>(existing?.type ?? "exact");
-  const today = new Date().toISOString().slice(0, 10); // always current year
+  // Local date, not toISOString() — UTC would give the wrong "today" for
+  // users west of UTC in the evening (blocking same-day departures).
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const [startDate, setStartDate] = useState(existing?.startDate?.slice(0, 10) ?? "");
   const [endDate,   setEndDate  ] = useState(existing?.endDate?.slice(0, 10) ?? "");
   const [flexMonth, setFlexMonth] = useState(existing?.flexibleMonth ?? MONTHS[0].value);
   const [duration,  setDuration ] = useState(existing?.flexibleDuration ?? 10);
 
+  const endDateRef = useRef<HTMLInputElement>(null);
+
   function isValid() {
     if (mode === "exact") return !!startDate && !!endDate && startDate <= endDate;
     return true;
+  }
+
+  function handleStartDateChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    setStartDate(val);
+    if (endDate && endDate < val) setEndDate("");
+    if (val) {
+      setTimeout(() => {
+        endDateRef.current?.focus();
+        (endDateRef.current as HTMLInputElement & { showPicker?: () => void })?.showPicker?.();
+      }, 50);
+    }
   }
 
   function handleContinue() {
@@ -79,10 +98,11 @@ export function DatesStep() {
             type="date"
             label="Departure"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={handleStartDateChange}
             min={today}
           />
           <Input
+            ref={endDateRef}
             type="date"
             label="Return"
             value={endDate}

@@ -62,10 +62,14 @@ export type VibeTag =
 
 // ─── Core preference objects ───────────────────────────────────────────────────
 export interface Destination {
-  region?: string;       // e.g. "Patagonia", "Southeast Asia"
-  country?: string;      // e.g. "Iceland"
-  cities: string[];      // e.g. ["Reykjavik", "Akureyri"]
-  displayName: string;   // human-readable label for UI
+  region?: string;             // e.g. "Patagonia", "Southeast Asia"
+  country?: string;            // e.g. "Iceland"
+  cities: string[];            // e.g. ["Reykjavik", "Akureyri"]
+  displayName: string;         // human-readable label for UI
+  freeText?: string;           // original natural-language input from user
+  departureAirport?: string;   // IATA code or city, e.g. "JFK" or "New York"
+  arrivalAirport?: string;     // suggested gateway airport IATA code
+  routingNote?: string;        // suggested routing with reasoning
 }
 
 export interface DatePreference {
@@ -87,7 +91,8 @@ export interface AirlinePreference {
   alliances: AirlineAlliance[];
   preferNonstop: boolean;
   cabinClass: "economy" | "premium_economy" | "business" | "first";
-  prioritizeLowestFare?: boolean; // overrides airline/alliance selections
+  cabinClasses?: string[];         // multi-select; UI shows pricing for each
+  prioritizeLowestFare?: boolean;  // overrides airline/alliance selections
 }
 
 // ─── User preferences (the planning form state) ───────────────────────────────
@@ -163,6 +168,25 @@ export interface ActivityOption {
   bookingUrl?: string;
 }
 
+export type RestaurantTier = "fine_dining" | "upscale" | "midrange" | "casual" | "street_food" | "brunch";
+
+export interface RestaurantOption {
+  id: string;
+  name: string;
+  cuisine: string;
+  tier: RestaurantTier;
+  playfulCategory: string;
+  priceRange: "$" | "$$" | "$$$" | "$$$$";
+  rating: number;
+  reviewCount: number;
+  location: string;
+  description: string;
+  mustOrder?: string;
+  imageUrl?: string;
+  bookingUrl?: string;
+  menuUrl?: string;
+}
+
 export interface ItineraryDay {
   date: string;           // ISO date
   dayNumber: number;
@@ -188,6 +212,7 @@ export interface GeneratedItinerary {
   flights: FlightOption[];
   hotels: HotelOption[];
   activities: ActivityOption[];
+  restaurants?: RestaurantOption[];
   totalEstimatedCost: number;
   currency: string;
   aiSummary: string;

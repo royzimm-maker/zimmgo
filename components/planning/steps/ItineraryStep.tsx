@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sparkles, RefreshCw, Trophy } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { Button } from "@/components/ui/Button";
@@ -35,9 +35,17 @@ export function ItineraryStep() {
     }
   }
 
-  // Auto-generate on first mount if no itinerary yet
+  // Auto-generate on first mount if no itinerary yet.
+  // Read fresh state from the store (not the render closure) and guard with a
+  // ref so StrictMode's double effect invocation can't fire two API calls.
+  const autoStartRef = useRef(false);
   useEffect(() => {
-    if (!latest && !isGenerating) generate();
+    const state = useTripStore.getState();
+    const hasItinerary = state.trip.itineraries.length > 0;
+    if (!hasItinerary && !state.isGenerating && !autoStartRef.current) {
+      autoStartRef.current = true;
+      generate();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -70,28 +78,7 @@ export function ItineraryStep() {
       )}
 
       {/* Loading state */}
-      {isGenerating && !latest && (
-        <div className="flex flex-col items-center gap-4 py-16 text-center">
-          <div className="relative">
-            <Sparkles size={36} className="text-brand-400 animate-pulse" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-800">Building your itinerary…</p>
-            <p className="text-sm text-slate-500 mt-1">
-              We&apos;re matching flights, hotels, and activities to your preferences.
-            </p>
-          </div>
-          <div className="flex gap-1 mt-2">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="h-2 w-2 rounded-full bg-brand-400 animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {isGenerating && !latest && <GeneratingProgress />}
 
       {/* Error state */}
       {error && (
@@ -107,5 +94,64 @@ export function ItineraryStep() {
       {/* Itinerary output */}
       {latest && <ItineraryView itinerary={latest} />}
     </StepShell>
+  );
+}
+
+const STATUS_MESSAGES = [
+  "Searching for the best flights…",
+  "Finding hotels that match your vibe…",
+  "Curating local experiences…",
+  "Building your day-by-day plan…",
+  "Checking restaurant picks…",
+  "Adding finishing touches…",
+];
+const RING_R = 34;
+const RING_CIRC = 2 * Math.PI * RING_R;
+const ESTIMATED_SECONDS = 28; // typical generation time
+
+function GeneratingProgress() {
+  const [elapsed, setElapsed] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(intervalRef.current);
+  }, []);
+
+  const progress = Math.min(elapsed / ESTIMATED_SECONDS, 0.9);
+  const dashOffset = RING_CIRC * (1 - progress);
+  const statusIdx = Math.floor(elapsed / 5) % STATUS_MESSAGES.length;
+  const mm = String(Math.floor(elapsed / 60)).padStart(1, "0");
+  const ss = String(elapsed % 60).padStart(2, "0");
+
+  return (
+    <div className="flex flex-col items-center gap-5 py-16 text-center">
+      {/* Progress ring */}
+      <div className="relative">
+        <svg width="88" height="88" viewBox="0 0 88 88">
+          <circle cx="44" cy="44" r={RING_R} fill="none" stroke="#e2e8f0" strokeWidth="6" />
+          <circle
+            cx="44" cy="44" r={RING_R}
+            fill="none"
+            stroke="#6366f1"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={RING_CIRC}
+            strokeDashoffset={dashOffset}
+            transform="rotate(-90 44 44)"
+            style={{ transition: "stroke-dashoffset 1s linear" }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xs font-mono font-semibold text-brand-600">{mm}:{ss}</span>
+        </div>
+      </div>
+      <div>
+        <p className="font-semibold text-slate-800">{STATUS_MESSAGES[statusIdx]}</p>
+        <p className="text-sm text-slate-500 mt-1">
+          Usually takes about 20–30 seconds. Hang tight!
+        </p>
+      </div>
+    </div>
   );
 }

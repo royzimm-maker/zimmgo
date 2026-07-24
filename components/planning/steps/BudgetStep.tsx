@@ -105,7 +105,7 @@ export function BudgetStep() {
       resolvedFood = foodPreset;
     }
 
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) { setErrors(errs); return false; }
 
     if (resolvedTier) setBudget(resolvedTier);
     setBudgetDetails({ travelers, rooms, dailyFoodBudgetPerPerson: resolvedFood });

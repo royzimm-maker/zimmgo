@@ -41,7 +41,7 @@ export function AirlinesStep() {
   const [selectedAirlines,  setSelectedAirlines ] = useState<string[]>(existing?.airlines ?? []);
   const [selectedAlliances, setSelectedAlliances] = useState<AirlineAlliance[]>(existing?.alliances ?? []);
   const [preferNonstop,     setPreferNonstop    ] = useState(existing?.preferNonstop ?? true);
-  const [cabin,             setCabin            ] = useState<string>(existing?.cabinClass ?? "business");
+  const [cabins,            setCabins           ] = useState<string[]>(existing?.cabinClasses ?? []);
 
   function toggleLowestFare() {
     setLowestFare((v) => !v);
@@ -57,10 +57,15 @@ export function AirlinesStep() {
     );
   }
 
+  function toggleCabin(c: string) {
+    setCabins((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
+  }
+
   function handleContinue() {
+    const firstCabin = (cabins[0] ?? "economy") as AirlinePreference["cabinClass"];
     const pref: AirlinePreference = lowestFare
-      ? { airlines: [], alliances: [], preferNonstop: false, cabinClass: "economy", prioritizeLowestFare: true }
-      : { airlines: selectedAirlines, alliances: selectedAlliances, preferNonstop, cabinClass: cabin as AirlinePreference["cabinClass"], prioritizeLowestFare: false };
+      ? { airlines: [], alliances: [], preferNonstop: false, cabinClass: "economy", cabinClasses: [], prioritizeLowestFare: true }
+      : { airlines: selectedAirlines, alliances: selectedAlliances, preferNonstop, cabinClass: firstCabin, cabinClasses: cabins, prioritizeLowestFare: false };
     setAirlines(pref);
   }
 
@@ -142,16 +147,18 @@ export function AirlinesStep() {
           {/* Cabin & nonstop */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="mb-2 text-sm font-medium text-slate-700">Cabin class</p>
+              <p className="mb-2 text-sm font-medium text-slate-700">
+                Cabin class <span className="text-slate-400 font-normal">(pick all you want to compare)</span>
+              </p>
               <div className="flex flex-col gap-1.5">
                 {CABINS.map((c) => (
                   <button
                     key={c}
                     type="button"
-                    onClick={() => setCabin(c)}
+                    onClick={() => toggleCabin(c)}
                     className={cn(
                       "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium text-left transition-all",
-                      cabin === c
+                      cabins.includes(c)
                         ? "border-brand-500 bg-brand-50 text-brand-700"
                         : "border-slate-200 text-slate-600 hover:border-slate-300"
                     )}
@@ -161,6 +168,9 @@ export function AirlinesStep() {
                   </button>
                 ))}
               </div>
+              <p className="mt-2 text-[10px] text-slate-400">
+                Prices are estimates — verify directly with airlines before booking.
+              </p>
             </div>
             <div>
               <p className="mb-2 text-sm font-medium text-slate-700">Routing</p>

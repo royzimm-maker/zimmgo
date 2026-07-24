@@ -79,6 +79,22 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
   },
 
   {
+    name: "search_restaurants",
+    description:
+      "Find top restaurants at the destination across all price tiers — from street food to fine dining. Returns 3-4 curated picks.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        destination: { type: "string" },
+        cuisine_preferences: { type: "array", items: { type: "string" } },
+        budget_level: { type: "string", enum: ["low", "mid", "high"] },
+        meal_types: { type: "array", items: { type: "string", enum: ["breakfast", "lunch", "dinner"] } },
+      },
+      required: ["destination"],
+    },
+  },
+
+  {
     name: "generate_itinerary",
     description:
       "Generate a detailed day-by-day travel itinerary based on all collected preferences. This is the final synthesis step.",

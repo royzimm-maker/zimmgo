@@ -32,8 +32,12 @@ export function ActivitiesStep() {
   const destGroups = getActivitiesByDestination(destName);
   const hasDestActivities = destGroups.some((g) => g.activities.length > 0);
 
-  // Track selected specific activity names (from destination section)
-  const [selectedSpecific, setSelectedSpecific] = useState<string[]>([]);
+  // Track selected specific activity names (from destination section) —
+  // restore any previously saved picks that match this destination's list
+  const destActivityNames = new Set(destGroups.flatMap((g) => g.activities.map((a) => a.name)));
+  const [selectedSpecific, setSelectedSpecific] = useState<string[]>(
+    trip.preferences.activities.map(String).filter((a) => destActivityNames.has(a))
+  );
   // Track selected general categories
   const [selectedGeneral,  setSelectedGeneral ] = useState<ActivityCategory[]>(
     trip.preferences.activities.filter((a): a is ActivityCategory =>
@@ -162,7 +166,7 @@ export function ActivitiesStep() {
                               {showInfo ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                             </button>
                           )}
-                          {a.alternatives?.length && (
+                          {!!a.alternatives?.length && (
                             <button
                               type="button"
                               onClick={() => toggleAlts(a.name)}
@@ -191,7 +195,7 @@ export function ActivitiesStep() {
                       )}
 
                       {/* ── Alternatives panel ── */}
-                      {showAlts && a.alternatives?.length && (
+                      {showAlts && !!a.alternatives?.length && (
                         <div className="mx-4 mb-3 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5">
                           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
                             Other providers to consider

@@ -7,8 +7,9 @@ import { buildItineraryPrompt } from "@/lib/ai/prompts";
 import { searchFlights } from "@/lib/api/flights";
 import { searchHotels } from "@/lib/api/hotels";
 import { searchActivities } from "@/lib/api/activities";
+import { searchRestaurants } from "@/lib/api/restaurants";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
-import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, ItineraryDay } from "@/types/trip";
+import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
 // Tool dispatcher — maps tool_name → actual function call
 async function dispatchTool(
@@ -22,6 +23,8 @@ async function dispatchTool(
       return searchHotels(input as unknown as Parameters<typeof searchHotels>[0]);
     case "search_activities":
       return searchActivities(input as unknown as Parameters<typeof searchActivities>[0]);
+    case "search_restaurants":
+      return searchRestaurants(input as unknown as Parameters<typeof searchRestaurants>[0]);
     case "generate_itinerary":
       // This tool signals that the AI is ready to synthesise
       return { status: "ready_to_synthesise", input };
@@ -45,10 +48,11 @@ export async function POST(request: NextRequest) {
     // ── Agentic loop: let Claude call tools until it reaches a final answer ──
     const messages: Anthropic.MessageParam[] = [{ role: "user", content: userMsg }];
 
-    let flights:    FlightOption[]   = [];
-    let hotels:     HotelOption[]    = [];
-    let activities: ActivityOption[] = [];
-    let finalText   = "";
+    let flights:     FlightOption[]     = [];
+    let hotels:      HotelOption[]      = [];
+    let activities:  ActivityOption[]   = [];
+    let restaurants: RestaurantOption[] = [];
+    let finalText    = "";
 
     // We allow up to 8 tool-call rounds to prevent infinite loops
     for (let round = 0; round < 8; round++) {
@@ -81,9 +85,10 @@ export async function POST(request: NextRequest) {
         const result = await dispatchTool(block.name, block.input as Record<string, unknown>);
 
         // Stash typed results for itinerary assembly
-        if (block.name === "search_flights")    flights    = result as FlightOption[];
-        if (block.name === "search_hotels")     hotels     = result as HotelOption[];
-        if (block.name === "search_activities") activities = result as ActivityOption[];
+        if (block.name === "search_flights")      flights      = result as FlightOption[];
+        if (block.name === "search_hotels")       hotels       = result as HotelOption[];
+        if (block.name === "search_activities")   activities   = result as ActivityOption[];
+        if (block.name === "search_restaurants")  restaurants  = result as RestaurantOption[];
 
         toolResults.push({
           type: "tool_result",
@@ -102,6 +107,7 @@ export async function POST(request: NextRequest) {
       flights,
       hotels,
       activities,
+      restaurants,
       aiSummary: finalText,
     });
 
@@ -120,11 +126,12 @@ interface AssembleParams {
   flights: FlightOption[];
   hotels: HotelOption[];
   activities: ActivityOption[];
+  restaurants: RestaurantOption[];
   aiSummary: string;
 }
 
 function assembleItinerary(p: AssembleParams): GeneratedItinerary {
-  const { preferences, flights, hotels, activities, aiSummary, tripId } = p;
+  const { preferences, flights, hotels, activities, restaurants, aiSummary, tripId } = p;
 
   const startDate = preferences.dates?.startDate
     ?? new Date().toISOString().slice(0, 10);
@@ -140,7 +147,8 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
   const travelers    = preferences.travelers ?? 2;
   const rooms        = preferences.rooms ?? 1;
   const hotelTotal   = hotels[0]  ? hotels[0].pricePerNight * numDays * rooms : 0;
-  const flightTotal  = flights.reduce((s, f) => s + f.price, 0) * travelers;
+  // Flights are alternative options — only count the first two (outbound + return)
+  const flightTotal  = flights.slice(0, 2).reduce((s, f) => s + f.price, 0) * travelers;
   const actTotal     = activities.slice(0, 4).reduce((s, a) => s + a.price, 0) * travelers;
 
   const dest = preferences.destination?.displayName ?? "your destination";
@@ -171,6 +179,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     flights,
     hotels: hotels.slice(0, 3),
     activities,
+    restaurants: restaurants.length ? restaurants : undefined,
     totalEstimatedCost: hotelTotal + flightTotal + actTotal,
     currency: "USD",
     aiSummary: summaryFallback,

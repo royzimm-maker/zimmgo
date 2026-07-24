@@ -9,7 +9,9 @@ import { ORDERED_STEPS, STEP_META, type StepId } from "@/types/trip";
 interface StepShellProps {
   stepId: StepId;
   children: React.ReactNode;
-  onContinue?: () => void;          // called before navigation; can be async
+  // Called before navigation; can be async. Return false to cancel navigation
+  // (e.g. when validation fails).
+  onContinue?: () => void | boolean | Promise<void | boolean>;
   continueLabel?: string;
   continueDisabled?: boolean;
   continueLoading?: boolean;
@@ -32,7 +34,10 @@ export function StepShell({
   const nextId = idx < ORDERED_STEPS.length - 1 ? ORDERED_STEPS[idx + 1] : null;
 
   async function handleContinue() {
-    if (onContinue) await onContinue();
+    if (onContinue) {
+      const result = await onContinue();
+      if (result === false) return; // validation failed — stay on this step
+    }
     completeStep(stepId);
     if (nextId) goToStep(nextId);
   }

@@ -42,6 +42,8 @@ function AskPanel({ itemName, itemType, preferences, onClose }: AskPanelProps) {
       });
       const data = await res.json() as { reply?: string; error?: string };
       setReply(data.reply ?? data.error ?? "Sorry, something went wrong.");
+    } catch {
+      setReply("Sorry, I couldn't reach the server. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -254,14 +256,17 @@ export function RefineStep() {
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(
     itinerary?.refinements?.neighborhoodId ?? null
   );
-  const [includedIds, setIncludedIds] = useState<Set<string>>(
-    () => new Set(activities.map((a) => a.id))
-  );
+  // Restore previously saved exclusions so removed activities stay removed on revisit
+  const [includedIds, setIncludedIds] = useState<Set<string>>(() => {
+    const excluded = new Set(itinerary?.refinements?.excludedActivityIds ?? []);
+    return new Set(activities.filter((a) => !excluded.has(a.id)).map((a) => a.id));
+  });
   const [askingAbout, setAskingAbout] = useState<string | null>(null);
 
   // Reset when a new itinerary is generated (new id = new activities)
   useEffect(() => {
-    setIncludedIds(new Set(activities.map((a) => a.id)));
+    const excluded = new Set(itinerary?.refinements?.excludedActivityIds ?? []);
+    setIncludedIds(new Set(activities.filter((a) => !excluded.has(a.id)).map((a) => a.id)));
     setSelectedNeighborhood(itinerary?.refinements?.neighborhoodId ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itinerary?.id]);

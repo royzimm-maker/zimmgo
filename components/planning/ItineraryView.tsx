@@ -1,11 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, ItineraryDay } from "@/types/trip";
+import { useTripStore } from "@/lib/store/tripStore";
+import { TripGlance } from "@/components/planning/TripGlance";
+import { BudgetBreakdown } from "@/components/planning/BudgetBreakdown";
+import { PackingList } from "@/components/planning/PackingList";
+import { PreTripTasks } from "@/components/planning/PreTripTasks";
+import { LocalDiscovery } from "@/components/planning/LocalDiscovery";
+import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
 interface Props {
   itinerary: GeneratedItinerary;
@@ -13,9 +19,47 @@ interface Props {
 
 export function ItineraryView({ itinerary }: Props) {
   const [expandedDay, setExpandedDay] = useState<number>(0);
+  const [copied, setCopied] = useState(false);
+  const { trip } = useTripStore();
+  const preferences = trip.preferences;
+
+  function handlePrint() {
+    window.print();
+  }
+
+  async function handleCopy() {
+    const lines: string[] = [
+      `ZimmGo Trip — ${preferences.destination?.displayName ?? "Your Trip"}`,
+      "",
+      itinerary.aiSummary,
+      "",
+      "── FLIGHTS ──",
+      ...itinerary.flights.map((f) => `${f.airline} · ${f.origin} → ${f.destination} · ${formatCurrency(f.price)}/pp`),
+      "",
+      "── HOTELS ──",
+      ...itinerary.hotels.map((h) => `${h.name} · ${h.location} · ${formatCurrency(h.pricePerNight)}/night`),
+      ...(itinerary.restaurants?.length
+        ? ["", "── WHERE TO EAT ──", ...itinerary.restaurants.map((r) => `${r.name} · ${r.cuisine} · ${r.priceRange} · ${r.location}`)]
+        : []),
+      "",
+      "── ITINERARY ──",
+      ...itinerary.days.map((d) => [
+        `Day ${d.dayNumber}: ${d.theme} (${d.date})`,
+        d.morning.length ? `  Morning: ${d.morning.join(", ")}` : "",
+        d.afternoon.length ? `  Afternoon: ${d.afternoon.join(", ")}` : "",
+        d.evening.length ? `  Evening: ${d.evening.join(", ")}` : "",
+      ].filter(Boolean).join("\n")),
+    ];
+    await navigator.clipboard.writeText(lines.join("\n"));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Trip at a Glance */}
+      <TripGlance itinerary={itinerary} preferences={preferences} />
+
       {/* AI Summary */}
       <div className="rounded-xl bg-gradient-to-br from-brand-50 to-sage-50 border border-brand-100 p-4">
         <p className="text-sm font-semibold text-brand-700 mb-3">Your trip at a glance</p>
@@ -52,6 +96,15 @@ export function ItineraryView({ itinerary }: Props) {
         </Section>
       )}
 
+      {/* Restaurants */}
+      {itinerary.restaurants && itinerary.restaurants.length > 0 && (
+        <Section title="Where to Eat" icon={<UtensilsCrossed size={16} />}>
+          <div className="flex flex-col gap-2">
+            {itinerary.restaurants.map((r) => <RestaurantCard key={r.id} restaurant={r} />)}
+          </div>
+        </Section>
+      )}
+
       {/* Day-by-day */}
       <Section title="Day-by-Day Itinerary" icon={<MapPin size={16} />}>
         <div className="flex flex-col gap-2">
@@ -74,6 +127,38 @@ export function ItineraryView({ itinerary }: Props) {
           </div>
         </Section>
       )}
+
+      {/* Local discovery */}
+      <LocalDiscovery preferences={preferences} />
+
+      {/* Budget breakdown */}
+      <BudgetBreakdown itinerary={itinerary} preferences={preferences} />
+
+      {/* Packing list */}
+      <PackingList itinerary={itinerary} preferences={preferences} />
+
+      {/* Pre-trip task timeline */}
+      <PreTripTasks itinerary={itinerary} preferences={preferences} />
+
+      {/* Download / share bar */}
+      <div className="flex gap-2 pt-2 border-t border-slate-100">
+        <button
+          type="button"
+          onClick={handlePrint}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+        >
+          <Printer size={13} />
+          Print / Save as PDF
+        </button>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+        >
+          {copied ? <CheckIcon size={13} className="text-sage-600" /> : <Copy size={13} />}
+          {copied ? "Copied!" : "Copy itinerary"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -81,11 +166,19 @@ export function ItineraryView({ itinerary }: Props) {
 // ─── RichText: renders paragraphs, bullet lists, and **bold** without a library ─
 
 function renderInline(text: string): React.ReactNode[] {
-  // Split on **bold** markers
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  const parts = text.split(/(\*\*[^*]+\*\*|https?:\/\/[^\s,)]+)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={i} className="font-semibold text-slate-800">{part.slice(2, -2)}</strong>;
+    }
+    if (/^https?:\/\//.test(part)) {
+      const display = part.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+      return (
+        <a key={i} href={part} target="_blank" rel="noreferrer"
+          className="inline-flex items-center gap-0.5 text-brand-500 hover:underline">
+          {display}<ExternalLink size={10} className="shrink-0" />
+        </a>
+      );
     }
     return part;
   });
@@ -186,6 +279,12 @@ function FlightCard({ flight }: { flight: FlightOption }) {
   );
 }
 
+const HOTEL_TIER: Record<number, { label: string }> = {
+  5: { label: "Michelin or bust" },
+  4: { label: "Great beds, no drama" },
+  3: { label: "Sleep well, spend the savings" },
+};
+
 function HotelCard({ hotel }: { hotel: HotelOption }) {
   const sourceIcon: Record<string, string> = {
     "Google Reviews": "🔵",
@@ -193,6 +292,7 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
     "Booking.com": "🔷",
   };
   const icon = hotel.ratingSource ? (sourceIcon[hotel.ratingSource] ?? "⭐") : "⭐";
+  const tierLabel = (HOTEL_TIER[hotel.stars] ?? HOTEL_TIER[4]).label;
 
   return (
     <Card padding="none" className="overflow-hidden">
@@ -205,56 +305,138 @@ function HotelCard({ hotel }: { hotel: HotelOption }) {
             alt={hotel.name}
             className="w-full h-full object-cover"
           />
+          <span className="absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide shadow-sm" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>
+            {tierLabel}
+          </span>
           <span className="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white/80 font-medium tracking-wide">
             Illustrative
           </span>
         </div>
       )}
       <div className="flex items-start gap-3 p-3">
-      <div className="flex-1">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <span className="font-semibold text-slate-800 text-sm">{hotel.name}</span>
-          <div className="flex">
-            {Array.from({ length: hotel.stars }).map((_, i) => (
-              <Star key={i} size={10} className="fill-amber-400 text-amber-400" />
+        <div className="flex-1">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="font-semibold text-slate-800 text-sm">{hotel.name}</span>
+            <div className="flex">
+              {Array.from({ length: hotel.stars }).map((_, i) => (
+                <Star key={i} size={10} className="fill-amber-400 text-amber-400" />
+              ))}
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 mt-0.5">{hotel.location}</p>
+          <div className="flex flex-wrap gap-1 mt-2">
+            {hotel.highlights.slice(0, 3).map((h) => (
+              <Badge key={h} variant="muted">{h}</Badge>
             ))}
           </div>
         </div>
-        <p className="text-xs text-slate-500 mt-0.5">{hotel.location}</p>
-        <div className="flex flex-wrap gap-1 mt-2">
-          {hotel.highlights.slice(0, 3).map((h) => (
-            <Badge key={h} variant="muted">{h}</Badge>
-          ))}
+        <div className="text-right shrink-0">
+          <p className="font-bold text-slate-900 text-sm">
+            {formatCurrency(hotel.pricePerNight)}<span className="font-normal text-xs text-slate-400">/night</span>
+          </p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            <span className="font-medium text-sage-600">{hotel.rating}/10</span>
+            {" · "}{hotel.reviewCount.toLocaleString()} reviews
+          </p>
+          {hotel.ratingSource && (
+            <p className="text-[10px] text-slate-400 mt-0.5">{icon} {hotel.ratingSource}</p>
+          )}
+          <div className="flex items-center gap-2 justify-end mt-1.5">
+            <a
+              href={`https://www.google.com/maps/search/${encodeURIComponent(hotel.name + " " + hotel.location)}`}
+              target="_blank" rel="noreferrer"
+              className="text-xs text-slate-400 hover:text-slate-600 hover:underline flex items-center gap-0.5"
+              title="View on Google Maps"
+            >
+              Map <ExternalLink size={9} />
+            </a>
+            {hotel.bookingUrl && (
+              <a href={hotel.bookingUrl} target="_blank" rel="noreferrer"
+                className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 font-medium">
+                Book <ExternalLink size={9} />
+              </a>
+            )}
+          </div>
         </div>
       </div>
-      <div className="text-right shrink-0">
-        <p className="font-bold text-slate-900 text-sm">
-          {formatCurrency(hotel.pricePerNight)}<span className="font-normal text-xs text-slate-400">/night</span>
-        </p>
-        <p className="text-xs text-slate-500 mt-0.5">
-          <span className="font-medium text-sage-600">{hotel.rating}/10</span>
-          {" · "}{hotel.reviewCount.toLocaleString()} reviews
-        </p>
-        {hotel.ratingSource && (
-          <p className="text-[10px] text-slate-400 mt-0.5">{icon} {hotel.ratingSource}</p>
-        )}
-        <div className="flex items-center gap-2 justify-end mt-1.5">
+    </Card>
+  );
+}
+
+const RESTAURANT_TIER_EMOJI: Record<string, string> = {
+  fine_dining: "🌟",
+  upscale:     "✨",
+  midrange:    "💫",
+  casual:      "🪑",
+  street_food: "🛺",
+  brunch:      "☕",
+};
+
+const PRICE_LABEL_COLOR: Record<string, string> = {
+  "$$$$": "text-amber-700",
+  "$$$":  "text-brand-700",
+  "$$":   "text-sage-700",
+  "$":    "text-slate-600",
+};
+
+function RestaurantCard({ restaurant: r }: { restaurant: RestaurantOption }) {
+  const emoji = RESTAURANT_TIER_EMOJI[r.tier] ?? "🍽️";
+  const priceColor = PRICE_LABEL_COLOR[r.priceRange] ?? "text-slate-600";
+
+  return (
+    <Card padding="none" className="overflow-hidden">
+      {r.imageUrl && (
+        <div className="relative w-full h-32 bg-slate-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={r.imageUrl} alt={r.name} className="w-full h-full object-cover" />
+          <span className="absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide shadow-sm" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>
+            {emoji} {r.playfulCategory}
+          </span>
+          <span className="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white/80 font-medium tracking-wide">
+            Illustrative
+          </span>
+        </div>
+      )}
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold text-slate-800 text-sm">{r.name}</p>
+              <span className={`text-xs font-bold ${priceColor}`}>{r.priceRange}</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">{r.cuisine} · {r.location}</p>
+            <p className="text-xs text-slate-600 leading-relaxed mt-1.5">{r.description}</p>
+            {r.mustOrder && (
+              <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 rounded px-2 py-1 leading-snug">
+                🍴 Must order: {r.mustOrder}
+              </p>
+            )}
+          </div>
+          <div className="text-right shrink-0 ml-2">
+            <p className="text-xs font-medium text-sage-700">{r.rating}/10</p>
+            <p className="text-[10px] text-slate-400">{r.reviewCount.toLocaleString()} reviews</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-slate-100">
+          {r.menuUrl && (
+            <a href={r.menuUrl} target="_blank" rel="noreferrer"
+              className="flex items-center gap-0.5 text-[11px] text-slate-500 hover:text-slate-700 hover:underline">
+              Menu <ExternalLink size={9} />
+            </a>
+          )}
           <a
-            href={`https://www.google.com/maps/search/${encodeURIComponent(hotel.name + " " + hotel.location)}`}
+            href={`https://www.google.com/maps/search/${encodeURIComponent(r.name + " " + r.location)}`}
             target="_blank" rel="noreferrer"
-            className="text-xs text-slate-400 hover:text-slate-600 hover:underline flex items-center gap-0.5"
-            title="View on Google Maps"
-          >
+            className="flex items-center gap-0.5 text-[11px] text-slate-500 hover:text-slate-700 hover:underline">
             Map <ExternalLink size={9} />
           </a>
-          {hotel.bookingUrl && (
-            <a href={hotel.bookingUrl} target="_blank" rel="noreferrer"
-              className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 font-medium">
-              Book <ExternalLink size={9} />
+          {r.bookingUrl && (
+            <a href={r.bookingUrl} target="_blank" rel="noreferrer"
+              className="flex items-center gap-0.5 text-[11px] text-brand-500 font-medium hover:underline ml-auto">
+              {r.tier === "fine_dining" || r.tier === "upscale" ? "Reserve" : "Find it"} <ExternalLink size={9} />
             </a>
           )}
         </div>
-      </div>
       </div>
     </Card>
   );

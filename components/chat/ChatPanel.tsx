@@ -81,6 +81,32 @@ export function ChatPanel() {
         </div>
       </div>
 
+      {/* Input — pinned just below the header */}
+      <div className="shrink-0 border-b border-slate-200 p-3">
+        <div className="flex items-end gap-2">
+          <textarea
+            rows={1}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask your travel advisor…"
+            className="flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 max-h-32"
+            style={{ minHeight: "38px" }}
+          />
+          <button
+            type="button"
+            onClick={() => sendMessage(input)}
+            disabled={!input.trim() || loading}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Send size={14} />
+          </button>
+        </div>
+        <p className="mt-1 text-[10px] text-slate-400 text-center">
+          Press Enter to send · Shift+Enter for new line
+        </p>
+      </div>
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
         {/* Welcome */}
@@ -171,31 +197,6 @@ export function ChatPanel() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="shrink-0 border-t border-slate-200 p-3">
-        <div className="flex items-end gap-2">
-          <textarea
-            rows={1}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask your travel advisor…"
-            className="flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 max-h-32"
-            style={{ minHeight: "38px" }}
-          />
-          <button
-            type="button"
-            onClick={() => sendMessage(input)}
-            disabled={!input.trim() || loading}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Send size={14} />
-          </button>
-        </div>
-        <p className="mt-1 text-[10px] text-slate-400 text-center">
-          Press Enter to send · Shift+Enter for new line
-        </p>
-      </div>
     </div>
   );
 }
