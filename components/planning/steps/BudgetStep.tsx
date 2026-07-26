@@ -15,7 +15,7 @@ const LODGING_TIERS: {
   sublabel: string;
   exampleHotel: string;
 }[] = [
-  { id: "under_500",  label: "Under $200 / room / night", sublabel: "Smart traveller",       exampleHotel: "Boutique 3★, guesthouse, or Airbnb" },
+  { id: "under_500",  label: "Under $200 / room / night", sublabel: "Value-focused",          exampleHotel: "Boutique 3★, guesthouse, or Airbnb" },
   { id: "500_750",    label: "$200 – $400 / room / night", sublabel: "Comfort-focused",       exampleHotel: "4★ hotel or premium Airbnb" },
   { id: "750_1000",   label: "$400 – $700 / room / night", sublabel: "Premium experience",    exampleHotel: "4–5★ or design hotel" },
   { id: "1000_plus",  label: "$700+ / room / night",       sublabel: "Luxury / no compromise", exampleHotel: "5★ suite or exclusive villa" },

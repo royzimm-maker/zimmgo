@@ -253,7 +253,7 @@ export function AirlinesStep() {
             <p className={cn("font-semibold text-sm", lowestFare ? "text-sage-800" : "text-slate-800")}>
               Find me the lowest fares
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className={cn("text-xs mt-0.5", lowestFare ? "text-sage-700 font-medium" : "text-slate-500")}>
               Searches all airlines in economy — overrides any airline or cabin preferences below
             </p>
           </div>

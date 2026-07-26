@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
+
+const ItineraryMap = dynamic(
+  () => import("@/components/planning/ItineraryMap").then((m) => m.ItineraryMap),
+  { ssr: false, loading: () => <div className="rounded-xl border border-slate-200 bg-slate-50 h-[300px] animate-pulse" /> }
+);
 import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -72,6 +78,9 @@ export function ItineraryView({ itinerary }: Props) {
         )}
       </div>
 
+      {/* Route map */}
+      <ItineraryMap preferences={preferences} itinerary={itinerary} />
+
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Days" value={`${itinerary.days.length}`} icon={<Clock size={14} />} />
@@ -90,7 +99,11 @@ export function ItineraryView({ itinerary }: Props) {
 
       {/* Hotels */}
       {preferences.selectedHotel ? (
-        <Section title="Your Confirmed Stay" icon={<Hotel size={16} />}>
+        <Section
+          title="Your Planned Stay"
+          icon={<Hotel size={16} />}
+          subtitle="Selected during planning — not yet booked. Use the link below to reserve."
+        >
           <HotelCard hotel={preferences.selectedHotel} />
         </Section>
       ) : itinerary.hotels.length > 0 && (

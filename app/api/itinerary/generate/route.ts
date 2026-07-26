@@ -153,7 +153,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     numDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
   }
 
-  const days: ItineraryDay[] = buildDays(new Date(startDate), numDays, activities, preferences);
+  const days: ItineraryDay[] = buildDays(new Date(startDate), numDays, activities, restaurants, preferences);
 
   // If user pre-selected a hotel in the Lodging step, use it; otherwise use AI-searched results
   if (preferences.selectedHotel) {
@@ -208,6 +208,7 @@ function buildDays(
   start: Date,
   numDays: number,
   activities: ActivityOption[],
+  restaurants: RestaurantOption[],
   preferences: TripPreferences
 ): ItineraryDay[] {
   const dest = preferences.destination?.displayName ?? "the destination";
@@ -226,15 +227,18 @@ function buildDays(
       ? cities[Math.floor((i / numDays) * cities.length)]
       : (cities[0] ?? dest);
 
+    // Use the city name for in-day activity text, not the full destination string
+    const cityLabel = location;
+
     return {
       date: isoDate,
       dayNumber: i + 1,
       theme: themes[i],
       location,
-      morning:   buildTimeBlock("morning",   i, dayActivities, dest),
-      afternoon: buildTimeBlock("afternoon", i, dayActivities, dest),
-      evening:   buildTimeBlock("evening",   i, dayActivities, dest),
-      meals:     buildMeals(i, preferences),
+      morning:   buildTimeBlock("morning",   i, dayActivities, cityLabel),
+      afternoon: buildTimeBlock("afternoon", i, dayActivities, cityLabel),
+      evening:   buildTimeBlock("evening",   i, dayActivities, cityLabel),
+      meals:     buildMeals(i, preferences, restaurants),
       notes: i === 0 ? "Allow time for jet lag recovery — keep the first evening light." : undefined,
     };
   });
@@ -288,30 +292,42 @@ function buildTimeBlock(
 
 function buildMeals(
   dayIndex: number,
-  preferences: TripPreferences
+  preferences: TripPreferences,
+  restaurants: RestaurantOption[]
 ): ItineraryDay["meals"] {
   const foodBudget = preferences.dailyFoodBudgetPerPerson;
   const isHighBudget =
     (foodBudget !== undefined && foodBudget >= 150) ||
     (foodBudget === undefined && (preferences.budgetRange === "750_1000" || preferences.budgetRange === "1000_plus"));
-  const dest = preferences.destination?.displayName ?? "local";
 
-  const breakfasts = [
-    `Hotel breakfast or a café near your accommodation`,
+  // Pull named restaurants from the fetched list by tier
+  const byTier = (tier: string[]) => restaurants.filter((r) => tier.includes(r.tier));
+  const brunchR    = byTier(["brunch", "casual"]);
+  const lunchR     = byTier(["casual", "midrange", "street_food"]);
+  const dinnerR    = isHighBudget ? byTier(["fine_dining", "upscale"]) : byTier(["midrange", "casual"]);
+
+  function named(pool: RestaurantOption[], idx: number, fallback: string): string {
+    const r = pool[idx % (pool.length || 1)];
+    if (!r || pool.length === 0) return fallback;
+    return `${r.name} — ${r.description.split(".")[0]}. ${r.mustOrder ? `Must order: ${r.mustOrder}.` : ""}`.trim();
+  }
+
+  const breakfastFallbacks = [
     `Local bakery — try a regional pastry and filter coffee`,
     `Morning market breakfast with seasonal produce`,
+    `Café near your hotel for coffee and a light bite`,
   ];
-  const lunches = isHighBudget
-    ? [`Award-winning lunch spot recommended by your concierge`, `Neighbourhood bistro with a good value lunch menu`, `Rooftop restaurant with panoramic views`]
-    : [`Casual local spot — ask the hotel reception for their favourite`, `Street food market or food court`, `Picnic from the local deli — great for outdoor spots`];
-  const dinners = isHighBudget
-    ? [`Reservations recommended — try the restaurant at your hotel`, `Michelin-recognised or highly-rated ${dest} restaurant`, `Chef's tasting menu experience`]
-    : [`Neighbourhood restaurant with strong local reviews`, `A popular spot with locals, away from tourist areas`, `Regional speciality — ask for the menu in the local language`];
+  const lunchFallbacks = isHighBudget
+    ? [`Neighbourhood bistro with a good-value set lunch`, `Rooftop restaurant with panoramic views`, `Award-winning spot recommended by your concierge`]
+    : [`Street food market — follow the locals`, `Casual trattoria or café away from tourist areas`, `Picnic from the local deli — great for outdoor spots`];
+  const dinnerFallbacks = isHighBudget
+    ? [`Michelin-recognised restaurant — book ahead`, `Chef's tasting menu experience`, `Celebrated local restaurant with strong reviews`]
+    : [`Neighbourhood restaurant popular with locals`, `A low-key spot serving regional specialities`, `Wine bar with small plates — great for grazing`];
 
   return [
-    { type: "breakfast", suggestion: breakfasts[dayIndex % breakfasts.length] },
-    { type: "lunch",     suggestion: lunches[dayIndex % lunches.length] },
-    { type: "dinner",    suggestion: dinners[dayIndex % dinners.length] },
+    { type: "breakfast", suggestion: named(brunchR, dayIndex, breakfastFallbacks[dayIndex % breakfastFallbacks.length]) },
+    { type: "lunch",     suggestion: named(lunchR,  dayIndex, lunchFallbacks[dayIndex % lunchFallbacks.length]) },
+    { type: "dinner",    suggestion: named(dinnerR, dayIndex, dinnerFallbacks[dayIndex % dinnerFallbacks.length]) },
   ];
 }
 

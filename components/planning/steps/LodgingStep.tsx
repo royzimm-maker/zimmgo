@@ -12,7 +12,7 @@ import type { HotelOption, LodgingPreference, LodgingStarRating, LodgingType } f
 
 const TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[] = [
   { id: "hotel",    label: "Hotel",        icon: "🏨", sublabel: "Traditional hotel, full service" },
-  { id: "airbnb",   label: "Airbnb / Apt", icon: "🏠", sublabel: "Home-like, flexible, local feel" },
+  { id: "airbnb",   label: "AirBnB / Apt", icon: "🏠", sublabel: "Home-like, flexible, local feel" },
   { id: "boutique", label: "Boutique",     icon: "🛎️", sublabel: "Design-led, intimate, unique" },
   { id: "resort",   label: "Resort",       icon: "🌴", sublabel: "All-inclusive, amenities-rich" },
 ];
@@ -20,6 +20,7 @@ const TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[
 const AMENITIES = [
   "Free breakfast", "Pool", "Gym", "Concierge", "Airport transfer",
   "Rooftop bar", "Spa", "City centre location", "Kitchen / kitchenette",
+  "High walkability",
 ];
 
 const HOTEL_TIER: Record<number, string> = {
@@ -31,7 +32,9 @@ const HOTEL_TIER: Record<number, string> = {
 export function LodgingStep() {
   const { trip, setLodging, setSelectedHotel } = useTripStore();
   const existing = trip.preferences.lodging;
-  const destination = trip.preferences.destination?.displayName ?? "";
+  // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
+  const destination = trip.preferences.destination?.cities?.[0]
+    ?? trip.preferences.destination?.displayName ?? "";
   const budgetMax = trip.preferences.budgetRange === "under_500" ? 500
     : trip.preferences.budgetRange === "500_750" ? 750
     : trip.preferences.budgetRange === "750_1000" ? 1000
@@ -73,7 +76,11 @@ export function LodgingStep() {
     }
   }
 
-  useEffect(() => { fetchHotels(minStars); }, []);
+  // Only fetch hotels once the user has chosen an accommodation type — don't pre-load
+  useEffect(() => {
+    const onlyAirbnb = types.length > 0 && types.every((t) => t === "airbnb") && !otherTypeOpen;
+    if (types.length > 0 && !onlyAirbnb) fetchHotels(minStars);
+  }, [types.join(","), otherTypeOpen]);
 
   function handleStarsChange(s: LodgingStarRating) {
     setMinStars(s);
@@ -102,6 +109,8 @@ export function LodgingStep() {
   }
 
   const hasType = types.length > 0 || (otherTypeOpen && !!otherTypeValue.trim());
+  // Only show hotel picker if accommodation type includes bookable hotel options
+  const airbnbOnly = types.length > 0 && types.every((t) => t === "airbnb") && !otherTypeOpen;
 
   return (
     <StepShell
@@ -212,8 +221,16 @@ export function LodgingStep() {
           </div>
         </div>
 
+        {/* AirBnB note — shown instead of hotel cards */}
+        {airbnbOnly && (
+          <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+            <p className="font-medium">AirBnB options will be surfaced in your itinerary.</p>
+            <p className="text-xs text-brand-500 mt-0.5">We'll recommend apartments and local stays that match your destination and dates.</p>
+          </div>
+        )}
+
         {/* Hotel picker */}
-        {(hotelsLoading || hotels.length > 0) && (
+        {!airbnbOnly && (hotelsLoading || hotels.length > 0) && (
           <div className="border-t border-slate-100 pt-5">
             <p className="mb-1 text-sm font-medium text-slate-700">Choose your stay</p>
             <p className="mb-3 text-xs text-slate-400">

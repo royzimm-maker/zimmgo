@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { ArrowLeft, ArrowRight, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +30,9 @@ export function StepShell({
 }: StepShellProps) {
   const { goToStep, completeStep, trip } = useTripStore();
   const meta  = STEP_META[stepId];
+
+  // Scroll to top whenever a new step mounts
+  useEffect(() => { window.scrollTo({ top: 0 }); }, []);
   const idx   = ORDERED_STEPS.indexOf(stepId);
   const prevId = idx > 0 ? ORDERED_STEPS[idx - 1] : null;
   const nextId = idx < ORDERED_STEPS.length - 1 ? ORDERED_STEPS[idx + 1] : null;

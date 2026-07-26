@@ -1,10 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Plane, Hotel, Users, Calendar, MapPin,
-  ChevronDown, ChevronUp, Sun, Moon, Utensils,
-} from "lucide-react";
+import { Plane, Hotel, Users, Calendar, MapPin } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 
@@ -14,8 +10,6 @@ interface Props {
 }
 
 export function TripGlance({ itinerary, preferences }: Props) {
-  const [showDayByDay, setShowDayByDay] = useState(false);
-
   const { days, flights, hotels } = itinerary;
   const travelers = preferences.travelers ?? 1;
   const destination = preferences.destination?.displayName ?? "Your destination";
@@ -76,38 +70,6 @@ export function TripGlance({ itinerary, preferences }: Props) {
         </div>
       )}
 
-      {/* Day-by-day toggle */}
-      <div className="px-4 py-2">
-        <button
-          type="button"
-          onClick={() => setShowDayByDay((v) => !v)}
-          className="flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors"
-        >
-          {showDayByDay ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          {showDayByDay ? "Hide" : "Show"} day-by-day summary
-        </button>
-      </div>
-
-      {showDayByDay && (
-        <div className="px-4 pb-4 flex flex-col gap-2">
-          {days.map((day) => (
-            <div key={day.dayNumber} className="flex gap-3 text-xs">
-              <div className="shrink-0 w-6 h-6 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-[10px]">
-                {day.dayNumber}
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-slate-800">{day.theme}</p>
-                <p className="text-slate-400 text-[11px]">{formatDate(day.date)}</p>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] text-slate-500">
-                  {day.morning[0] && <span className="flex items-center gap-0.5"><Sun size={9} />{day.morning[0]}</span>}
-                  {day.evening[0] && <span className="flex items-center gap-0.5"><Moon size={9} />{day.evening[0]}</span>}
-                  {day.meals[0]   && <span className="flex items-center gap-0.5"><Utensils size={9} />{day.meals[0].suggestion}</span>}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

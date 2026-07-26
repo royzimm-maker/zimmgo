@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Calendar, Shuffle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
-import { Input } from "@/components/ui/Input";
+import { SimpleDatePicker } from "@/components/ui/SimpleDatePicker";
 import { cn } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { DatePreference } from "@/types/trip";
@@ -52,7 +52,13 @@ export function DatesStep() {
   function handleStartDateChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
     setStartDate(val);
-    if (endDate && endDate < val) setEndDate("");
+    if (val) {
+      // Auto-set return to departure + 1 day if not yet set or before departure
+      const dep = new Date(val + "T00:00:00");
+      dep.setDate(dep.getDate() + 1);
+      const nextDay = `${dep.getFullYear()}-${String(dep.getMonth() + 1).padStart(2, "0")}-${String(dep.getDate()).padStart(2, "0")}`;
+      if (!endDate || endDate <= val) setEndDate(nextDay);
+    }
   }
 
   function handleContinue() {
@@ -92,19 +98,17 @@ export function DatesStep() {
 
       {mode === "exact" ? (
         <div className="grid grid-cols-2 gap-4">
-          <Input
-            type="date"
+          <SimpleDatePicker
             label="Departure"
             value={startDate}
-            onChange={handleStartDateChange}
+            onChange={(val) => handleStartDateChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>)}
             min={today}
             max={maxDate}
           />
-          <Input
-            type="date"
+          <SimpleDatePicker
             label="Return"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={(val) => setEndDate(val)}
             min={startDate || today}
             max={maxDate}
           />
