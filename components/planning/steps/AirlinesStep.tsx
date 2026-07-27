@@ -46,6 +46,21 @@ export function AirlinesStep() {
   const [depOpen,     setDepOpen    ] = useState(false);
   const depRef = useRef<HTMLDivElement>(null);
 
+  // ── Return airport (open-jaw) ──────────────────────────────────────────────
+  const [openJaw,     setOpenJaw    ] = useState(Boolean(destination?.returnAirport));
+  const [returnAp,    setReturnAp   ] = useState(destination?.returnAirport ?? "");
+  const [retResults,  setRetResults ] = useState<Airport[]>([]);
+  const [retOpen,     setRetOpen    ] = useState(false);
+  const retRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (retRef.current && !retRef.current.contains(e.target as Node)) setRetOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
   // ── Gateway airports from routing suggestion ───────────────────────────────
   const [gateways,     setGateways    ] = useState<ArrivalSuggestion[]>([]);
   const [selectedCode, setSelectedCode] = useState<string | undefined>(destination?.arrivalAirport);
@@ -105,13 +120,25 @@ export function AirlinesStep() {
     setCabins((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
   }
 
+  function handleRetInput(value: string) {
+    setReturnAp(value);
+    const results = searchAirports(value);
+    setRetResults(results);
+    setRetOpen(results.length > 0);
+  }
+
+  function selectReturn(airport: Airport) {
+    setReturnAp(`${airport.city} (${airport.code})`);
+    setRetOpen(false);
+  }
+
   function handleContinue() {
-    // Save departure + selected gateway back to destination
     if (destination) {
       setDestination({
         ...destination,
         departureAirport: departure.trim() || undefined,
         arrivalAirport:   selectedCode,
+        returnAirport:    openJaw && returnAp.trim() ? returnAp.trim() : undefined,
       });
     }
 
@@ -176,6 +203,56 @@ export function AirlinesStep() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* ── Return to different airport (open-jaw) ── */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setOpenJaw((v) => !v)}
+            className="flex items-center gap-2 text-sm text-slate-700 hover:text-brand-600 transition-colors"
+          >
+            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold transition-colors ${openJaw ? "bg-brand-500 border-brand-500 text-white" : "border-slate-300 text-transparent"}`}>
+              ✓
+            </span>
+            Return to a different airport (open-jaw)
+          </button>
+          <p className="text-[11px] text-slate-400 mt-0.5 ml-6">e.g. fly into Rome (FCO) and out from Milan (MXP)</p>
+
+          {openJaw && (
+            <div className="mt-3 relative" ref={retRef}>
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={returnAp}
+                  onChange={(e) => handleRetInput(e.target.value)}
+                  onFocus={() => returnAp && setRetOpen(retResults.length > 0)}
+                  placeholder="Return from — city or airport code"
+                  className="w-full rounded-lg border border-slate-300 bg-white pl-8 pr-9 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                />
+                {returnAp && (
+                  <button type="button" onClick={() => { setReturnAp(""); setRetOpen(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+              {retOpen && retResults.length > 0 && (
+                <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+                  {retResults.map((ap) => (
+                    <button key={ap.code} type="button" onClick={() => selectReturn(ap)}
+                      className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
+                      <span className="font-mono text-xs font-bold text-brand-600 w-10 shrink-0">{ap.code}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-slate-800 truncate">{ap.city}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{ap.name} · {ap.country}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Gateway airports ── */}

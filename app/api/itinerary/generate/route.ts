@@ -84,11 +84,11 @@ export async function POST(request: NextRequest) {
         if (block.type !== "tool_use") continue;
         const result = await dispatchTool(block.name, block.input as Record<string, unknown>);
 
-        // Stash typed results for itinerary assembly
-        if (block.name === "search_flights")      flights      = result as FlightOption[];
-        if (block.name === "search_hotels")       hotels       = result as HotelOption[];
-        if (block.name === "search_activities")   activities   = result as ActivityOption[];
-        if (block.name === "search_restaurants")  restaurants  = result as RestaurantOption[];
+        // Accumulate results — AI may call these tools multiple times (once per city)
+        if (block.name === "search_flights")      flights      = [...flights,      ...(result as FlightOption[])];
+        if (block.name === "search_hotels")       hotels       = [...hotels,       ...(result as HotelOption[])];
+        if (block.name === "search_activities")   activities   = [...activities,   ...(result as ActivityOption[])];
+        if (block.name === "search_restaurants")  restaurants  = [...restaurants,  ...(result as RestaurantOption[])];
 
         toolResults.push({
           type: "tool_result",
@@ -99,6 +99,48 @@ export async function POST(request: NextRequest) {
 
       messages.push({ role: "user", content: toolResults });
     }
+
+    // ── Ensure every destination city has activities and restaurants ──
+    // The AI may only call the tools once (for the whole trip), leaving some cities uncovered.
+    // We also filter out any results tagged to the departure city.
+    const depCity = (preferences.destination?.departureAirport ?? "")
+      .replace(/\s*\(.*\)/, "").trim().toLowerCase(); // e.g. "Seattle-Tacoma International" → "seattle"
+    const destCities: string[] = preferences.destination?.cities ?? [];
+
+    if (depCity) {
+      activities   = activities.filter((a) => !a.location?.toLowerCase().includes(depCity.split("-")[0]));
+      restaurants  = restaurants.filter((r) => !r.location?.toLowerCase().includes(depCity.split("-")[0]));
+    }
+
+    // For each destination city not yet covered, do a direct search
+    for (const city of destCities) {
+      const cityLower = city.toLowerCase();
+      const hasCityActivities   = activities.some((a)  => a.location?.toLowerCase().includes(cityLower));
+      const hasCityRestaurants  = restaurants.some((r) => r.location?.toLowerCase().includes(cityLower));
+
+      if (!hasCityActivities) {
+        const extra = await searchActivities({ destination: city, categories: preferences.activities as string[] });
+        activities = [...activities, ...extra];
+      }
+      if (!hasCityRestaurants) {
+        const extra = await searchRestaurants({ destination: city });
+        restaurants = [...restaurants, ...extra];
+      }
+    }
+
+    // ── Deduplicate by name across all cities ──
+    const dedup = <T extends { name?: string }>(arr: T[]): T[] => {
+      const seen = new Set<string>();
+      return arr.filter((x) => {
+        const k = (x.name ?? "").toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    };
+    activities  = dedup(activities);
+    restaurants = dedup(restaurants);
+    hotels      = dedup(hotels);
 
     // ── Synthesise final itinerary from collected data ──
     const itinerary = assembleItinerary({

@@ -1,13 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import dynamic from "next/dynamic";
-
-const ItineraryMap = dynamic(
-  () => import("@/components/planning/ItineraryMap").then((m) => m.ItineraryMap),
-  { ssr: false, loading: () => <div className="rounded-xl border border-slate-200 bg-slate-50 h-[300px] animate-pulse" /> }
-);
-import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -24,10 +18,20 @@ interface Props {
 }
 
 export function ItineraryView({ itinerary }: Props) {
+  const { trip, setSelectedHotel, setSelectedFlight } = useTripStore();
   const [expandedDay, setExpandedDay] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
-  const [selectedHotelId, setSelectedHotelId] = useState<string | null>(null);
-  const { trip } = useTripStore();
+  const [selectedHotelId, setSelectedHotelId] = useState<string | null>(
+    trip.preferences.selectedHotel?.id ?? null
+  );
+
+  // Build card-id → display info lookup for the finalized plan
+  const cardNameMap = useMemo<Record<string, { name: string; kind: "activity" | "restaurant" }>>(() => {
+    const m: Record<string, { name: string; kind: "activity" | "restaurant" }> = {};
+    itinerary.activities.forEach((a) => { m[`act-${a.id}`] = { name: a.name, kind: "activity" }; });
+    (itinerary.restaurants ?? []).forEach((r) => { m[`rest-${r.id}`] = { name: r.name, kind: "restaurant" }; });
+    return m;
+  }, [itinerary.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const preferences = trip.preferences;
 
   function handlePrint() {
@@ -67,19 +71,24 @@ export function ItineraryView({ itinerary }: Props) {
       {/* Trip at a Glance */}
       <TripGlance itinerary={itinerary} preferences={preferences} />
 
-      {/* AI Summary */}
-      <div className="rounded-xl bg-gradient-to-br from-brand-50 to-sage-50 border border-brand-100 p-4">
-        <p className="text-sm font-semibold text-brand-700 mb-3">ZiGy's Take</p>
-        <RichText text={itinerary.aiSummary} className="text-sm text-slate-700" />
-        {itinerary.whyThisWorks && (
-          <div className="mt-3 pt-3 border-t border-brand-100">
-            <RichText text={itinerary.whyThisWorks} className="text-xs text-slate-500 italic" />
-          </div>
-        )}
+      {/* ZiGy's Take */}
+      <div className="rounded-xl border border-sage-200 bg-white overflow-hidden">
+        <div className="bg-gradient-to-r from-sage-600 to-brand-500 px-4 py-3 text-white">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-0.5">AI Travel Advisor</p>
+          <h3 className="text-base font-bold">ZiGy&apos;s Take</h3>
+        </div>
+        <div className="px-4 py-4">
+          <RichText text={itinerary.aiSummary} className="text-sm text-slate-700 leading-relaxed" />
+          {itinerary.whyThisWorks && (
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <RichText text={itinerary.whyThisWorks} className="text-xs text-slate-500 italic leading-relaxed" />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Route map */}
-      <ItineraryMap preferences={preferences} itinerary={itinerary} />
+      {/* Destination summary */}
+      <DestinationSummary itinerary={itinerary} preferences={preferences} />
 
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-3">
@@ -90,10 +99,17 @@ export function ItineraryView({ itinerary }: Props) {
 
       {/* Flights */}
       {itinerary.flights.length > 0 && (
-        <Section title="Recommended Flights" icon={<Plane size={16} />}>
-          <div className="flex flex-col gap-2">
-            {itinerary.flights.map((f) => <FlightCard key={f.id} flight={f} />)}
-          </div>
+        <Section
+          title="Recommended Flights"
+          icon={<Plane size={16} />}
+          subtitle="Select your preferred option — prices are roundtrip per person, estimated. Book directly with the airline."
+        >
+          <FlightPairList
+            flights={itinerary.flights}
+            depAirport={preferences.destination?.departureAirport ?? ""}
+            selectedFlightId={trip.preferences.selectedFlight?.id}
+            onSelect={(f) => setSelectedFlight(trip.preferences.selectedFlight?.id === f.id ? null : f)}
+          />
         </Section>
       )}
 
@@ -110,7 +126,7 @@ export function ItineraryView({ itinerary }: Props) {
         <Section
           title={itinerary.hotels.length > 1 ? "Choose Your Stay" : "Recommended Lodging"}
           icon={<Hotel size={16} />}
-          subtitle={itinerary.hotels.length > 1 ? "Three options at different price points — tap the one that feels right." : undefined}
+          subtitle={itinerary.hotels.length > 1 ? "Tap a hotel to select it — your choice is saved to your plan." : undefined}
         >
           <div className="flex flex-col gap-3">
             {itinerary.hotels.map((h) => (
@@ -118,42 +134,64 @@ export function ItineraryView({ itinerary }: Props) {
                 key={h.id}
                 hotel={h}
                 selected={selectedHotelId === h.id}
-                onSelect={() => setSelectedHotelId((prev) => prev === h.id ? null : h.id)}
+                onSelect={() => {
+                  const next = selectedHotelId === h.id ? null : h.id;
+                  setSelectedHotelId(next);
+                  setSelectedHotel(next ? h : null);
+                }}
               />
             ))}
           </div>
         </Section>
       )}
 
-      {/* Restaurants */}
+      {/* Restaurants — grouped by location */}
       {itinerary.restaurants && itinerary.restaurants.length > 0 && (
         <Section title="Where to Eat" icon={<UtensilsCrossed size={16} />}>
-          <div className="flex flex-col gap-2">
-            {itinerary.restaurants.map((r) => <RestaurantCard key={r.id} restaurant={r} />)}
-          </div>
+          <GroupedCards
+            items={itinerary.restaurants}
+            getLocation={(r) => r.location}
+            renderCard={(r) => <RestaurantCard key={r.id} restaurant={r} />}
+          />
         </Section>
       )}
 
       {/* Day-by-day */}
       <Section title="Day-by-Day Itinerary" icon={<MapPin size={16} />}>
         <div className="flex flex-col gap-2">
-          {itinerary.days.map((day, idx) => (
-            <DayCard
-              key={day.dayNumber}
-              day={day}
-              expanded={expandedDay === idx}
-              onToggle={() => setExpandedDay(expandedDay === idx ? -1 : idx)}
-            />
-          ))}
+          {itinerary.days.map((day, idx) => {
+            const pickedCardIds = itinerary.finalizedPlan?.dayCards[day.dayNumber] ?? [];
+            const picks = pickedCardIds
+              .map((id) => cardNameMap[id])
+              .filter((p): p is { name: string; kind: "activity" | "restaurant" } => Boolean(p));
+            const dayHotel = preferences.selectedHotel
+              ?? itinerary.hotels.find((h) =>
+                  day.location && h.location.toLowerCase().includes(day.location.toLowerCase())
+                )
+              ?? itinerary.hotels[0];
+            return (
+              <DayCard
+                key={day.dayNumber}
+                day={day}
+                expanded={expandedDay === idx}
+                onToggle={() => setExpandedDay(expandedDay === idx ? -1 : idx)}
+                picks={picks}
+                hotel={dayHotel}
+              />
+            );
+          })}
         </div>
       </Section>
 
-      {/* Activities */}
+      {/* Activities — grouped by location */}
       {itinerary.activities.length > 0 && (
         <Section title="Top Experiences" icon={<Star size={16} />}>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {itinerary.activities.map((a) => <ActivityCard key={a.id} activity={a} />)}
-          </div>
+          <GroupedCards
+            items={itinerary.activities}
+            getLocation={(a) => a.location}
+            renderCard={(a) => <ActivityCard key={a.id} activity={a} />}
+            gridCols
+          />
         </Section>
       )}
 
@@ -168,6 +206,12 @@ export function ItineraryView({ itinerary }: Props) {
 
       {/* Pre-trip task timeline */}
       <PreTripTasks itinerary={itinerary} preferences={preferences} />
+
+      {/* Saved indicator + download bar */}
+      <div className="flex items-center gap-2 rounded-lg bg-sage-50 border border-sage-100 px-3 py-2 text-xs text-sage-700">
+        <Check size={12} className="text-sage-500 shrink-0" />
+        <span><span className="font-semibold">Saved to this device.</span> Your trip is stored in your browser — just return to this page to pick up where you left off.</span>
+      </div>
 
       {/* Download / share bar */}
       <div className="flex gap-2 pt-2 border-t border-slate-100">
@@ -255,6 +299,60 @@ function RichText({ text, className = "" }: { text: string; className?: string }
   );
 }
 
+// ─── Destination summary (replaces inaccurate map) ────────────────────────────
+
+function DestinationSummary({ itinerary, preferences }: { itinerary: GeneratedItinerary; preferences: import("@/types/trip").TripPreferences }) {
+  // Group days by location
+  const locationGroups: { location: string; dates: string[]; dayCount: number }[] = [];
+  for (const day of itinerary.days) {
+    const loc = day.location ?? preferences.destination?.displayName ?? "Unknown";
+    const last = locationGroups[locationGroups.length - 1];
+    if (last && last.location === loc) {
+      last.dates.push(day.date);
+      last.dayCount++;
+    } else {
+      locationGroups.push({ location: loc, dates: [day.date], dayCount: 1 });
+    }
+  }
+
+  const dep = preferences.destination?.departureAirport;
+  const arr = preferences.destination?.arrivalAirport;
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+        <MapPin size={13} className="text-brand-500" />
+        <p className="text-xs font-semibold text-slate-700">Your Route</p>
+        {dep && arr && (
+          <span className="ml-auto text-[10px] text-slate-400 font-mono">
+            {dep.split(" ").pop()?.replace(/[()]/g, "")} ↔ {arr}
+          </span>
+        )}
+      </div>
+      <div className="px-4 py-3 flex flex-col gap-2">
+        {locationGroups.map((g, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold">
+              {i + 1}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-800 truncate">{g.location}</p>
+              <p className="text-[11px] text-slate-400">
+                {formatDate(g.dates[0])}
+                {g.dayCount > 1 && ` — ${formatDate(g.dates[g.dates.length - 1])}`}
+                {" · "}{g.dayCount} day{g.dayCount !== 1 ? "s" : ""}
+              </p>
+            </div>
+            {i < locationGroups.length - 1 && (
+              <span className="text-slate-300 text-xs">→</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function Section({ title, icon, subtitle, children }: { title: string; icon: React.ReactNode; subtitle?: string; children: React.ReactNode }) {
@@ -271,6 +369,52 @@ function Section({ title, icon, subtitle, children }: { title: string; icon: Rea
   );
 }
 
+// Groups items by location and renders them under a location header
+function GroupedCards<T>({
+  items,
+  getLocation,
+  renderCard,
+  gridCols = false,
+}: {
+  items: T[];
+  getLocation: (item: T) => string | undefined;
+  renderCard: (item: T) => React.ReactNode;
+  gridCols?: boolean;
+}) {
+  // Build ordered groups preserving first-seen order
+  const groups: { location: string; items: T[] }[] = [];
+  const groupIndex: Record<string, number> = {};
+  for (const item of items) {
+    const loc = getLocation(item) ?? "Other";
+    if (groupIndex[loc] === undefined) {
+      groupIndex[loc] = groups.length;
+      groups.push({ location: loc, items: [] });
+    }
+    groups[groupIndex[loc]].items.push(item);
+  }
+
+  const singleGroup = groups.length === 1;
+
+  return (
+    <div className="flex flex-col gap-5">
+      {groups.map((g) => (
+        <div key={g.location}>
+          {!singleGroup && (
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin size={11} className="text-brand-400 shrink-0" />
+              <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide">{g.location}</p>
+              <div className="flex-1 border-t border-brand-100" />
+            </div>
+          )}
+          <div className={gridCols ? "grid grid-cols-1 gap-2 sm:grid-cols-2" : "flex flex-col gap-2"}>
+            {g.items.map((item) => renderCard(item))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function StatCard({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
@@ -280,33 +424,93 @@ function StatCard({ label, value, icon }: { label: string; value: string; icon: 
   );
 }
 
-function FlightCard({ flight }: { flight: FlightOption }) {
+function FlightPairList({
+  flights,
+  depAirport,
+  selectedFlightId,
+  onSelect,
+}: {
+  flights: FlightOption[];
+  depAirport: string;
+  selectedFlightId?: string;
+  onSelect: (f: FlightOption) => void;
+}) {
+  // Extract IATA code from strings like "Seattle-Tacoma International (SEA)" or bare "SEA"
+  const depCode = (depAirport.match(/\(([A-Z]{3})\)/)?.[1] ?? depAirport.trim().toUpperCase().slice(-3));
+  const isOutbound = (f: FlightOption) =>
+    depAirport ? f.origin.toUpperCase().includes(depCode) : true;
+  const outbound = flights.filter(isOutbound);
+  const returns  = flights.filter((f) => !isOutbound(f));
+
+  const pairs = outbound.length
+    ? outbound.map((o) => ({
+        outbound: o,
+        ret: returns.find((r) => r.airline === o.airline) ?? returns[0] ?? null,
+      }))
+    : flights.map((f) => ({ outbound: f, ret: null }));
+
   return (
-    <Card padding="sm" className="flex items-center gap-3">
-      <div className="flex-1">
-        <div className="flex items-center justify-between">
-          <span className="font-semibold text-slate-800 text-sm">{flight.airline}</span>
-          <Badge variant="info">{flight.cabinClass}</Badge>
-        </div>
-        <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-          <span>{flight.origin}</span>
-          <Plane size={10} />
-          <span>{flight.destination}</span>
-          <span>·</span>
-          <span>{flight.duration}</span>
-          {flight.stops === 0 && <Badge variant="success">Nonstop</Badge>}
-        </div>
-      </div>
-      <div className="text-right">
-        <p className="font-bold text-slate-900">{formatCurrency(flight.price)}</p>
-        {flight.bookingUrl && (
-          <a href={flight.bookingUrl} target="_blank" rel="noreferrer"
-            className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 justify-end mt-0.5">
-            Book <ExternalLink size={10} />
-          </a>
-        )}
-      </div>
-    </Card>
+    <div className="flex flex-col gap-3">
+      {pairs.map(({ outbound: o, ret }) => {
+        const roundtripPp = o.price + (ret?.price ?? 0);
+        const isSelected = selectedFlightId === o.id;
+        return (
+          <Card
+            key={o.id}
+            padding="sm"
+            className={`transition-all ${isSelected ? "border-brand-400 ring-2 ring-brand-100" : ""}`}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-slate-800 text-sm">{o.airline}</span>
+                  <Badge variant="info">{o.cabinClass}</Badge>
+                  {o.stops === 0 && <Badge variant="success">Nonstop</Badge>}
+                </div>
+                <div className="mt-1 text-xs text-slate-500 flex flex-col gap-0.5">
+                  <span>Outbound: {o.origin} → {o.destination} · {o.duration}</span>
+                  {ret && <span>Return: {ret.origin} → {ret.destination} · {ret.duration}</span>}
+                </div>
+                {ret && (
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Out {formatCurrency(o.price)}/pp + Return {formatCurrency(ret.price)}/pp
+                  </p>
+                )}
+              </div>
+              <div className="text-right shrink-0">
+                <p className="font-bold text-slate-900 text-sm">{formatCurrency(roundtripPp)}</p>
+                <p className="text-[10px] text-slate-400">roundtrip/pp</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => onSelect(o)}
+                className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                  isSelected
+                    ? "bg-brand-600 text-white"
+                    : "border border-brand-300 text-brand-700 hover:bg-brand-50"
+                }`}
+              >
+                {isSelected && <Check size={11} />}
+                {isSelected ? "Selected" : "Select this flight"}
+              </button>
+              <a
+                href={o.bookingUrl ?? "https://www.google.com/travel/flights"}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-0.5 text-xs text-brand-500 hover:underline ml-auto font-medium"
+              >
+                Book with airline <ExternalLink size={10} />
+              </a>
+            </div>
+          </Card>
+        );
+      })}
+      <p className="text-[10px] text-slate-400 text-center">
+        Estimates only — prices change. Booking opens the airline&apos;s site in a new tab.
+      </p>
+    </div>
   );
 }
 
@@ -492,7 +696,19 @@ function RestaurantCard({ restaurant: r }: { restaurant: RestaurantOption }) {
   );
 }
 
-function DayCard({ day, expanded, onToggle }: { day: ItineraryDay; expanded: boolean; onToggle: () => void }) {
+function DayCard({
+  day,
+  expanded,
+  onToggle,
+  picks = [],
+  hotel,
+}: {
+  day: ItineraryDay;
+  expanded: boolean;
+  onToggle: () => void;
+  picks?: { name: string; kind: "activity" | "restaurant" }[];
+  hotel?: HotelOption;
+}) {
   return (
     <Card padding="sm" className="overflow-hidden">
       <button
@@ -500,11 +716,11 @@ function DayCard({ day, expanded, onToggle }: { day: ItineraryDay; expanded: boo
         onClick={onToggle}
         className="flex w-full items-center justify-between text-left"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 text-xs font-bold">
             {day.dayNumber}
           </span>
-          <div>
+          <div className="min-w-0">
             <p className="font-medium text-slate-800 text-sm">{day.theme}</p>
             <p className="text-xs text-slate-400">
               {formatDate(day.date)}
@@ -512,8 +728,26 @@ function DayCard({ day, expanded, onToggle }: { day: ItineraryDay; expanded: boo
             </p>
           </div>
         </div>
-        {expanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+        {expanded ? <ChevronUp size={14} className="text-slate-400 shrink-0" /> : <ChevronDown size={14} className="text-slate-400 shrink-0" />}
       </button>
+
+      {/* Your picks — shown when the user has personalized this day */}
+      {picks.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {picks.map((p, i) => (
+            <span
+              key={i}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                p.kind === "activity"
+                  ? "bg-brand-50 text-brand-700"
+                  : "bg-amber-50 text-amber-700"
+              }`}
+            >
+              {p.kind === "activity" ? "🎯" : "🍽️"} {p.name}
+            </span>
+          ))}
+        </div>
+      )}
 
       {expanded && (
         <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-3">
@@ -557,6 +791,16 @@ function DayCard({ day, expanded, onToggle }: { day: ItineraryDay; expanded: boo
             </div>
           )}
           {day.notes && <p className="text-xs text-slate-500 italic">{day.notes}</p>}
+          {hotel && (
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-100 mt-1">
+              <Hotel size={11} className="text-slate-400 shrink-0" />
+              <p className="text-xs text-slate-500">
+                <span className="text-slate-400">Staying at: </span>
+                <span className="font-medium text-slate-700">{hotel.name}</span>
+                <span className="text-slate-400"> · {hotel.location}</span>
+              </p>
+            </div>
+          )}
         </div>
       )}
     </Card>

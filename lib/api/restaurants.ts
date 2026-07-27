@@ -368,6 +368,18 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       mustOrder: "Raclette at Kappacasein and a Neal's Yard cheese",
     },
   ],
+  amalfi: [
+    { name: "Lo Scoglio",        cuisine: "Campanian Seafood",  tier: "upscale",     rating: 9.6, reviewCount: 1200, location: "Marina del Cantone, Amalfi Coast", description: "A legendary family-run restaurant on a private beach. The pasta with clams and zucchini flowers is unmissable.", mustOrder: "Spaghetti alle vongole e fiori di zucca" },
+    { name: "Il Pirata",         cuisine: "Amalfi Trattoria",   tier: "midrange",    rating: 9.1, reviewCount: 3400, location: "Praiano, Amalfi Coast", description: "Perched on the cliffs with panoramic sea views. Simple ingredients, extraordinary setting.", mustOrder: "Risotto al limone" },
+    { name: "Lemon Grove Café",  cuisine: "Local Café",         tier: "brunch",      rating: 8.7, reviewCount: 2100, location: "Ravello, Amalfi Coast", description: "Tucked inside a historic lemon grove — the real Amalfi experience. Fresh pastries and locally grown limoncello.", mustOrder: "Lemon granita and sfogliatella" },
+    { name: "Da Adolfo",         cuisine: "Seafood & Grill",    tier: "casual",      rating: 9.3, reviewCount: 5600, location: "Positano, Amalfi Coast", description: "Only accessible by boat. They hoist the fish straight off the dock. One of the most romantic lunches in Italy.", mustOrder: "Grilled fish of the day with capers" },
+  ],
+  dolomit: [
+    { name: "Zur Goldenen Rose",  cuisine: "Tyrolean",           tier: "midrange",   rating: 9.0, reviewCount: 2200, location: "Bressanone, Dolomites", description: "Historic inn in South Tyrol — the Dolomites at their most Austrian-Italian. Goulash, Käsespätzle, and local wines.", mustOrder: "Spinatknödel in brodo" },
+    { name: "Stüa de Michil",     cuisine: "Modern Alpine",       tier: "upscale",    rating: 9.4, reviewCount: 870, location: "Corvara, Alta Badia", description: "One Michelin star in the heart of the Dolomites. Chef Nicola Laera reimagines Alpine cuisine with Italian elegance.", mustOrder: "Risotto with mountain herbs" },
+    { name: "Rifugio Averau",     cuisine: "Alpine Hut",          tier: "casual",     rating: 8.8, reviewCount: 4100, location: "Passo Giau, Dolomites", description: "A classic mountain hut at 2,416m. Pull up a bench, order the pasta, and stare at the Cinque Torri. Perfect after a hike.", mustOrder: "Strangolapreti (bread-spinach gnocchi)" },
+    { name: "Ristorante Tivoli",  cuisine: "Veneto-Alpine",       tier: "fine_dining",rating: 9.5, reviewCount: 640, location: "Cortina d'Ampezzo, Dolomites", description: "The most prestigious table in Cortina — a Michelin star framed by the Dolomites. Book months ahead.", mustOrder: "Capriolo (venison) with wild berry sauce" },
+  ],
   default: [
     {
       name: "The Grand Table",
@@ -412,10 +424,22 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
   ],
 };
 
+const REGION_ALIASES: Record<string, string> = {
+  "florence": "italy",  "tuscany": "italy",  "venice": "italy",  "naples": "italy",
+  "milan":    "italy",  "sicily":  "italy",  "bologna": "italy", "cinque": "italy",
+  "positano": "amalfi", "ravello": "amalfi", "praiano": "amalfi", "salerno": "amalfi",
+  "cortina":  "dolomit","bolzano": "dolomit","merano":  "dolomit","alta badia": "dolomit",
+  "athens":   "greece", "thessal": "greece",
+  "lisbon":   "portugal","porto":  "portugal",
+  "barcelona":"spain",  "madrid": "spain",   "seville": "spain",
+};
+
 function findRestaurantBase(destination: string): RestaurantSeed[] {
   const lower = (destination ?? "").toLowerCase();
-  const key = Object.keys(RESTAURANT_DB).find((k) => lower.includes(k));
-  return RESTAURANT_DB[key ?? "default"];
+  const direct = Object.keys(RESTAURANT_DB).find((k) => lower.includes(k));
+  if (direct) return RESTAURANT_DB[direct];
+  const alias = Object.entries(REGION_ALIASES).find(([a]) => lower.includes(a));
+  return RESTAURANT_DB[alias?.[1] ?? "default"];
 }
 
 export async function searchRestaurants(params: RestaurantSearchParams): Promise<RestaurantOption[]> {
@@ -428,9 +452,14 @@ export async function searchRestaurants(params: RestaurantSearchParams): Promise
     filtered = base.filter((r) => r.tier !== "fine_dining");
   }
 
+  // For "default" pool entries the seed location is generic ("City centre" etc.)
+  // Prepend the actual search destination so the user sees something useful.
+  const defaultKeys = new Set(["City centre", "Old town", "Local district", "Market square"]);
+
   return filtered.slice(0, 4).map((r) => ({
     ...r,
     id: uuid(),
+    location: defaultKeys.has(r.location) ? params.destination : r.location,
     playfulCategory: PLAYFUL_LABELS[r.tier],
     priceRange: PRICE_RANGES[r.tier],
     imageUrl: `https://picsum.photos/seed/${encodeURIComponent(r.name)}/800/400`,

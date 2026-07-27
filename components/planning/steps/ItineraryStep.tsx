@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, RefreshCw, Trophy } from "lucide-react";
+import { RefreshCw, Trophy, CheckCircle2 } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -12,8 +12,10 @@ import type { GeneratedItinerary } from "@/types/trip";
 export function ItineraryStep() {
   const { trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep } = useTripStore();
   const latest = trip.itineraries[trip.itineraries.length - 1] ?? null;
+  const isPersonalized = Boolean(latest?.finalizedPlan);
 
   const [error, setError] = useState<string | null>(null);
+  const [showPicksBanner, setShowPicksBanner] = useState(false);
 
   async function generate() {
     setGenerating(true);
@@ -35,10 +37,9 @@ export function ItineraryStep() {
     }
   }
 
-  // Auto-generate on first mount if no itinerary yet.
-  // Read fresh state from the store (not the render closure) and guard with a
-  // ref so StrictMode's double effect invocation can't fire two API calls.
   const autoStartRef = useRef(false);
+  const prevPersonalizedRef = useRef(isPersonalized);
+
   useEffect(() => {
     const state = useTripStore.getState();
     const hasItinerary = state.trip.itineraries.length > 0;
@@ -49,32 +50,62 @@ export function ItineraryStep() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Show a banner when the user returns from the personalize step having just saved picks
+  useEffect(() => {
+    if (isPersonalized && !prevPersonalizedRef.current) {
+      setShowPicksBanner(true);
+      const t = setTimeout(() => setShowPicksBanner(false), 4000);
+      return () => clearTimeout(t);
+    }
+    prevPersonalizedRef.current = isPersonalized;
+  }, [isPersonalized]);
+
   return (
     <StepShell
       stepId="itinerary"
-      continueLabel="Personalize my plan"
+      continueLabel={isPersonalized ? "Update personalization" : "Personalize my plan"}
       continueDisabled={!latest}
       onContinue={() => goToStep("refine")}
       subtitle="Your personalised day-by-day itinerary, built around your preferences."
     >
+      {/* Personalization saved banner */}
+      {showPicksBanner && (
+        <div className="mb-4 flex items-center gap-3 rounded-xl bg-gradient-to-r from-sage-50 to-brand-50 border border-sage-200 px-4 py-3">
+          <CheckCircle2 size={18} className="text-sage-600 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-sage-700">Personalization saved!</p>
+            <p className="text-xs text-slate-500">Your picks now appear as chips in each day card below.</p>
+          </div>
+        </div>
+      )}
+
       {/* Unlock celebration */}
-      {latest && (
+      {latest && !showPicksBanner && (
         <div className="mb-5 flex items-center gap-3 rounded-xl bg-gradient-to-r from-brand-50 to-sage-50 border border-brand-100 px-4 py-3">
           <Trophy size={20} className="text-brand-500 shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-brand-700">Itinerary unlocked!</p>
-            <p className="text-xs text-slate-500">You&apos;re ready to travel. Review and refine below.</p>
+            <p className="text-sm font-semibold text-brand-700">
+              {isPersonalized ? "Itinerary personalized!" : "Itinerary unlocked!"}
+            </p>
+            <p className="text-xs text-slate-500">
+              {isPersonalized
+                ? "Your picks are shown in each day. Use the button below to adjust."
+                : "You're ready to travel. Review and refine below."}
+            </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={generate}
-            loading={isGenerating}
-            className="ml-auto shrink-0 text-slate-500"
-          >
-            <RefreshCw size={13} />
-            Regenerate
-          </Button>
+          <div className="ml-auto flex flex-col items-end gap-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={generate}
+              loading={isGenerating}
+              className="shrink-0 text-slate-500"
+            >
+              <RefreshCw size={13} />
+              Regenerate
+            </Button>
+            <p className="text-[10px] text-slate-400 pr-1">Rebuilds everything from scratch</p>
+          </div>
         </div>
       )}
 
@@ -161,6 +192,10 @@ function GeneratingProgress() {
         <p className="text-sm text-slate-500 mt-1">
           This usually takes a minute or two — good trips take time to build.
         </p>
+      </div>
+      <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 max-w-xs text-center">
+        <p className="text-xs font-semibold text-brand-700 mb-0.5">While you wait…</p>
+        <p className="text-xs text-slate-600">Feel free to chat with ZiGy about your trip — ask about visa requirements, what to pack, or the best time to visit.</p>
       </div>
     </div>
   );

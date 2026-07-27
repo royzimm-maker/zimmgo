@@ -31,8 +31,13 @@ export function StepShell({
   const { goToStep, completeStep, trip } = useTripStore();
   const meta  = STEP_META[stepId];
 
-  // Scroll to top whenever a new step mounts
-  useEffect(() => { window.scrollTo({ top: 0 }); }, []);
+  // Scroll to top whenever a new step mounts.
+  // PlanningFlow uses overflow-y-auto on <main>, so we need to scroll that element
+  // rather than the window.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+    document.querySelector("main")?.scrollTo({ top: 0 });
+  }, []);
   const idx   = ORDERED_STEPS.indexOf(stepId);
   const prevId = idx > 0 ? ORDERED_STEPS[idx - 1] : null;
   const nextId = idx < ORDERED_STEPS.length - 1 ? ORDERED_STEPS[idx + 1] : null;

@@ -1,21 +1,51 @@
 "use client";
 
-import { Plane, Hotel, Users, Calendar, MapPin } from "lucide-react";
+import { Plane, Hotel, Users, Calendar, MapPin, Check } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
-import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
+import { useTripStore } from "@/lib/store/tripStore";
+import type { GeneratedItinerary, TripPreferences, FlightOption } from "@/types/trip";
 
 interface Props {
   itinerary: GeneratedItinerary;
   preferences: TripPreferences;
 }
 
+// Pair outbound and return flights so we can show a roundtrip price
+function pairFlights(flights: FlightOption[], depAirport: string) {
+  const outbound: FlightOption[] = [];
+  const returns: FlightOption[] = [];
+  const depCode = depAirport.toUpperCase().slice(-3);
+
+  for (const f of flights) {
+    const isOut = depAirport
+      ? f.origin.toUpperCase().includes(depCode)
+      : true;
+    if (isOut) outbound.push(f); else returns.push(f);
+  }
+
+  // If we have both legs, pair them; otherwise show outbound alone
+  if (outbound.length && returns.length) {
+    return outbound.map((o) => ({
+      outbound: o,
+      // try to match by airline; otherwise use first return
+      return: returns.find((r) => r.airline === o.airline) ?? returns[0],
+    }));
+  }
+  return outbound.map((o) => ({ outbound: o, return: null }));
+}
+
 export function TripGlance({ itinerary, preferences }: Props) {
+  const { trip, setSelectedFlight } = useTripStore();
   const { days, flights, hotels } = itinerary;
   const travelers = preferences.travelers ?? 1;
   const destination = preferences.destination?.displayName ?? "Your destination";
+  const selectedFlightId = trip.preferences.selectedFlight?.id;
 
   const firstDay = days[0];
   const lastDay  = days[days.length - 1];
+
+  const depAirport = preferences.destination?.departureAirport ?? "";
+  const pairs = pairFlights(flights, depAirport);
 
   return (
     <div className="rounded-xl border border-brand-200 bg-white overflow-hidden">
@@ -34,21 +64,72 @@ export function TripGlance({ itinerary, preferences }: Props) {
       </div>
 
       {/* Flights summary */}
-      {flights.length > 0 && (
+      {pairs.length > 0 && (
         <div className="px-4 py-3 border-b border-slate-100">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1">
-            <Plane size={10} /> Flights
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {flights.slice(0, 2).map((f, i) => (
-              <div key={f.id} className="flex items-center justify-between text-xs">
-                <span className="text-slate-600">
-                  <span className="font-medium">{i === 0 ? "Outbound" : "Return"}:</span>{" "}
-                  {f.origin} → {f.destination} · {f.airline}
-                </span>
-                <span className="text-slate-500 font-medium">{formatCurrency(f.price)}<span className="text-slate-400">/pp</span></span>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1">
+              <Plane size={10} /> Flights
+            </p>
+            <span className="rounded bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+              Round-trip · per person · estimates only
+            </span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {pairs.map(({ outbound, return: ret }) => {
+              const roundtripPp = outbound.price + (ret?.price ?? 0);
+              const isSelected = selectedFlightId === outbound.id;
+              return (
+                <div
+                  key={outbound.id}
+                  className={`rounded-lg border p-2.5 transition-colors ${
+                    isSelected
+                      ? "border-brand-400 bg-brand-50"
+                      : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-800">{outbound.airline}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        {outbound.origin} → {outbound.destination}
+                        {ret && ` · Return: ${ret.origin} → ${ret.destination}`}
+                      </p>
+                      {ret && (
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Out: {formatCurrency(outbound.price)}/pp · Return: {formatCurrency(ret.price)}/pp
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold text-slate-900">{formatCurrency(roundtripPp)}</p>
+                      <p className="text-[10px] text-slate-400">roundtrip/pp</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFlight(isSelected ? null : outbound)}
+                      className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                        isSelected
+                          ? "bg-brand-600 text-white"
+                          : "border border-brand-300 text-brand-700 hover:bg-brand-50"
+                      }`}
+                    >
+                      {isSelected && <Check size={11} />}
+                      {isSelected ? "Selected" : "Select this flight"}
+                    </button>
+                    <a
+                      href={outbound.bookingUrl ?? `https://www.google.com/travel/flights`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-brand-600 hover:underline"
+                    >
+                      Book →
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

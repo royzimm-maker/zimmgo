@@ -8,6 +8,7 @@ import { OtherInput } from "@/components/ui/OtherInput";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
+import { BUDGET_MAX } from "@/types/trip";
 import type { HotelOption, LodgingPreference, LodgingStarRating, LodgingType } from "@/types/trip";
 
 const TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[] = [
@@ -35,10 +36,9 @@ export function LodgingStep() {
   // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
   const destination = trip.preferences.destination?.cities?.[0]
     ?? trip.preferences.destination?.displayName ?? "";
-  const budgetMax = trip.preferences.budgetRange === "under_500" ? 500
-    : trip.preferences.budgetRange === "500_750" ? 750
-    : trip.preferences.budgetRange === "750_1000" ? 1000
-    : 1200;
+  const budgetMax = trip.preferences.budgetRange
+    ? BUDGET_MAX[trip.preferences.budgetRange]
+    : 400;
 
   const [types,          setTypes         ] = useState<LodgingType[]>(existing?.types ?? []);
   const [otherTypeOpen,  setOtherTypeOpen ] = useState(false);
@@ -65,6 +65,7 @@ export function LodgingStep() {
           destination,
           min_stars: stars,
           max_price_per_night: budgetMax,
+          types: types.length > 0 ? types : undefined,
         }),
       });
       const data = await res.json() as HotelOption[];

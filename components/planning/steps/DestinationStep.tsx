@@ -45,6 +45,20 @@ const POPULAR = [
   "Patagonia",
 ];
 
+// Extract meaningful place names from free-text input, e.g.:
+//   "Italy — Rome, Amalfi Coast & Dolomites"  → ["Rome", "Amalfi Coast", "Dolomites"]
+//   "Japan — Tokyo, Kyoto & Osaka"            → ["Tokyo", "Kyoto", "Osaka"]
+function parseCitiesFromText(text: string): string[] {
+  const stripped = text
+    .replace(/^[^,—–\-]+[—–\-]\s*/, "") // drop "Country — " prefix
+    .replace(/\band\b/gi, ",")            // "and" → comma
+    .replace(/&/g, ",");                  // & → comma
+  return stripped
+    .split(",")
+    .map((s) => s.trim().replace(/[.!?]$/, ""))
+    .filter((s) => s.length > 1 && !/^(the|a|an|or|for|with|in|at|of|maybe|especially)$/i.test(s));
+}
+
 export function DestinationStep() {
   const { trip, setDestination } = useTripStore();
   const saved = trip.preferences.destination;
@@ -87,7 +101,7 @@ export function DestinationStep() {
       ...(existing ?? {}),
       displayName: text,
       freeText: text,
-      cities: routing?.arrivalAirports.filter((a) => !a.transitOnly).map((a) => a.city) ?? [],
+      cities: parseCitiesFromText(text),
       arrivalAirport: bestArrival ?? existing?.arrivalAirport,
       routingNote: routeUsable
         ? `${routing.suggestedRoute}\n\nWhy this works: ${routing.routingWhy}`

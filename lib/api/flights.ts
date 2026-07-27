@@ -17,6 +17,21 @@ interface FlightSearchParams {
 }
 
 // Realistic mock data keyed by destination region
+const AIRLINE_BOOKING_URLS: Record<string, string> = {
+  "DL": "https://www.delta.com/us/en/flight-search/book-a-flight",
+  "UA": "https://www.united.com/en/us/fsr/choose-flights",
+  "AA": "https://www.aa.com/booking/find-flights",
+  "SQ": "https://www.singaporeair.com/en_UK/ppsclub-krisflyer/flights/search-flights",
+  "EK": "https://www.emirates.com/us/english/book/flights",
+  "BA": "https://www.britishairways.com/travel/fx/public/en_gb",
+  "LH": "https://www.lufthansa.com/us/en/homepage",
+  "AF": "https://wwws.airfrance.us/",
+  "QR": "https://www.qatarairways.com/en-us/flights.html",
+  "CX": "https://www.cathaypacific.com/cx/en_US/book-a-trip/flights.html",
+  "ITA": "https://www.ita-airways.com/en_us",
+  "AZ": "https://www.ita-airways.com/en_us",
+};
+
 const MOCK_AIRLINES = [
   { name: "Delta Air Lines",    code: "DL", alliance: "skyteam"       },
   { name: "United Airlines",    code: "UA", alliance: "star_alliance"  },
@@ -77,7 +92,7 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
     price: Math.round((basePrice + idx * randomInt(80, 250)) * effectiveMult),
     currency: "USD",
     cabinClass: effectiveCabin,
-    bookingUrl: undefined, // Would be populated by real Amadeus deep-link
+    bookingUrl: AIRLINE_BOOKING_URLS[airline.code] ?? `https://www.google.com/travel/flights`,
   }));
 
   // In lowest-fare mode, sort cheapest first

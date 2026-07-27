@@ -1,244 +1,188 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
-  MapPin, CheckCircle2, Circle, MessageCircle, Send, RefreshCw,
-  Sparkles, Hotel, Star, X
-} from "lucide-react";
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  useDraggable,
+  closestCenter,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { X } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
-import { Badge } from "@/components/ui/Badge";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
-import { formatCurrency } from "@/lib/utils";
-import type { ActivityOption, NeighborhoodOption, TripPreferences } from "@/types/trip";
+import type { ActivityOption, RestaurantOption } from "@/types/trip";
 
-// ─── Inline AI Q&A panel ──────────────────────────────────────────────────────
+// ─── Emoji lookups ────────────────────────────────────────────────────────────
 
-interface AskPanelProps {
-  itemName: string;
-  itemType: "activity" | "neighborhood";
-  preferences: TripPreferences;
-  onClose: () => void;
+const ACTIVITY_EMOJI: Record<string, string> = {
+  skiing: "⛷️", hiking: "🥾", sailing: "⛵", food: "🍽️", diving: "🤿",
+  cycling: "🚴", cultural: "🏛️", photography: "📸", wellness: "🧘",
+  adventure: "🧗", guided_walking_tour: "🚶", guided_food_tour: "🍜",
+};
+
+const RESTAURANT_EMOJI: Record<string, string> = {
+  fine_dining: "⭐", upscale: "🥂", midrange: "🍽️",
+  casual: "🍴", street_food: "🥙", brunch: "🥞",
+};
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface CardInfo {
+  cardId: string;
+  kind: "activity" | "restaurant";
+  activity?: ActivityOption;
+  restaurant?: RestaurantOption;
 }
 
-function AskPanel({ itemName, itemType, preferences, onClose }: AskPanelProps) {
-  const [question, setQuestion] = useState("");
-  const [reply, setReply] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+// ─── CardInner — shared between DraggableCard and DragOverlay ─────────────────
 
-  async function submit() {
-    const q = question.trim();
-    if (!q) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/itinerary/refine", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: q,
-          contextItem: itemName,
-          contextType: itemType,
-          preferences,
-        }),
-      });
-      const data = await res.json() as { reply?: string; error?: string };
-      setReply(data.reply ?? data.error ?? "Sorry, something went wrong.");
-    } catch {
-      setReply("Sorry, I couldn't reach the server. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+function CardInner({
+  info,
+  onRemove,
+  overlay = false,
+}: {
+  info: CardInfo;
+  onRemove?: () => void;
+  overlay?: boolean;
+}) {
+  const { activity, restaurant } = info;
+
+  const base = overlay
+    ? "flex items-center gap-2 rounded-lg border px-2.5 py-2 shadow-2xl ring-2 select-none"
+    : "flex items-center gap-2 rounded-lg border px-2.5 py-2 shadow-sm hover:shadow-md transition-shadow select-none cursor-grab";
+
+  if (activity) {
+    const emoji = ACTIVITY_EMOJI[activity.category] ?? "🎯";
+    return (
+      <div className={`${base} ${overlay ? "border-brand-300 bg-white ring-brand-200" : "border-slate-200 bg-white"}`}>
+        <span className="text-sm shrink-0">{emoji}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-slate-800 truncate leading-tight">{activity.name}</p>
+          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+            {activity.location && <span className="font-medium text-brand-600 truncate">{activity.location}</span>}
+            {activity.duration && <span>{activity.duration}</span>}
+            {activity.price > 0 && <span>{formatCurrency(activity.price)}</span>}
+          </div>
+        </div>
+        {onRemove && (
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            className="shrink-0 text-slate-300 hover:text-red-400 transition-colors"
+            title="Return to bank"
+          >
+            <X size={12} />
+          </button>
+        )}
+      </div>
+    );
   }
 
-  return (
-    <div className="mt-3 rounded-xl border border-brand-200 bg-brand-50 p-3">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-brand-700 flex items-center gap-1">
-          <Sparkles size={11} /> Ask ZimmGo AI about {itemType === "neighborhood" ? "this neighbourhood" : "this activity"}
-        </span>
-        <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
-          <X size={13} />
-        </button>
-      </div>
-
-      {reply && (
-        <div className="mb-3 rounded-lg bg-white border border-brand-100 px-3 py-2 text-xs text-slate-700 leading-relaxed">
-          {reply}
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder={
-            itemType === "neighborhood"
-              ? "e.g. Is it walkable? Safe at night? Good for families?"
-              : "e.g. How long does it take? Is booking required? Good for beginners?"
-          }
-          className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400"
-        />
-        <button
-          type="button"
-          onClick={submit}
-          disabled={loading || !question.trim()}
-          className="flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-40 transition-colors"
-        >
-          {loading ? <RefreshCw size={11} className="animate-spin" /> : <Send size={11} />}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Neighborhood card ────────────────────────────────────────────────────────
-
-interface NeighborhoodCardProps {
-  neighborhood: NeighborhoodOption;
-  selected: boolean;
-  onSelect: () => void;
-  onAsk: () => void;
-  showAsk: boolean;
-  preferences: TripPreferences;
-  onCloseAsk: () => void;
-}
-
-function NeighborhoodCard({
-  neighborhood: n,
-  selected,
-  onSelect,
-  onAsk,
-  showAsk,
-  preferences,
-  onCloseAsk,
-}: NeighborhoodCardProps) {
-  return (
-    <div
-      className={`rounded-xl border px-4 py-3 transition-all duration-150 ${
-        selected ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-slate-300"
-      }`}
-    >
-      <button type="button" onClick={onSelect} className="w-full text-left">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl shrink-0">{n.emoji}</span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`font-semibold text-sm ${selected ? "text-brand-700" : "text-slate-800"}`}>
-                {n.name}
-              </span>
-              <span className="text-xs text-slate-400">{n.priceRange}</span>
-              {selected && (
-                <Badge variant="success">Selected</Badge>
-              )}
-            </div>
-            <p className="mt-0.5 text-xs italic text-brand-500">{n.vibe}</p>
-            <p className="mt-1 text-xs text-slate-600 leading-relaxed">{n.description}</p>
-            <p className="mt-1.5 text-xs text-slate-400">
-              <span className="font-medium text-slate-500">Best for:</span> {n.bestFor}
-            </p>
-          </div>
-          <span className={`shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all ${
-            selected ? "border-brand-500 bg-brand-500" : "border-slate-300"
-          }`}>
-            {selected && (
-              <svg className="h-3 w-3 text-white" viewBox="0 0 12 12" fill="none">
-                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </span>
-        </div>
-      </button>
-
-      <div className="mt-2 flex justify-end">
-        <button
-          type="button"
-          onClick={onAsk}
-          className="flex items-center gap-1 text-xs text-brand-500 hover:text-brand-700 transition-colors"
-        >
-          <MessageCircle size={11} />
-          Ask ZimmGo AI
-        </button>
-      </div>
-
-      {showAsk && (
-        <AskPanel
-          itemName={n.name}
-          itemType="neighborhood"
-          preferences={preferences}
-          onClose={onCloseAsk}
-        />
-      )}
-    </div>
-  );
-}
-
-// ─── Activity row ─────────────────────────────────────────────────────────────
-
-interface ActivityRowProps {
-  activity: ActivityOption;
-  included: boolean;
-  onToggle: () => void;
-  onAsk: () => void;
-  showAsk: boolean;
-  preferences: TripPreferences;
-  onCloseAsk: () => void;
-}
-
-function ActivityRow({
-  activity: a,
-  included,
-  onToggle,
-  onAsk,
-  showAsk,
-  preferences,
-  onCloseAsk,
-}: ActivityRowProps) {
-  return (
-    <div
-      className={`rounded-xl border px-4 py-3 transition-all duration-150 ${
-        included ? "border-slate-200 bg-white" : "border-slate-100 bg-slate-50 opacity-60"
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <button type="button" onClick={onToggle} className="shrink-0 mt-0.5">
-          {included ? (
-            <CheckCircle2 size={20} className="text-brand-500" />
-          ) : (
-            <Circle size={20} className="text-slate-300" />
-          )}
-        </button>
+  if (restaurant) {
+    const emoji = RESTAURANT_EMOJI[restaurant.tier] ?? "🍽️";
+    return (
+      <div className={`${base} ${overlay ? "border-amber-300 bg-amber-50 ring-amber-200" : "border-amber-200 bg-amber-50/60"}`}>
+        <span className="text-sm shrink-0">{emoji}</span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`font-medium text-sm ${included ? "text-slate-800" : "text-slate-400 line-through"}`}>
-              {a.name}
-            </span>
-            {a.isLocalFavorite && included && <Badge variant="success">Local pick</Badge>}
-          </div>
-          <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">{a.description}</p>
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
-            {a.duration && <span>⏱ {a.duration}</span>}
-            {a.rating > 0 && <span>⭐ {a.rating}</span>}
-            {a.price > 0 && <span className="font-medium text-slate-600">{formatCurrency(a.price)}</span>}
+          <p className="text-xs font-semibold text-slate-800 truncate leading-tight">{restaurant.name}</p>
+          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+            {restaurant.location && <span className="font-medium text-amber-700 truncate">{restaurant.location}</span>}
+            <span>{restaurant.cuisine}</span>
+            <span className="font-medium text-amber-600">{restaurant.priceRange}</span>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onAsk}
-          className="shrink-0 flex items-center gap-1 text-xs text-brand-400 hover:text-brand-600 transition-colors"
-          title="Ask ZimmGo AI about this activity"
-        >
-          <MessageCircle size={13} />
-        </button>
+        {onRemove && (
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            className="shrink-0 text-slate-300 hover:text-red-400 transition-colors"
+            title="Return to bank"
+          >
+            <X size={12} />
+          </button>
+        )}
       </div>
+    );
+  }
 
-      {showAsk && (
-        <AskPanel
-          itemName={a.name}
-          itemType="activity"
-          preferences={preferences}
-          onClose={onCloseAsk}
-        />
+  return null;
+}
+
+// ─── DraggableCard ────────────────────────────────────────────────────────────
+
+function DraggableCard({ info, onRemove }: { info: CardInfo; onRemove?: () => void }) {
+  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: info.cardId });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={{ opacity: isDragging ? 0.15 : 1, touchAction: "none" }}
+    >
+      <CardInner info={info} onRemove={onRemove} />
+    </div>
+  );
+}
+
+// Case-insensitive check: do two location strings refer to the same place?
+function locationsMatch(a?: string, b?: string): boolean {
+  if (!a || !b) return true; // no location info → allow drop
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, " ").trim();
+  const na = norm(a), nb = norm(b);
+  // Extract first meaningful word for fuzzy matching (e.g. "Dolomites, Italy" → "dolomites")
+  const firstWord = (s: string) => s.split(/\s+/)[0];
+  return na === nb || na.includes(nb) || nb.includes(na) ||
+    firstWord(na) === firstWord(nb);
+}
+
+// ─── DroppableContainer ───────────────────────────────────────────────────────
+
+function DroppableContainer({
+  id,
+  isEmpty,
+  compatible = true,
+  children,
+}: {
+  id: string;
+  isEmpty: boolean;
+  compatible?: boolean;
+  children: React.ReactNode;
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id });
+  const blocked = isOver && !compatible;
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-[52px] rounded-lg transition-all duration-100 ${
+        blocked
+          ? "ring-2 ring-red-300 ring-inset bg-red-50"
+          : isOver && compatible
+          ? "ring-2 ring-brand-400 ring-inset bg-brand-50"
+          : isEmpty
+          ? "border-2 border-dashed border-slate-200"
+          : ""
+      } p-1.5`}
+    >
+      {isEmpty ? (
+        <p className={`text-[11px] text-center py-2.5 ${
+          blocked ? "text-red-400 font-medium" :
+          isOver && compatible ? "text-brand-500 font-medium" :
+          "text-slate-400"
+        }`}>
+          {blocked ? "Wrong location" : isOver && compatible ? "Release to add" : "Drop here"}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-1.5">{children}</div>
       )}
     </div>
   );
@@ -247,170 +191,249 @@ function ActivityRow({
 // ─── Main RefineStep ──────────────────────────────────────────────────────────
 
 export function RefineStep() {
-  const { trip, goToStep, updateItineraryRefinements } = useTripStore();
+  const { trip, goToStep, saveFinalizedPlan } = useTripStore();
   const itinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
-  const neighborhoods = itinerary?.neighborhoods ?? [];
-  const activities: ActivityOption[] = itinerary?.activities ?? [];
-
-  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(
-    itinerary?.refinements?.neighborhoodId ?? null
+  const activities = useMemo<ActivityOption[]>(
+    () => itinerary?.activities ?? [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [itinerary?.id]
   );
-  // Restore previously saved exclusions so removed activities stay removed on revisit
-  const [includedIds, setIncludedIds] = useState<Set<string>>(() => {
-    const excluded = new Set(itinerary?.refinements?.excludedActivityIds ?? []);
-    return new Set(activities.filter((a) => !excluded.has(a.id)).map((a) => a.id));
+  const restaurants = useMemo<RestaurantOption[]>(
+    () => itinerary?.restaurants ?? [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [itinerary?.id]
+  );
+  const days = itinerary?.days ?? [];
+
+  const allCards = useMemo<CardInfo[]>(() => [
+    ...activities.map((a) => ({ cardId: `act-${a.id}`, kind: "activity" as const, activity: a })),
+    ...restaurants.map((r) => ({ cardId: `rest-${r.id}`, kind: "restaurant" as const, restaurant: r })),
+  ], [activities, restaurants]);
+
+  const cardMap = useMemo<Record<string, CardInfo>>(() => {
+    const m: Record<string, CardInfo> = {};
+    allCards.forEach((c) => { m[c.cardId] = c; });
+    return m;
+  }, [allCards]);
+
+  // Restore previous state if this itinerary was already personalized
+  const [bank, setBank] = useState<string[]>(() => {
+    if (itinerary?.finalizedPlan) return itinerary.finalizedPlan.bankCards;
+    return allCards.map((c) => c.cardId);
   });
-  const [askingAbout, setAskingAbout] = useState<string | null>(null);
 
-  // Reset when a new itinerary is generated (new id = new activities)
-  useEffect(() => {
-    const excluded = new Set(itinerary?.refinements?.excludedActivityIds ?? []);
-    setIncludedIds(new Set(activities.filter((a) => !excluded.has(a.id)).map((a) => a.id)));
-    setSelectedNeighborhood(itinerary?.refinements?.neighborhoodId ?? null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itinerary?.id]);
+  const [dayCards, setDayCards] = useState<Record<number, string[]>>(() => {
+    if (itinerary?.finalizedPlan) return itinerary.finalizedPlan.dayCards;
+    const d: Record<number, string[]> = {};
+    days.forEach((day) => { d[day.dayNumber] = []; });
+    return d;
+  });
 
-  const toggleActivity = useCallback((id: string) => {
-    setIncludedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeCardLocation, setActiveCardLocation] = useState<string | undefined>(undefined);
 
-  function toggleAsk(id: string) {
-    setAskingAbout((prev) => (prev === id ? null : id));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  function findContainer(cardId: string): string | null {
+    if (bank.includes(cardId)) return "bank";
+    for (const [dayNum, cards] of Object.entries(dayCards)) {
+      if ((cards as string[]).includes(cardId)) return `day-${dayNum}`;
+    }
+    return null;
   }
 
-  // Persist refinement choices then navigate back to the itinerary view.
+  function getCardLocation(cardId: string): string | undefined {
+    const info = cardMap[cardId];
+    if (!info) return undefined;
+    return info.kind === "activity" ? info.activity?.location : info.restaurant?.location;
+  }
+
+  function handleDragStart({ active }: DragStartEvent) {
+    const id = active.id as string;
+    setActiveId(id);
+    setActiveCardLocation(getCardLocation(id));
+  }
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    setActiveId(null);
+    setActiveCardLocation(undefined);
+    if (!over) return;
+
+    const cardId = active.id as string;
+    const destId = over.id as string;
+    const srcId = findContainer(cardId);
+    if (!srcId || srcId === destId) return;
+
+    // Enforce location constraint: card can only go into a day with a matching location
+    if (destId !== "bank") {
+      const destDayNum = parseInt(destId.replace("day-", ""), 10);
+      const destDay = days.find((d) => d.dayNumber === destDayNum);
+      const cardLoc = getCardLocation(cardId);
+      if (destDay?.location && cardLoc && !locationsMatch(cardLoc, destDay.location)) return;
+    }
+
+    // Remove from source
+    if (srcId === "bank") {
+      setBank((prev) => prev.filter((id) => id !== cardId));
+    } else {
+      const n = parseInt(srcId.replace("day-", ""), 10);
+      setDayCards((prev) => ({ ...prev, [n]: prev[n].filter((id) => id !== cardId) }));
+    }
+
+    // Add to destination
+    if (destId === "bank") {
+      setBank((prev) => [cardId, ...prev]);
+    } else {
+      const n = parseInt(destId.replace("day-", ""), 10);
+      setDayCards((prev) => ({ ...prev, [n]: [...(prev[n] ?? []), cardId] }));
+    }
+  }
+
+  function removeFromDay(cardId: string, dayNum: number) {
+    setDayCards((prev) => ({ ...prev, [dayNum]: prev[dayNum].filter((id) => id !== cardId) }));
+    setBank((prev) => [cardId, ...prev]);
+  }
+
   function handleDone() {
     if (itinerary) {
-      updateItineraryRefinements(itinerary.id, {
-        neighborhoodId: selectedNeighborhood ?? undefined,
-        excludedActivityIds: activities
-          .filter((a) => !includedIds.has(a.id))
-          .map((a) => a.id),
-      });
+      saveFinalizedPlan(itinerary.id, { dayCards, bankCards: bank });
     }
     goToStep("itinerary");
   }
 
-  const includedCount = includedIds.size;
-  const totalCount = activities.length;
-
   if (!itinerary) {
     return (
-      <StepShell stepId="refine" continueLabel="Done" onContinue={handleDone}>
+      <StepShell stepId="refine" continueLabel="Done — view my plan" onContinue={() => goToStep("itinerary")}>
         <div className="flex flex-col items-center gap-3 py-12 text-center">
           <p className="text-slate-500 text-sm">No itinerary generated yet.</p>
-          <p className="text-xs text-slate-400">Go back to the Itinerary step to generate your plan.</p>
+          <p className="text-xs text-slate-400">Go back to the Itinerary step to generate your plan first.</p>
         </div>
       </StepShell>
     );
   }
+
+  const placedCount = Object.values(dayCards).flat().length;
+  const activeCard = activeId ? cardMap[activeId] : null;
 
   return (
     <StepShell
       stepId="refine"
       continueLabel="Done — view my plan"
       onContinue={handleDone}
-      subtitle="Choose your neighbourhood, select the activities you want, and ask our AI any questions."
+      subtitle="Drag activities and restaurants onto each day to personalize your plan."
     >
-      {/* ── Neighbourhood picker ── */}
-      {neighborhoods.length > 0 && (
-        <section className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <Hotel size={15} className="text-brand-500" />
-            <h3 className="font-semibold text-slate-800 text-sm">Where would you like to stay?</h3>
-          </div>
-          <p className="text-xs text-slate-500 mb-4">
-            We recommend these neighbourhoods based on your preferences. Select one to note your choice.
-          </p>
-          <div className="flex flex-col gap-3">
-            {neighborhoods.map((n) => (
-              <NeighborhoodCard
-                key={n.id}
-                neighborhood={n}
-                selected={selectedNeighborhood === n.id}
-                onSelect={() => setSelectedNeighborhood((prev) => (prev === n.id ? null : n.id))}
-                onAsk={() => toggleAsk(`nbhd-${n.id}`)}
-                showAsk={askingAbout === `nbhd-${n.id}`}
-                preferences={trip.preferences}
-                onCloseAsk={() => setAskingAbout(null)}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Progress hint */}
+      <div className="flex items-center justify-between text-xs mb-4">
+        <span className="text-slate-500">
+          {placedCount} of {allCards.length} items placed
+        </span>
+        {bank.length > 0 && (
+          <span className="text-amber-600 font-medium">{bank.length} unplaced</span>
+        )}
+      </div>
 
-      {/* ── Activity picker ── */}
-      {activities.length > 0 && (
-        <section className={neighborhoods.length > 0 ? "border-t border-slate-100 pt-6" : ""}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Star size={15} className="text-brand-500" />
-              <h3 className="font-semibold text-slate-800 text-sm">Your experiences</h3>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-3">
+
+          {/* ── Activity Bank (grouped by location) ── */}
+          <div className="sm:w-48 sm:shrink-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">
+              Available ({bank.length})
+            </p>
+            <DroppableContainer id="bank" isEmpty={bank.length === 0}>
+              {(() => {
+                // Group bank cards by location
+                const grouped: Record<string, string[]> = {};
+                for (const cardId of bank) {
+                  const loc = getCardLocation(cardId) ?? "Other";
+                  if (!grouped[loc]) grouped[loc] = [];
+                  grouped[loc].push(cardId);
+                }
+                return Object.entries(grouped).map(([loc, ids]) => (
+                  <div key={loc}>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 px-0.5 pt-1 pb-0.5 truncate">{loc}</p>
+                    {ids.map((cardId) => {
+                      const info = cardMap[cardId];
+                      if (!info) return null;
+                      return <DraggableCard key={cardId} info={info} />;
+                    })}
+                  </div>
+                ));
+              })()}
+            </DroppableContainer>
+          </div>
+
+          {/* ── Day Columns ── */}
+          <div className="flex-1 flex flex-col gap-3 min-w-0">
+            {days.map((day) => {
+              const cards = dayCards[day.dayNumber] ?? [];
+              return (
+                <div
+                  key={day.dayNumber}
+                  className="rounded-xl border border-slate-200 bg-white overflow-hidden"
+                >
+                  {/* Day header */}
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-100">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white text-[10px] font-bold">
+                      {day.dayNumber}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 truncate">{day.theme}</p>
+                      <p className="text-[10px] text-slate-400">
+                        {formatDate(day.date)}{day.location ? ` · ${day.location}` : ""}
+                      </p>
+                    </div>
+                    {cards.length > 0 && (
+                      <span className="ml-auto shrink-0 rounded-full bg-brand-100 text-brand-600 text-[10px] font-semibold px-1.5 py-0.5">
+                        {cards.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Drop zone */}
+                  <div className="p-2">
+                    <DroppableContainer
+                      id={`day-${day.dayNumber}`}
+                      isEmpty={cards.length === 0}
+                      compatible={!activeCardLocation || !day.location || locationsMatch(activeCardLocation, day.location)}
+                    >
+                      {cards.map((cardId) => {
+                        const info = cardMap[cardId];
+                        if (!info) return null;
+                        return (
+                          <DraggableCard
+                            key={cardId}
+                            info={info}
+                            onRemove={() => removeFromDay(cardId, day.dayNumber)}
+                          />
+                        );
+                      })}
+                    </DroppableContainer>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Floating drag preview */}
+        <DragOverlay dropAnimation={null}>
+          {activeCard && (
+            <div style={{ transform: "rotate(1.5deg)" }}>
+              <CardInner info={activeCard} overlay />
             </div>
-            <span className="text-xs text-slate-400">
-              {includedCount} of {totalCount} selected
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mb-4">
-            Uncheck any activity you'd like to remove, or tap{" "}
-            <MessageCircle size={10} className="inline" />{" "}
-            to ask our AI for more information or alternatives.
-          </p>
-          <div className="flex flex-col gap-2">
-            {activities.map((a) => (
-              <ActivityRow
-                key={a.id}
-                activity={a}
-                included={includedIds.has(a.id)}
-                onToggle={() => toggleActivity(a.id)}
-                onAsk={() => toggleAsk(`act-${a.id}`)}
-                showAsk={askingAbout === `act-${a.id}`}
-                preferences={trip.preferences}
-                onCloseAsk={() => setAskingAbout(null)}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* No data fallback */}
-      {neighborhoods.length === 0 && activities.length === 0 && (
-        <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <Sparkles size={32} className="text-brand-300" />
-          <p className="text-slate-500 text-sm">
-            Your itinerary is ready — use the AI chat panel to ask any follow-up questions or request changes.
-          </p>
-        </div>
-      )}
-
-      {/* Summary */}
-      {(selectedNeighborhood || includedCount < totalCount) && (
-        <div className="mt-5 rounded-xl bg-sage-50 border border-sage-200 px-4 py-3 text-xs text-slate-600">
-          {selectedNeighborhood && (
-            <p className="flex items-center gap-1.5 mb-1">
-              <MapPin size={11} className="text-sage-600" />
-              <span>
-                Staying in:{" "}
-                <strong>{neighborhoods.find((n) => n.id === selectedNeighborhood)?.name}</strong>
-              </span>
-            </p>
           )}
-          {includedCount < totalCount && (
-            <p className="flex items-center gap-1.5">
-              <CheckCircle2 size={11} className="text-sage-600" />
-              <span>
-                {totalCount - includedCount} activit{totalCount - includedCount === 1 ? "y" : "ies"} removed from your plan
-              </span>
-            </p>
-          )}
-        </div>
-      )}
+        </DragOverlay>
+      </DndContext>
     </StepShell>
   );
 }
