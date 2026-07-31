@@ -87,6 +87,15 @@ export interface LodgingPreference {
   amenities: string[];
 }
 
+// How hotel/restaurant/activity ratings are sourced — mock data today, but
+// shaped so a production swap to real review APIs is a straightforward drop-in.
+export type ReviewSource = "Google Reviews" | "TripAdvisor" | "Booking.com" | "Yelp" | "OpenTable";
+
+export interface ReviewSourcePreference {
+  mode: "single" | "cross_reference";
+  source?: ReviewSource; // set when mode === "single"
+}
+
 export interface AirlinePreference {
   airlines: string[];
   alliances: AirlineAlliance[];
@@ -112,6 +121,7 @@ export interface TripPreferences {
   selectedHotelsByCity?: Record<string, HotelOption>; // per-city picks for multi-destination trips
   selectedFlight?: FlightOption;
   airlinePrefs?: AirlinePreference;
+  reviewSourcePref?: ReviewSourcePreference; // how hotel/restaurant/activity ratings are sourced
   transportation: TransportMode[];
 }
 
@@ -153,6 +163,7 @@ export interface HotelOption {
   currency: string;
   rating: number;
   ratingSource?: string;  // e.g. "Google Reviews", "TripAdvisor"
+  sourceRatings?: { source: string; rating: number }[]; // set when cross-referencing multiple sources
   reviewCount: number;
   highlights: string[];
   imageUrl?: string;
@@ -167,6 +178,8 @@ export interface ActivityOption {
   price: number;
   currency: string;
   rating: number;
+  ratingSource?: string;
+  sourceRatings?: { source: string; rating: number }[];
   reviewCount: number;
   isLocalFavorite: boolean;
   description: string;
@@ -184,6 +197,8 @@ export interface RestaurantOption {
   playfulCategory: string;
   priceRange: "$" | "$$" | "$$$" | "$$$$";
   rating: number;
+  ratingSource?: string;
+  sourceRatings?: { source: string; rating: number }[];
   reviewCount: number;
   location: string;
   description: string;

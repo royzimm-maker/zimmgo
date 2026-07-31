@@ -78,7 +78,7 @@ export function VibeStep() {
       <StepShell
         stepId="vibe"
         continueLabel="I'll pick myself"
-        onContinue={() => setMode("manual")}
+        onContinue={() => { setMode("manual"); return false; }}
         subtitle="How do you want to set the trip's vibe?"
       >
         <ChooseModePrompt

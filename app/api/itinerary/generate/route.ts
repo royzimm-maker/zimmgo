@@ -9,6 +9,7 @@ import { searchHotels } from "@/lib/api/hotels";
 import { searchActivities } from "@/lib/api/activities";
 import { searchRestaurants } from "@/lib/api/restaurants";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
+import { applyReviewSourcePref } from "@/lib/data/reviewSources";
 import { groupByLocation } from "@/lib/utils";
 import { BUDGET_LABELS } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
@@ -253,6 +254,12 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
   const hotelsByCity = groupByLocation(hotels, (h) => h.city ?? h.location);
   const topHotels = hotelsByCity.flatMap((g) => g.items.slice(0, 3));
 
+  // Shape ratings per the user's review-source preference (single source vs cross-referenced average)
+  const { reviewSourcePref } = preferences;
+  const ratedHotels      = applyReviewSourcePref(topHotels, reviewSourcePref);
+  const ratedActivities  = applyReviewSourcePref(activities, reviewSourcePref);
+  const ratedRestaurants = applyReviewSourcePref(restaurants, reviewSourcePref);
+
   return {
     id: uuid(),
     tripId,
@@ -260,9 +267,9 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     createdAt: new Date().toISOString(),
     days,
     flights,
-    hotels: topHotels,
-    activities,
-    restaurants: restaurants.length ? restaurants : undefined,
+    hotels: ratedHotels,
+    activities: ratedActivities,
+    restaurants: ratedRestaurants.length ? ratedRestaurants : undefined,
     totalEstimatedCost: hotelTotal + flightTotal + actTotal,
     currency: "USD",
     aiSummary: summaryFallback,

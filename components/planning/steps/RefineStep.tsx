@@ -451,7 +451,7 @@ export function RefineStep() {
       <StepShell
         stepId="refine"
         continueLabel="I'll build it myself"
-        onContinue={() => setMode("manual")}
+        onContinue={() => { setMode("manual"); return false; }}
         subtitle="How do you want to personalize your plan?"
       >
         <div className="flex flex-col gap-3">

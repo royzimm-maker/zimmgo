@@ -574,6 +574,11 @@ export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelO
           {hotel.ratingSource && (
             <p className="text-[10px] text-slate-400 mt-0.5">{icon} {hotel.ratingSource}</p>
           )}
+          {hotel.sourceRatings && (
+            <p className="text-[9px] text-slate-400 mt-0.5">
+              {hotel.sourceRatings.map((s) => `${s.source} ${s.rating}`).join(" · ")}
+            </p>
+          )}
           <div className="flex items-center gap-2 justify-end mt-1.5">
             <a
               href={`https://www.google.com/maps/search/${encodeURIComponent(hotel.name + " " + hotel.location)}`}
@@ -650,6 +655,7 @@ export function RestaurantCard({ restaurant: r }: { restaurant: RestaurantOption
           <div className="text-right shrink-0 ml-2">
             <p className="text-xs font-medium text-sage-700">{r.rating}/10</p>
             <p className="text-[10px] text-slate-400">{r.reviewCount.toLocaleString()} reviews</p>
+            {r.ratingSource && <p className="text-[9px] text-slate-400 mt-0.5">{r.ratingSource}</p>}
           </div>
         </div>
         <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-slate-100">
@@ -800,7 +806,7 @@ export function ActivityCard({ activity }: { activity: ActivityOption }) {
           <p className="text-xs text-slate-500 mt-1">{activity.description}</p>
           <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
             <span>⏱ {activity.duration}</span>
-            <span>⭐ {activity.rating}</span>
+            <span>⭐ {activity.rating}{activity.ratingSource ? ` (${activity.ratingSource})` : ""}</span>
           </div>
         </div>
         <div className="text-right shrink-0">

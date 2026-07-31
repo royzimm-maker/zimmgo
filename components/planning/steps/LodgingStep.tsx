@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import { BUDGET_MAX } from "@/types/trip";
-import type { HotelOption, LodgingPreference, LodgingStarRating, LodgingType } from "@/types/trip";
+import { REVIEW_SOURCES } from "@/lib/data/reviewSources";
+import type { HotelOption, LodgingPreference, LodgingStarRating, LodgingType, ReviewSource } from "@/types/trip";
 
 const TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[] = [
   { id: "hotel",    label: "Hotel",        icon: "🏨", sublabel: "Traditional hotel, full service" },
@@ -32,7 +33,7 @@ const HOTEL_TIER: Record<number, string> = {
 };
 
 export function LodgingStep() {
-  const { trip, setLodging, setSelectedHotel } = useTripStore();
+  const { trip, setLodging, setSelectedHotel, setReviewSourcePref } = useTripStore();
   const existing = trip.preferences.lodging;
   const [mode, setMode] = useState<"prompt" | "manual">(() => (existing ? "manual" : "prompt"));
   const [picking, setPicking] = useState(false);
@@ -51,6 +52,10 @@ export function LodgingStep() {
   const [amenities,      setAmenities     ] = useState<string[]>(existing?.amenities ?? []);
   const [otherAmenity,   setOtherAmenity  ] = useState("");
   const [amenityOpen,    setAmenityOpen   ] = useState(false);
+
+  const existingReviewPref = trip.preferences.reviewSourcePref;
+  const [reviewMode,   setReviewMode  ] = useState<"single" | "cross_reference">(existingReviewPref?.mode ?? "cross_reference");
+  const [reviewSource, setReviewSource] = useState<ReviewSource | null>(existingReviewPref?.source ?? null);
 
   const [hotels,          setHotels         ] = useState<HotelOption[]>([]);
   const [hotelsLoading,   setHotelsLoading  ] = useState(false);
@@ -149,6 +154,12 @@ export function LodgingStep() {
     const pref: LodgingPreference = { types: allTypes, minStars, amenities: allAmenities };
     setLodging(pref);
 
+    setReviewSourcePref(
+      reviewMode === "single" && reviewSource
+        ? { mode: "single", source: reviewSource }
+        : { mode: "cross_reference" }
+    );
+
     const picked = hotels.find((h) => h.id === selectedHotelId) ?? null;
     setSelectedHotel(picked);
   }
@@ -162,7 +173,7 @@ export function LodgingStep() {
       <StepShell
         stepId="lodging"
         continueLabel="I'll pick myself"
-        onContinue={() => setMode("manual")}
+        onContinue={() => { setMode("manual"); return false; }}
         subtitle="How do you want to choose your lodging preferences?"
       >
         <ChooseModePrompt
@@ -287,6 +298,63 @@ export function LodgingStep() {
                   onClick={() => { setOtherAmenity(""); setAmenityOpen(false); }}
                   className="text-xs text-slate-400 hover:text-slate-600"
                 >✕</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Review source preference — applies to hotels, restaurants, and activities */}
+        <div className="border-t border-slate-100 pt-5">
+          <p className="mb-1 text-sm font-medium text-slate-700">Ratings & reviews</p>
+          <p className="mb-2.5 text-xs text-slate-400">
+            How should we source ratings for hotels, restaurants, and activities?
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setReviewMode("cross_reference")}
+              className={cn(
+                "rounded-lg border px-3 py-2 text-left text-sm font-medium transition-all",
+                reviewMode === "cross_reference"
+                  ? "border-brand-500 bg-brand-50 text-brand-700"
+                  : "border-slate-200 text-slate-600 hover:border-slate-300"
+              )}
+            >
+              Cross-reference multiple sources
+              <span className="block text-xs font-normal text-slate-400 mt-0.5">
+                Average across Google Reviews, TripAdvisor & Booking.com
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setReviewMode("single")}
+              className={cn(
+                "rounded-lg border px-3 py-2 text-left text-sm font-medium transition-all",
+                reviewMode === "single"
+                  ? "border-brand-500 bg-brand-50 text-brand-700"
+                  : "border-slate-200 text-slate-600 hover:border-slate-300"
+              )}
+            >
+              Use a single source
+              <span className="block text-xs font-normal text-slate-400 mt-0.5">Pick the one you trust most</span>
+            </button>
+            {reviewMode === "single" && (
+              <div className="flex flex-wrap gap-2 pl-1 pt-1">
+                {REVIEW_SOURCES.map((src) => (
+                  <button
+                    key={src}
+                    type="button"
+                    onClick={() => setReviewSource(src)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-medium transition-all",
+                      reviewSource === src
+                        ? "border-brand-500 bg-brand-50 text-brand-600"
+                        : "border-slate-200 text-slate-600 hover:border-slate-300"
+                    )}
+                  >
+                    {src}
+                  </button>
+                ))}
               </div>
             )}
           </div>
