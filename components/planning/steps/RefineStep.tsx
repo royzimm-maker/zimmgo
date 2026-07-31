@@ -137,12 +137,14 @@ function DraggableCard({ info, onRemove }: { info: CardInfo; onRemove?: () => vo
 // Case-insensitive check: do two location strings refer to the same place?
 function locationsMatch(a?: string, b?: string): boolean {
   if (!a || !b) return true; // no location info → allow drop
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, " ").trim();
+  // Strip a leading "the" so it never becomes the "first word" two different
+  // places both happen to share (e.g. "the Dolomites" vs "the Amalfi Coast").
+  const norm = (s: string) => s.toLowerCase().replace(/^the\s+/, "").replace(/[^a-z0-9]/g, " ").trim();
   const na = norm(a), nb = norm(b);
   // Extract first meaningful word for fuzzy matching (e.g. "Dolomites, Italy" → "dolomites")
   const firstWord = (s: string) => s.split(/\s+/)[0];
   return na === nb || na.includes(nb) || nb.includes(na) ||
-    firstWord(na) === firstWord(nb);
+    (firstWord(na) === firstWord(nb) && firstWord(na).length > 0);
 }
 
 // ─── DroppableContainer ───────────────────────────────────────────────────────
@@ -205,6 +207,22 @@ export function RefineStep() {
     [itinerary?.id]
   );
   const days = itinerary?.days ?? [];
+
+  // Distinct cities in trip order, derived from day locations
+  const cities = useMemo(() => {
+    const seen = new Set<string>();
+    const list: string[] = [];
+    for (const day of days) {
+      if (day.location && !seen.has(day.location)) {
+        seen.add(day.location);
+        list.push(day.location);
+      }
+    }
+    return list;
+  }, [days]);
+
+  const [activeCity, setActiveCity] = useState<string | null>(null);
+  const effectiveCity = activeCity ?? cities[0] ?? null;
 
   const allCards = useMemo<CardInfo[]>(() => [
     ...activities.map((a) => ({ cardId: `act-${a.id}`, kind: "activity" as const, activity: a })),
@@ -315,6 +333,23 @@ export function RefineStep() {
   const placedCount = Object.values(dayCards).flat().length;
   const activeCard = activeId ? cardMap[activeId] : null;
 
+  // Scope the board to one city at a time — reduces clutter on multi-city trips
+  // and matches the location constraint already enforced on drag-and-drop.
+  const visibleDays = effectiveCity
+    ? days.filter((d) => !d.location || locationsMatch(d.location, effectiveCity))
+    : days;
+  const visibleBank = effectiveCity
+    ? bank.filter((cardId) => {
+        const loc = getCardLocation(cardId);
+        return !loc || locationsMatch(loc, effectiveCity);
+      })
+    : bank;
+  const cityStats = cities.map((city) => {
+    const total = allCards.filter((c) => locationsMatch(getCardLocation(c.cardId), city)).length;
+    const unplaced = bank.filter((id) => locationsMatch(getCardLocation(id), city)).length;
+    return { city, total, placed: total - unplaced };
+  });
+
   return (
     <StepShell
       stepId="refine"
@@ -332,6 +367,33 @@ export function RefineStep() {
         )}
       </div>
 
+      {/* City tabs — work through one city at a time on multi-city trips */}
+      {cities.length > 1 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {cityStats.map(({ city, total, placed }) => (
+            <button
+              key={city}
+              type="button"
+              onClick={() => setActiveCity(city)}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                city === effectiveCity
+                  ? "border-brand-500 bg-brand-50 text-brand-700"
+                  : "border-slate-200 text-slate-600 hover:border-slate-300"
+              }`}
+            >
+              {city}
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                  city === effectiveCity ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {placed}/{total}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -343,13 +405,13 @@ export function RefineStep() {
           {/* ── Activity Bank (grouped by location) ── */}
           <div className="sm:w-48 sm:shrink-0">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">
-              Available ({bank.length})
+              Available ({visibleBank.length})
             </p>
-            <DroppableContainer id="bank" isEmpty={bank.length === 0}>
+            <DroppableContainer id="bank" isEmpty={visibleBank.length === 0}>
               {(() => {
                 // Group bank cards by location
                 const grouped: Record<string, string[]> = {};
-                for (const cardId of bank) {
+                for (const cardId of visibleBank) {
                   const loc = getCardLocation(cardId) ?? "Other";
                   if (!grouped[loc]) grouped[loc] = [];
                   grouped[loc].push(cardId);
@@ -370,7 +432,7 @@ export function RefineStep() {
 
           {/* ── Day Columns ── */}
           <div className="flex-1 flex flex-col gap-3 min-w-0">
-            {days.map((day) => {
+            {visibleDays.map((day) => {
               const cards = dayCards[day.dayNumber] ?? [];
               return (
                 <div
