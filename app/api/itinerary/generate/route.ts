@@ -250,7 +250,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
   const neighborhoods = getNeighborhoodsByDestination(destName);
 
   // Cap hotels per city (not globally) so every destination stays represented
-  const hotelsByCity = groupByLocation(hotels, (h) => h.location);
+  const hotelsByCity = groupByLocation(hotels, (h) => h.city ?? h.location);
   const topHotels = hotelsByCity.flatMap((g) => g.items.slice(0, 3));
 
   return {

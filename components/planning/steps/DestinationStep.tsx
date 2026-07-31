@@ -50,7 +50,7 @@ const POPULAR = [
 //   "Japan — Tokyo, Kyoto & Osaka"            → ["Tokyo", "Kyoto", "Osaka"]
 function parseCitiesFromText(text: string): string[] {
   const stripped = text
-    .replace(/^[^,—–\-]+[—–\-]\s*/, "") // drop "Country — " prefix
+    .replace(/^[^,—–\-:]+[—–\-:]\s*/, "") // drop "Country — " or "Country: " prefix
     .replace(/\band\b/gi, ",")            // "and" → comma
     .replace(/&/g, ",");                  // & → comma
   return stripped

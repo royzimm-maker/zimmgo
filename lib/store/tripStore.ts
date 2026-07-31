@@ -48,6 +48,7 @@ interface TripState {
   setBudgetDetails: (details: { travelers?: number; rooms?: number; dailyFoodBudgetPerPerson?: number }) => void;
   setLodging: (lodging: LodgingPreference) => void;
   setSelectedHotel: (hotel: HotelOption | null) => void;
+  setSelectedHotelForCity: (city: string, hotel: HotelOption | null) => void;
   setSelectedFlight: (flight: import("@/types/trip").FlightOption | null) => void;
   setAirlines: (prefs: AirlinePreference) => void;
   setTransportation: (modes: TransportMode[]) => void;
@@ -56,6 +57,7 @@ interface TripState {
   addItinerary: (itinerary: GeneratedItinerary) => void;
   updateItineraryRefinements: (itineraryId: string, refinements: ItineraryRefinements) => void;
   saveFinalizedPlan: (itineraryId: string, plan: FinalizedPlan) => void;
+  markItineraryReviewed: (itineraryId: string) => void;
 
   // Chat
   addMessage: (msg: Omit<ChatMessage, "id" | "createdAt">) => void;
@@ -219,6 +221,20 @@ export const useTripStore = create<TripState>()(
           },
         })),
 
+      setSelectedHotelForCity: (city, hotel) =>
+        set((s) => {
+          const next = { ...(s.trip.preferences.selectedHotelsByCity ?? {}) };
+          if (hotel) next[city] = hotel;
+          else delete next[city];
+          return {
+            trip: {
+              ...s.trip,
+              preferences: { ...s.trip.preferences, selectedHotelsByCity: next },
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }),
+
       setSelectedFlight: (selectedFlight) =>
         set((s) => ({
           trip: {
@@ -275,6 +291,17 @@ export const useTripStore = create<TripState>()(
             ...s.trip,
             itineraries: s.trip.itineraries.map((it) =>
               it.id === itineraryId ? { ...it, finalizedPlan: plan } : it
+            ),
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      markItineraryReviewed: (itineraryId) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            itineraries: s.trip.itineraries.map((it) =>
+              it.id === itineraryId ? { ...it, reviewCompleted: true } : it
             ),
             updatedAt: new Date().toISOString(),
           },

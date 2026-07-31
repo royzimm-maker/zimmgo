@@ -52,6 +52,14 @@ export function pairFlights(
   return flights.map((f) => ({ outbound: f, ret: null }));
 }
 
+/** Loose city-name comparison — handles "Amalfi Coast" vs "the Amalfi Coast" style variance. */
+export function fuzzyCityMatch(a?: string, b?: string): boolean {
+  if (!a || !b) return false;
+  const x = a.toLowerCase().trim();
+  const y = b.toLowerCase().trim();
+  return x === y || x.includes(y) || y.includes(x);
+}
+
 /** Group an array of items by location, preserving first-seen order. */
 export function groupByLocation<T>(
   items: T[],

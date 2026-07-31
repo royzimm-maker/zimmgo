@@ -15,9 +15,12 @@ import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, Res
 
 interface Props {
   itinerary: GeneratedItinerary;
+  // When true, skip the Flights/Hotels/Restaurants/Top Experiences sections —
+  // used once the user has already stepped through ItinerarySelectionWizard for these.
+  hideSelectionSections?: boolean;
 }
 
-export function ItineraryView({ itinerary }: Props) {
+export function ItineraryView({ itinerary, hideSelectionSections = false }: Props) {
   const { trip, setSelectedHotel, setSelectedFlight } = useTripStore();
   const [expandedDay, setExpandedDay] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
@@ -98,7 +101,7 @@ export function ItineraryView({ itinerary }: Props) {
       </div>
 
       {/* Flights */}
-      {itinerary.flights.length > 0 && (
+      {!hideSelectionSections && itinerary.flights.length > 0 && (
         <Section
           title="Recommended Flights"
           icon={<Plane size={16} />}
@@ -114,7 +117,7 @@ export function ItineraryView({ itinerary }: Props) {
       )}
 
       {/* Hotels */}
-      {preferences.selectedHotel ? (
+      {!hideSelectionSections && (preferences.selectedHotel ? (
         <Section
           title="Your Planned Stay"
           icon={<Hotel size={16} />}
@@ -144,10 +147,10 @@ export function ItineraryView({ itinerary }: Props) {
             )}
           />
         </Section>
-      )}
+      ))}
 
       {/* Restaurants — grouped by location */}
-      {itinerary.restaurants && itinerary.restaurants.length > 0 && (
+      {!hideSelectionSections && itinerary.restaurants && itinerary.restaurants.length > 0 && (
         <Section title="Where to Eat" icon={<UtensilsCrossed size={16} />}>
           <GroupedCards
             items={itinerary.restaurants}
@@ -184,7 +187,7 @@ export function ItineraryView({ itinerary }: Props) {
       </Section>
 
       {/* Activities — grouped by location */}
-      {itinerary.activities.length > 0 && (
+      {!hideSelectionSections && itinerary.activities.length > 0 && (
         <Section title="Top Experiences" icon={<Star size={16} />}>
           <GroupedCards
             items={itinerary.activities}
@@ -354,7 +357,7 @@ function DestinationSummary({ itinerary, preferences }: { itinerary: GeneratedIt
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-function Section({ title, icon, subtitle, children }: { title: string; icon: React.ReactNode; subtitle?: string; children: React.ReactNode }) {
+export function Section({ title, icon, subtitle, children }: { title: string; icon: React.ReactNode; subtitle?: string; children: React.ReactNode }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
@@ -369,7 +372,7 @@ function Section({ title, icon, subtitle, children }: { title: string; icon: Rea
 }
 
 // Groups items by their `location` field and renders them under a location header
-function GroupedCards<T extends { location?: string }>({
+export function GroupedCards<T extends { location?: string }>({
   items,
   renderCard,
   gridCols = false,
@@ -410,7 +413,7 @@ function StatCard({ label, value, icon }: { label: string; value: string; icon: 
   );
 }
 
-function FlightPairList({
+export function FlightPairList({
   flights,
   depAirport,
   selectedFlightId,
@@ -494,7 +497,7 @@ const HOTEL_TIER: Record<number, { label: string }> = {
   3: { label: "Sleep well, spend the savings" },
 };
 
-function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelOption; selected?: boolean; onSelect?: () => void }) {
+export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelOption; selected?: boolean; onSelect?: () => void }) {
   const sourceIcon: Record<string, string> = {
     "Google Reviews": "🔵",
     "TripAdvisor": "🟢",
@@ -607,7 +610,7 @@ const PRICE_LABEL_COLOR: Record<string, string> = {
   "$":    "text-slate-600",
 };
 
-function RestaurantCard({ restaurant: r }: { restaurant: RestaurantOption }) {
+export function RestaurantCard({ restaurant: r }: { restaurant: RestaurantOption }) {
   const emoji = RESTAURANT_TIER_EMOJI[r.tier] ?? "🍽️";
   const priceColor = PRICE_LABEL_COLOR[r.priceRange] ?? "text-slate-600";
 
@@ -781,7 +784,7 @@ function DayCard({
   );
 }
 
-function ActivityCard({ activity }: { activity: ActivityOption }) {
+export function ActivityCard({ activity }: { activity: ActivityOption }) {
   return (
     <Card padding="sm">
       <div className="flex items-start justify-between gap-2">

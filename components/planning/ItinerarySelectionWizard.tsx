@@ -1,0 +1,197 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { useTripStore } from "@/lib/store/tripStore";
+import { fuzzyCityMatch } from "@/lib/utils";
+import {
+  Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard,
+} from "@/components/planning/ItineraryView";
+import type { GeneratedItinerary } from "@/types/trip";
+
+interface Props {
+  itinerary: GeneratedItinerary;
+  onComplete: () => void;
+}
+
+type Stage = "flights" | "hotels" | "restaurants" | "activities";
+
+const STAGES: { id: Stage; label: string; icon: React.ReactNode; perCity: boolean }[] = [
+  { id: "flights",     label: "Flights",     icon: <Plane size={16} />,           perCity: false },
+  { id: "hotels",      label: "Hotels",      icon: <Hotel size={16} />,           perCity: true  },
+  { id: "restaurants", label: "Restaurants", icon: <UtensilsCrossed size={16} />, perCity: true  },
+  { id: "activities",  label: "Activities",  icon: <Star size={16} />,            perCity: true  },
+];
+
+export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
+  const { trip, setSelectedFlight, setSelectedHotelForCity } = useTripStore();
+  const preferences = trip.preferences;
+
+  const cities = useMemo(() => {
+    const c = preferences.destination?.cities?.filter(Boolean) ?? [];
+    return c.length ? c : [preferences.destination?.displayName ?? "Your destination"];
+  }, [preferences.destination]);
+
+  const [stageIdx, setStageIdx] = useState(0);
+  const [cityIdx, setCityIdx] = useState(0);
+  const stage = STAGES[stageIdx];
+  const currentCity = cities[cityIdx];
+
+  // Overall step counter across the whole wizard, for the progress label
+  const stepsPerStage = STAGES.map((s) => (s.perCity ? cities.length : 1));
+  const totalSteps = stepsPerStage.reduce((a, b) => a + b, 0);
+  const currentStep = stepsPerStage.slice(0, stageIdx).reduce((a, b) => a + b, 0) + (stage.perCity ? cityIdx : 0) + 1;
+
+  const canGoBack = currentStep > 1;
+
+  function goNext() {
+    if (stage.perCity && cityIdx < cities.length - 1) {
+      setCityIdx((i) => i + 1);
+      return;
+    }
+    if (stageIdx < STAGES.length - 1) {
+      setStageIdx((i) => i + 1);
+      setCityIdx(0);
+      return;
+    }
+    onComplete();
+  }
+
+  function goBack() {
+    if (stage.perCity && cityIdx > 0) {
+      setCityIdx((i) => i - 1);
+      return;
+    }
+    if (stageIdx > 0) {
+      const prevStage = STAGES[stageIdx - 1];
+      setStageIdx((i) => i - 1);
+      setCityIdx(prevStage.perCity ? cities.length - 1 : 0);
+    }
+  }
+
+  const hotelsForCity = useMemo(
+    () => itinerary.hotels.filter((h) => fuzzyCityMatch(h.city ?? h.location, currentCity)),
+    [itinerary.hotels, currentCity]
+  );
+  const restaurantsForCity = useMemo(
+    () => (itinerary.restaurants ?? []).filter((r) => fuzzyCityMatch(r.location, currentCity)),
+    [itinerary.restaurants, currentCity]
+  );
+  const activitiesForCity = useMemo(
+    () => itinerary.activities.filter((a) => fuzzyCityMatch(a.location, currentCity)),
+    [itinerary.activities, currentCity]
+  );
+
+  const sectionTitle = stage.perCity ? `${stage.label} — ${currentCity}` : stage.label;
+  const sectionSubtitle = stage.id === "flights"
+    ? "Select your preferred option — prices are roundtrip per person, estimated."
+    : stage.id === "hotels"
+    ? "Tap a hotel to pick it for this city — you can change it later."
+    : undefined;
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Progress header */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-semibold uppercase tracking-widest text-brand-500">
+            Reviewing your picks — {currentStep} of {totalSteps}
+          </p>
+          {stage.perCity && cities.length > 1 && (
+            <span className="flex items-center gap-1 text-xs text-slate-400">
+              <MapPin size={11} /> {cityIdx + 1} of {cities.length} cities
+            </span>
+          )}
+        </div>
+        <div className="flex gap-1.5">
+          {STAGES.map((s, i) => (
+            <div
+              key={s.id}
+              className={`h-1.5 flex-1 rounded-full ${
+                i < stageIdx ? "bg-brand-500" : i === stageIdx ? "bg-brand-300" : "bg-slate-100"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Stage content */}
+      <Section title={sectionTitle} icon={stage.icon} subtitle={sectionSubtitle}>
+        {stage.id === "flights" && (
+          itinerary.flights.length > 0 ? (
+            <FlightPairList
+              flights={itinerary.flights}
+              depAirport={preferences.destination?.departureAirport ?? ""}
+              selectedFlightId={preferences.selectedFlight?.id}
+              onSelect={(f) => setSelectedFlight(preferences.selectedFlight?.id === f.id ? null : f)}
+            />
+          ) : (
+            <EmptyState label="flight options" />
+          )
+        )}
+
+        {stage.id === "hotels" && (
+          hotelsForCity.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {hotelsForCity.map((h) => {
+                const selected = preferences.selectedHotelsByCity?.[currentCity]?.id === h.id;
+                return (
+                  <HotelCard
+                    key={h.id}
+                    hotel={h}
+                    selected={selected}
+                    onSelect={() => setSelectedHotelForCity(currentCity, selected ? null : h)}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState label={`hotels for ${currentCity}`} />
+          )
+        )}
+
+        {stage.id === "restaurants" && (
+          restaurantsForCity.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {restaurantsForCity.map((r) => <RestaurantCard key={r.id} restaurant={r} />)}
+            </div>
+          ) : (
+            <EmptyState label={`restaurants for ${currentCity}`} />
+          )
+        )}
+
+        {stage.id === "activities" && (
+          activitiesForCity.length > 0 ? (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {activitiesForCity.map((a) => <ActivityCard key={a.id} activity={a} />)}
+            </div>
+          ) : (
+            <EmptyState label={`activities for ${currentCity}`} />
+          )
+        )}
+      </Section>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+        <Button variant="ghost" size="sm" onClick={goBack} disabled={!canGoBack} className="text-slate-500">
+          <ArrowLeft size={14} />
+          Back
+        </Button>
+        <Button variant="primary" size="sm" onClick={goNext}>
+          {currentStep === totalSteps ? "Finish review" : "Continue"}
+          <ArrowRight size={14} />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+      <p className="text-sm text-slate-500">No specific {label} found yet.</p>
+      <p className="text-xs text-slate-400 mt-1">Ask ZiGy in the chat panel for suggestions — you can move on for now.</p>
+    </div>
+  );
+}

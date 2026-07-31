@@ -6,11 +6,12 @@ import { StepShell } from "@/components/planning/StepShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ItineraryView } from "@/components/planning/ItineraryView";
+import { ItinerarySelectionWizard } from "@/components/planning/ItinerarySelectionWizard";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { GeneratedItinerary } from "@/types/trip";
 
 export function ItineraryStep() {
-  const { trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep } = useTripStore();
+  const { trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep, markItineraryReviewed } = useTripStore();
   const latest = trip.itineraries[trip.itineraries.length - 1] ?? null;
   const isPersonalized = Boolean(latest?.finalizedPlan);
 
@@ -124,7 +125,15 @@ export function ItineraryStep() {
       )}
 
       {/* Itinerary output */}
-      {latest && <ItineraryView itinerary={latest} />}
+      {latest && !latest.reviewCompleted && (
+        <ItinerarySelectionWizard
+          itinerary={latest}
+          onComplete={() => markItineraryReviewed(latest.id)}
+        />
+      )}
+      {latest && latest.reviewCompleted && (
+        <ItineraryView itinerary={latest} hideSelectionSections />
+      )}
     </StepShell>
   );
 }

@@ -143,6 +143,7 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
         name: h.name!,
         stars: h.stars!,
         location: fullLocation,
+        city: params.destination,
         pricePerNight: Math.min(randomInt(lo, hi), maxPrice),
         currency: "USD",
         rating: h.rating!,

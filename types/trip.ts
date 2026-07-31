@@ -109,6 +109,7 @@ export interface TripPreferences {
   dailyFoodBudgetPerPerson?: number;     // food spend in $ per person per day
   lodging?: LodgingPreference;
   selectedHotel?: HotelOption;
+  selectedHotelsByCity?: Record<string, HotelOption>; // per-city picks for multi-destination trips
   selectedFlight?: FlightOption;
   airlinePrefs?: AirlinePreference;
   transportation: TransportMode[];
@@ -147,6 +148,7 @@ export interface HotelOption {
   name: string;
   stars: number;
   location: string;
+  city?: string; // the searched destination city — reliable for per-city grouping, unlike `location` (a specific address)
   pricePerNight: number;
   currency: string;
   rating: number;
@@ -232,6 +234,7 @@ export interface GeneratedItinerary {
   neighborhoods?: NeighborhoodOption[];
   refinements?: ItineraryRefinements;
   finalizedPlan?: FinalizedPlan;
+  reviewCompleted?: boolean; // true once the user has stepped through the flights/hotels/restaurants/activities wizard
 }
 
 // ─── Top-level Trip entity ─────────────────────────────────────────────────────
