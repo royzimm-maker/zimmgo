@@ -127,12 +127,13 @@ export function ItineraryStep() {
       {/* Itinerary output */}
       {latest && !latest.reviewCompleted && (
         <ItinerarySelectionWizard
+          key={latest.id}
           itinerary={latest}
           onComplete={() => markItineraryReviewed(latest.id)}
         />
       )}
       {latest && latest.reviewCompleted && (
-        <ItineraryView itinerary={latest} hideSelectionSections />
+        <ItineraryView key={latest.id} itinerary={latest} hideSelectionSections />
       )}
     </StepShell>
   );

@@ -74,6 +74,8 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       description: "The world's most famous fish market corridor. Tamagoyaki, fresh uni, and grilled scallops at 7am.",
       mustOrder: "Fresh uni on rice — straight from the counter",
     },
+    { name: "Coffee Mameya",     cuisine: "Specialty Coffee",  tier: "brunch",  rating: 9.0, reviewCount: 3100, location: "Omotesando, Tokyo", description: "A minimalist counter with no menu — baristas interview you on taste, then brew accordingly.", mustOrder: "Ask for their current favorite single origin" },
+    { name: "Gonpachi Nishi-Azabu", cuisine: "Izakaya",        tier: "midrange", rating: 8.9, reviewCount: 9200, location: "Nishi-Azabu, Tokyo", description: "The 'Kill Bill' restaurant — soaring wood beams, robata grill, and a lively izakaya crowd.", mustOrder: "Charcoal-grilled skewers and cold sake" },
   ],
   paris: [
     {
@@ -116,6 +118,8 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       description: "Voted Paris's best bakery several years running. The croissant à l'ancienne has a waiting list on weekends.",
       mustOrder: "Croissant à l'ancienne and the pavé aux fruits",
     },
+    { name: "Bistrot Paul Bert",  cuisine: "Classic Bistro",   tier: "midrange", rating: 9.1, reviewCount: 5400, location: "11th Arr., Paris", description: "The bistro that everyone points to as the platonic ideal — steak-frites, a chalkboard menu, and zero pretense.", mustOrder: "Côte de boeuf for two and the tarte tatin" },
+    { name: "L'As du Fallafel",   cuisine: "Middle Eastern Street Food", tier: "street_food", rating: 8.9, reviewCount: 21000, location: "Le Marais, Paris", description: "The falafel line around the block in the Marais — worth every minute of the wait.", mustOrder: "Falafel special, extra eggplant" },
   ],
   iceland: [
     {
@@ -158,6 +162,8 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       description: "A red kiosk by the harbour that's been here since 1937. Bill Clinton ate here. So should you.",
       mustOrder: "One with everything — 'eina með öllu'",
     },
+    { name: "Sumac",              cuisine: "Levantine",         tier: "midrange", rating: 8.9, reviewCount: 1800, location: "Reykjavik", description: "Rooftop views over the harbour and a Middle Eastern menu that's become a local favorite.", mustOrder: "Lamb shoulder and the mezze platter" },
+    { name: "Kaffibrennslan",     cuisine: "Café & Brunch",     tier: "brunch",   rating: 8.7, reviewCount: 2600, location: "Reykjavik", description: "One of the city's oldest cafés on the main shopping street — good coffee, better people-watching.", mustOrder: "Skyr pancakes with blueberry jam" },
   ],
   greece: [
     {
@@ -200,6 +206,8 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       description: "Small plates with a Greek-Asian sensibility. Creative, generous, and a little unpredictable — in the best way.",
       mustOrder: "Lamb gyros tacos and the smoked aubergine",
     },
+    { name: "Ta Karamanlidika tou Fani", cuisine: "Greek Deli", tier: "casual", rating: 9.0, reviewCount: 4100, location: "Monastiraki, Athens", description: "An old-school deli-restaurant piled high with cured meats and cheeses from across Greece.", mustOrder: "Cold cuts platter and the pastourma" },
+    { name: "Klimataria",         cuisine: "Traditional Taverna", tier: "midrange", rating: 8.8, reviewCount: 2900, location: "Psyrri, Athens", description: "Live rebetiko music most nights and honest home cooking in a century-old building.", mustOrder: "Slow-roasted lamb and the house wine" },
   ],
   italy: [
     {
@@ -242,6 +250,8 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       description: "An all-day wine bar with a serious kitchen. Great natural wines, cured meats, and a seasonal menu that changes with the market.",
       mustOrder: "The cured meat board and whatever pasta is on today",
     },
+    { name: "Roscioli",           cuisine: "Deli & Wine Bar",  tier: "upscale",  rating: 9.2, reviewCount: 6100, location: "Campo de' Fiori, Rome", description: "Part deli, part restaurant, entirely essential — carbonara that regularly tops 'best in Rome' lists.", mustOrder: "Carbonara and the cheese board" },
+    { name: "Trapizzino Testaccio", cuisine: "Roman Street Food", tier: "street_food", rating: 8.9, reviewCount: 7800, location: "Testaccio, Rome", description: "The inventor of the trapizzino — pizza dough pocket stuffed with slow-braised fillings.", mustOrder: "Chicken cacciatore trapizzino" },
   ],
   spain: [
     {
@@ -284,6 +294,8 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       description: "A century-old cava bar serving anchovy toasts and house cava by the glass. It's always a little crowded. It's always worth it.",
       mustOrder: "Anxoves de l'Escala and house cava",
     },
+    { name: "Quimet y Quimet",    cuisine: "Montaditos Bar",   tier: "casual",   rating: 9.3, reviewCount: 8900, location: "Poble Sec, Barcelona", description: "A tiny standing-room bar stacked floor-to-ceiling with wine — the montaditos are legendary.", mustOrder: "Anything with the salmon-truffle combo" },
+    { name: "Tickets",            cuisine: "Avant-Garde Tapas", tier: "fine_dining", rating: 9.4, reviewCount: 2200, location: "Poble Sec, Barcelona", description: "The Adrià brothers' playful tapas circus — theatrical small plates that redefine Spanish food.", mustOrder: "The tasting menu, whatever's seasonal" },
   ],
   portugal: [
     {
@@ -326,6 +338,8 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       description: "A hole-in-the-wall where the daily specials are written on a chalkboard and the wine costs €1 a glass. Exactly what you hoped for.",
       mustOrder: "Bacalhau à brás and the house tinto",
     },
+    { name: "Cervejaria Ramiro",  cuisine: "Seafood",          tier: "upscale",  rating: 9.3, reviewCount: 9400, location: "Intendente, Lisbon", description: "The city's shrine to shellfish — garlic tiger prawns and bread rolls to mop up the sauce.", mustOrder: "Tiger prawns à guilho and the prego roll after" },
+    { name: "Manteigaria",        cuisine: "Pastelaria",       tier: "brunch",   rating: 9.1, reviewCount: 12000, location: "Chiado, Lisbon", description: "Watch the pastéis de nata come fresh out of the oven at this open-kitchen bakery.", mustOrder: "Pastel de nata, still warm" },
   ],
   uk: [
     {
@@ -368,18 +382,24 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       description: "London's oldest food market. The best raclette, the best Scotch eggs, the best coffee you'll drink between a Thursday and Saturday.",
       mustOrder: "Raclette at Kappacasein and a Neal's Yard cheese",
     },
+    { name: "Padella",            cuisine: "Fresh Pasta",       tier: "casual",   rating: 9.0, reviewCount: 15000, location: "Borough Market, London", description: "The queue snakes down the street for a reason — handmade pasta at pub prices.", mustOrder: "Pappardelle with eight-hour beef shin ragù" },
+    { name: "Sketch (The Gallery)", cuisine: "Modern European", tier: "fine_dining", rating: 9.2, reviewCount: 3400, location: "Mayfair, London", description: "Michelin-starred dining inside a surreal pink art installation — as much spectacle as meal.", mustOrder: "Afternoon tea or the tasting menu" },
   ],
   amalfi: [
     { name: "Lo Scoglio",        cuisine: "Campanian Seafood",  tier: "upscale",     rating: 9.6, reviewCount: 1200, location: "Marina del Cantone, Amalfi Coast", description: "A legendary family-run restaurant on a private beach. The pasta with clams and zucchini flowers is unmissable.", mustOrder: "Spaghetti alle vongole e fiori di zucca" },
     { name: "Il Pirata",         cuisine: "Amalfi Trattoria",   tier: "midrange",    rating: 9.1, reviewCount: 3400, location: "Praiano, Amalfi Coast", description: "Perched on the cliffs with panoramic sea views. Simple ingredients, extraordinary setting.", mustOrder: "Risotto al limone" },
     { name: "Lemon Grove Café",  cuisine: "Local Café",         tier: "brunch",      rating: 8.7, reviewCount: 2100, location: "Ravello, Amalfi Coast", description: "Tucked inside a historic lemon grove — the real Amalfi experience. Fresh pastries and locally grown limoncello.", mustOrder: "Lemon granita and sfogliatella" },
     { name: "Da Adolfo",         cuisine: "Seafood & Grill",    tier: "casual",      rating: 9.3, reviewCount: 5600, location: "Positano, Amalfi Coast", description: "Only accessible by boat. They hoist the fish straight off the dock. One of the most romantic lunches in Italy.", mustOrder: "Grilled fish of the day with capers" },
+    { name: "La Tagliata",       cuisine: "Family-Style Italian", tier: "midrange", rating: 9.4, reviewCount: 3800, location: "Positano, Amalfi Coast", description: "No menu, no bill until the end — endless courses of grilled meat, pasta, and vegetables from the family farm.", mustOrder: "Whatever comes out — just keep eating" },
+    { name: "Marina Grande",     cuisine: "Seafood Trattoria",  tier: "upscale",     rating: 9.0, reviewCount: 4200, location: "Amalfi town", description: "Right on the beach in Amalfi town — classic Campanian seafood with your toes practically in the sand.", mustOrder: "Scialatielli ai frutti di mare" },
   ],
   dolomit: [
     { name: "Zur Goldenen Rose",  cuisine: "Tyrolean",           tier: "midrange",   rating: 9.0, reviewCount: 2200, location: "Bressanone, Dolomites", description: "Historic inn in South Tyrol — the Dolomites at their most Austrian-Italian. Goulash, Käsespätzle, and local wines.", mustOrder: "Spinatknödel in brodo" },
     { name: "Stüa de Michil",     cuisine: "Modern Alpine",       tier: "upscale",    rating: 9.4, reviewCount: 870, location: "Corvara, Alta Badia", description: "One Michelin star in the heart of the Dolomites. Chef Nicola Laera reimagines Alpine cuisine with Italian elegance.", mustOrder: "Risotto with mountain herbs" },
     { name: "Rifugio Averau",     cuisine: "Alpine Hut",          tier: "casual",     rating: 8.8, reviewCount: 4100, location: "Passo Giau, Dolomites", description: "A classic mountain hut at 2,416m. Pull up a bench, order the pasta, and stare at the Cinque Torri. Perfect after a hike.", mustOrder: "Strangolapreti (bread-spinach gnocchi)" },
     { name: "Ristorante Tivoli",  cuisine: "Veneto-Alpine",       tier: "fine_dining",rating: 9.5, reviewCount: 640, location: "Cortina d'Ampezzo, Dolomites", description: "The most prestigious table in Cortina — a Michelin star framed by the Dolomites. Book months ahead.", mustOrder: "Capriolo (venison) with wild berry sauce" },
+    { name: "Chalet Gerard",      cuisine: "Alpine Chalet",       tier: "midrange",   rating: 9.1, reviewCount: 1300, location: "Corvara, Alta Badia", description: "A wood-panelled dining room with a roaring fire — hearty South Tyrolean plates after a day on the slopes.", mustOrder: "Canederli in brodo and the local speck" },
+    { name: "Baita Fraina",       cuisine: "Traditional Ampezzano", tier: "casual",  rating: 9.0, reviewCount: 980, location: "Cortina d'Ampezzo, Dolomites", description: "A family-run mountain baita with panoramic terrace seating and recipes passed down for generations.", mustOrder: "Casunziei (beetroot ravioli) with poppy seeds" },
   ],
   default: [
     {
@@ -422,6 +442,26 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       description: "The morning ritual spot. Excellent coffee, proper pastries, and a terrace worth lingering on.",
       mustOrder: "House specialty pastry and the local filter coffee",
     },
+    {
+      name: "Harvest Table",
+      cuisine: "Farm-to-Table",
+      tier: "upscale",
+      rating: 9.0,
+      reviewCount: 1900,
+      location: "Old town",
+      description: "Seasonal ingredients from nearby farms, plated simply and priced fairly for the quality.",
+      mustOrder: "Whatever's on the seasonal tasting menu",
+    },
+    {
+      name: "Corner Kitchen",
+      cuisine: "Local Comfort Food",
+      tier: "casual",
+      rating: 8.6,
+      reviewCount: 5100,
+      location: "Local district",
+      description: "A no-frills neighbourhood spot that locals swear by — generous portions, fair prices.",
+      mustOrder: "Ask the server what's fresh today",
+    },
   ],
 };
 
@@ -447,7 +487,7 @@ export async function searchRestaurants(params: RestaurantSearchParams): Promise
   // Prepend the actual search destination so the user sees something useful.
   const defaultKeys = new Set(["City centre", "Old town", "Local district", "Market square"]);
 
-  return filtered.slice(0, 4).map((r) => ({
+  return filtered.slice(0, 6).map((r) => ({
     ...r,
     id: uuid(),
     location: defaultKeys.has(r.location) ? params.destination : r.location,
