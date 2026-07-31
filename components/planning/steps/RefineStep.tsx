@@ -275,6 +275,9 @@ export function RefineStep() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [arranging, setArranging] = useState(false);
   const [arrangeSummaries, setArrangeSummaries] = useState<Record<string, string>>({});
+  const [autoPlanCity, setAutoPlanCity] = useState<string | null>(null);
+  // Returning users who already personalized skip straight to the board
+  const [mode, setMode] = useState<"prompt" | "manual">(() => (itinerary?.finalizedPlan ? "manual" : "prompt"));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -348,58 +351,80 @@ export function RefineStep() {
     setBank((prev) => prev.filter((id) => id !== cardId));
   }
 
+  async function arrangeCity(city: string): Promise<void> {
+    const cityDays = days.filter((d) => !d.location || locationsMatch(d.location, city));
+    const cityBankIds = bank.filter((id) => {
+      const loc = getCardLocation(id);
+      return !loc || locationsMatch(loc, city);
+    });
+    if (cityBankIds.length === 0) return;
+
+    const cityActivities = cityBankIds
+      .map((id) => cardMap[id]?.activity)
+      .filter((a): a is ActivityOption => Boolean(a));
+    const cityRestaurants = cityBankIds
+      .map((id) => cardMap[id]?.restaurant)
+      .filter((r): r is RestaurantOption => Boolean(r));
+
+    const res = await fetch("/api/itinerary/smart-pick", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "schedule",
+        city,
+        preferences: trip.preferences,
+        days: cityDays,
+        activities: cityActivities,
+        restaurants: cityRestaurants,
+      }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data: { picks: { id: string; dayNumber?: number; reason: string }[]; summary: string } = await res.json();
+
+    const validDayNums = new Set(cityDays.map((d) => d.dayNumber));
+    const toPlace = data.picks.filter(
+      (p) => p.dayNumber !== undefined && validDayNums.has(p.dayNumber) && cityBankIds.includes(p.id)
+    );
+
+    if (toPlace.length) {
+      const placedIds = new Set(toPlace.map((p) => p.id));
+      setBank((prev) => prev.filter((id) => !placedIds.has(id)));
+      setDayCards((prev) => {
+        const next = { ...prev };
+        for (const p of toPlace) {
+          next[p.dayNumber!] = [...(next[p.dayNumber!] ?? []), p.id];
+        }
+        return next;
+      });
+    }
+    setArrangeSummaries((prev) => ({ ...prev, [city]: data.summary }));
+  }
+
   async function handleSmartArrange() {
     if (!effectiveCity) return;
     setArranging(true);
     try {
-      const cityDays = days.filter((d) => !d.location || locationsMatch(d.location, effectiveCity));
-      const cityBankIds = bank.filter((id) => {
-        const loc = getCardLocation(id);
-        return !loc || locationsMatch(loc, effectiveCity);
-      });
-      const cityActivities = cityBankIds
-        .map((id) => cardMap[id]?.activity)
-        .filter((a): a is ActivityOption => Boolean(a));
-      const cityRestaurants = cityBankIds
-        .map((id) => cardMap[id]?.restaurant)
-        .filter((r): r is RestaurantOption => Boolean(r));
-
-      const res = await fetch("/api/itinerary/smart-pick", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "schedule",
-          city: effectiveCity,
-          preferences: trip.preferences,
-          days: cityDays,
-          activities: cityActivities,
-          restaurants: cityRestaurants,
-        }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data: { picks: { id: string; dayNumber?: number; reason: string }[]; summary: string } = await res.json();
-
-      const validDayNums = new Set(cityDays.map((d) => d.dayNumber));
-      const toPlace = data.picks.filter(
-        (p) => p.dayNumber !== undefined && validDayNums.has(p.dayNumber) && cityBankIds.includes(p.id)
-      );
-
-      if (toPlace.length) {
-        const placedIds = new Set(toPlace.map((p) => p.id));
-        setBank((prev) => prev.filter((id) => !placedIds.has(id)));
-        setDayCards((prev) => {
-          const next = { ...prev };
-          for (const p of toPlace) {
-            next[p.dayNumber!] = [...(next[p.dayNumber!] ?? []), p.id];
-          }
-          return next;
-        });
-      }
-      setArrangeSummaries((prev) => ({ ...prev, [effectiveCity]: data.summary }));
+      await arrangeCity(effectiveCity);
     } catch {
       // Silently fail — manual drag-and-drop still works
     } finally {
       setArranging(false);
+    }
+  }
+
+  async function handleAutoPlanAll() {
+    setArranging(true);
+    try {
+      for (const city of cities) {
+        setAutoPlanCity(city);
+        await arrangeCity(city);
+      }
+    } catch {
+      // Whatever got placed stays placed — the rest is still there to arrange manually
+    } finally {
+      setArranging(false);
+      setAutoPlanCity(null);
+      setMode("manual");
     }
   }
 
@@ -416,6 +441,42 @@ export function RefineStep() {
         <div className="flex flex-col items-center gap-3 py-12 text-center">
           <p className="text-slate-500 text-sm">No itinerary generated yet.</p>
           <p className="text-xs text-slate-400">Go back to the Itinerary step to generate your plan first.</p>
+        </div>
+      </StepShell>
+    );
+  }
+
+  if (mode === "prompt") {
+    return (
+      <StepShell
+        stepId="refine"
+        continueLabel="I'll build it myself"
+        onContinue={() => setMode("manual")}
+        subtitle="How do you want to personalize your plan?"
+      >
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => setMode("manual")}
+            className="rounded-xl border border-slate-200 bg-white p-4 text-left hover:border-brand-300 hover:shadow-sm transition-all"
+          >
+            <p className="text-sm font-semibold text-slate-800">I&apos;ll build it myself</p>
+            <p className="text-xs text-slate-500 mt-1">Drag activities and restaurants onto each day yourself, one city at a time.</p>
+          </button>
+          <button
+            type="button"
+            onClick={handleAutoPlanAll}
+            disabled={arranging}
+            className="rounded-xl border border-brand-300 bg-brand-50/50 p-4 text-left hover:border-brand-400 hover:shadow-sm transition-all disabled:opacity-70"
+          >
+            <p className="text-sm font-semibold text-brand-700 flex items-center gap-1.5">
+              <Sparkles size={14} />
+              {arranging ? `ZiGy is arranging${autoPlanCity ? ` — ${autoPlanCity}…` : "…"}` : "Let ZiGy plan it for me"}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              ZiGy sequences every city&apos;s activities and restaurants across the days — you can still review and adjust anything after.
+            </p>
+          </button>
         </div>
       </StepShell>
     );
