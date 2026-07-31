@@ -9,6 +9,7 @@ import type {
   StepId,
   GeneratedItinerary,
   ItineraryRefinements,
+  FinalizedPlan,
   ChatMessage,
   Destination,
   DatePreference,
@@ -47,12 +48,14 @@ interface TripState {
   setBudgetDetails: (details: { travelers?: number; rooms?: number; dailyFoodBudgetPerPerson?: number }) => void;
   setLodging: (lodging: LodgingPreference) => void;
   setSelectedHotel: (hotel: HotelOption | null) => void;
+  setSelectedFlight: (flight: import("@/types/trip").FlightOption | null) => void;
   setAirlines: (prefs: AirlinePreference) => void;
   setTransportation: (modes: TransportMode[]) => void;
 
   // Itinerary
   addItinerary: (itinerary: GeneratedItinerary) => void;
   updateItineraryRefinements: (itineraryId: string, refinements: ItineraryRefinements) => void;
+  saveFinalizedPlan: (itineraryId: string, plan: FinalizedPlan) => void;
 
   // Chat
   addMessage: (msg: Omit<ChatMessage, "id" | "createdAt">) => void;
@@ -216,6 +219,18 @@ export const useTripStore = create<TripState>()(
           },
         })),
 
+      setSelectedFlight: (selectedFlight) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: {
+              ...s.trip.preferences,
+              selectedFlight: selectedFlight ?? undefined,
+            },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
       setAirlines: (airlinePrefs) =>
         set((s) => ({
           trip: {
@@ -249,6 +264,17 @@ export const useTripStore = create<TripState>()(
             ...s.trip,
             itineraries: s.trip.itineraries.map((it) =>
               it.id === itineraryId ? { ...it, refinements } : it
+            ),
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      saveFinalizedPlan: (itineraryId, plan) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            itineraries: s.trip.itineraries.map((it) =>
+              it.id === itineraryId ? { ...it, finalizedPlan: plan } : it
             ),
             updatedAt: new Date().toISOString(),
           },

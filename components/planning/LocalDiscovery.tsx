@@ -26,8 +26,12 @@ export function LocalDiscovery({ preferences }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("scene");
 
   const destName  = preferences.destination?.displayName ?? "";
-  const cityCount = preferences.destination?.cities?.length ?? 1;
-  const discovery = useMemo(() => getLocalDiscovery(destName, cityCount), [destName, cityCount]);
+  const cities    = useMemo(() => preferences.destination?.cities ?? [], [preferences.destination?.cities]);
+  const cityCount = cities.length || 1;
+  const discovery = useMemo(
+    () => getLocalDiscovery(destName, cityCount, cities),
+    [destName, cityCount, cities]
+  );
 
   return (
     <div className="rounded-xl border border-brand-200 bg-white overflow-hidden">

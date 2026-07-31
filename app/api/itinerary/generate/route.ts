@@ -9,6 +9,8 @@ import { searchHotels } from "@/lib/api/hotels";
 import { searchActivities } from "@/lib/api/activities";
 import { searchRestaurants } from "@/lib/api/restaurants";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
+import { groupByLocation } from "@/lib/utils";
+import { BUDGET_LABELS } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
 function dedup<T extends { name?: string }>(arr: T[]): T[] {
@@ -122,22 +124,37 @@ export async function POST(request: NextRequest) {
       restaurants  = restaurants.filter((r) => !r.location?.toLowerCase().includes(depCity.split("-")[0]));
     }
 
+    // Build hotel search params from preferences for supplemental searches
+    const hotelParams = {
+      check_in:             preferences.dates?.type === "exact" ? preferences.dates.startDate : undefined,
+      check_out:            preferences.dates?.type === "exact" ? preferences.dates.endDate   : undefined,
+      min_stars:            preferences.lodging?.minStars,
+      types:                preferences.lodging?.types,
+      max_price_per_night:  preferences.budgetRange ? ({
+        budget: 75, economy: 150, moderate: 250, upscale: 400, luxury: 800, "750_1000": 1000, "1000_plus": 1500,
+      } as Record<string, number>)[preferences.budgetRange] ?? 300 : 300,
+      amenities:            preferences.lodging?.amenities,
+    };
+
     // For each destination city not yet covered, fetch supplemental data in parallel
     const supplementalResults = await Promise.all(
       destCities.flatMap((city) => {
         const lc = city.toLowerCase();
-        const needActs  = !activities.some((a)  => a.location?.toLowerCase().includes(lc));
-        const needRests = !restaurants.some((r) => r.location?.toLowerCase().includes(lc));
+        const needHotels = !hotels.some((h) => h.location?.toLowerCase().includes(lc));
+        const needActs   = !activities.some((a)  => a.location?.toLowerCase().includes(lc));
+        const needRests  = !restaurants.some((r) => r.location?.toLowerCase().includes(lc));
         return [
-          needActs  ? searchActivities({ destination: city, categories: preferences.activities as string[] }) : null,
-          needRests ? searchRestaurants({ destination: city }) : null,
+          needHotels ? searchHotels({ ...hotelParams, destination: city }) : null,
+          needActs   ? searchActivities({ destination: city, categories: preferences.activities as string[] }) : null,
+          needRests  ? searchRestaurants({ destination: city }) : null,
         ];
       })
     );
     for (const result of supplementalResults) {
       if (!result) continue;
-      if (result.length && "duration" in result[0]) activities   = [...activities,   ...(result as ActivityOption[])];
-      else                                           restaurants  = [...restaurants,  ...(result as RestaurantOption[])];
+      if (result.length && "pricePerNight" in result[0]) hotels      = [...hotels,      ...(result as HotelOption[])];
+      else if (result.length && "duration" in result[0]) activities  = [...activities,  ...(result as ActivityOption[])];
+      else                                               restaurants = [...restaurants, ...(result as RestaurantOption[])];
     }
 
     // ── Deduplicate by name across all cities ──
@@ -223,13 +240,18 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     `- Hand-picked restaurants and neighbourhood discoveries\n` +
     `- Logical day-by-day sequencing to minimise travel time`;
 
+  const budgetLabel = preferences.budgetRange ? BUDGET_LABELS[preferences.budgetRange] : "chosen";
   const whyFallback =
     `- Activities near each other are grouped on the same day\n` +
-    `- Lodging matches your ${preferences.budgetRange?.replace(/_/g, " ") ?? "chosen"} budget tier\n` +
+    `- Lodging matches your ${budgetLabel} budget tier\n` +
     (vibeList ? `- Itinerary leans into the **${vibeList}** vibe you selected` : "- Balanced mix of culture, food, and exploration");
 
   const destName = preferences.destination?.displayName ?? "";
   const neighborhoods = getNeighborhoodsByDestination(destName);
+
+  // Cap hotels per city (not globally) so every destination stays represented
+  const hotelsByCity = groupByLocation(hotels, (h) => h.location);
+  const topHotels = hotelsByCity.flatMap((g) => g.items.slice(0, 3));
 
   return {
     id: uuid(),
@@ -238,7 +260,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     createdAt: new Date().toISOString(),
     days,
     flights,
-    hotels: hotels.slice(0, 3),
+    hotels: topHotels,
     activities,
     restaurants: restaurants.length ? restaurants : undefined,
     totalEstimatedCost: hotelTotal + flightTotal + actTotal,

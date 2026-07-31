@@ -128,8 +128,9 @@ export function ItineraryView({ itinerary }: Props) {
           icon={<Hotel size={16} />}
           subtitle={itinerary.hotels.length > 1 ? "Tap a hotel to select it — your choice is saved to your plan." : undefined}
         >
-          <div className="flex flex-col gap-3">
-            {itinerary.hotels.map((h) => (
+          <GroupedCards
+            items={itinerary.hotels}
+            renderCard={(h) => (
               <HotelCard
                 key={h.id}
                 hotel={h}
@@ -140,8 +141,8 @@ export function ItineraryView({ itinerary }: Props) {
                   setSelectedHotel(next ? h : null);
                 }}
               />
-            ))}
-          </div>
+            )}
+          />
         </Section>
       )}
 
@@ -165,7 +166,7 @@ export function ItineraryView({ itinerary }: Props) {
               .filter((p): p is { name: string; kind: "activity" | "restaurant" } => Boolean(p));
             const dayHotel = preferences.selectedHotel
               ?? itinerary.hotels.find((h) =>
-                  day.location && day.location.toLowerCase().includes(h.location.toLowerCase().split(",")[0].trim())
+                  day.location && h.location && day.location.toLowerCase().includes(h.location.toLowerCase().split(",")[0].trim())
                 )
               ?? itinerary.hotels[0];
             return (

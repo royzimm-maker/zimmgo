@@ -68,6 +68,7 @@ export interface Destination {
   displayName: string;         // human-readable label for UI
   freeText?: string;           // original natural-language input from user
   departureAirport?: string;   // IATA code or city, e.g. "JFK" or "New York"
+  returnAirport?: string;      // return to a different airport (open-jaw), e.g. "MXP" for fly-in FCO / fly-out MXP
   arrivalAirport?: string;     // suggested gateway airport IATA code
   routingNote?: string;        // suggested routing with reasoning
 }
@@ -108,6 +109,7 @@ export interface TripPreferences {
   dailyFoodBudgetPerPerson?: number;     // food spend in $ per person per day
   lodging?: LodgingPreference;
   selectedHotel?: HotelOption;
+  selectedFlight?: FlightOption;
   airlinePrefs?: AirlinePreference;
   transportation: TransportMode[];
 }
@@ -166,6 +168,7 @@ export interface ActivityOption {
   reviewCount: number;
   isLocalFavorite: boolean;
   description: string;
+  location?: string;
   bookingUrl?: string;
 }
 
@@ -205,6 +208,13 @@ export interface ItineraryRefinements {
   excludedActivityIds?: string[];
 }
 
+export interface FinalizedPlan {
+  // dayNumber (1-based) → array of card ids ("act-{id}" or "rest-{id}")
+  dayCards: Record<number, string[]>;
+  // Cards the user left unplaced
+  bankCards: string[];
+}
+
 export interface GeneratedItinerary {
   id: string;
   tripId: string;
@@ -221,6 +231,7 @@ export interface GeneratedItinerary {
   whyThisWorks: string;
   neighborhoods?: NeighborhoodOption[];
   refinements?: ItineraryRefinements;
+  finalizedPlan?: FinalizedPlan;
 }
 
 // ─── Top-level Trip entity ─────────────────────────────────────────────────────

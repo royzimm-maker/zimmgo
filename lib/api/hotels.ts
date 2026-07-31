@@ -21,6 +21,30 @@ type HotelType = "hotel" | "boutique" | "resort" | "guesthouse";
 
 // Curated mock hotel data per destination keyword
 const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType })[]> = {
+  rome: [
+    { name: "Hotel de Russie",          stars: 5, hotelType: "hotel",    location: "Via del Babuino, Rome",      rating: 9.5, ratingSource: "Google Reviews", reviewCount: 2100, highlights: ["Secret garden", "Rocco Forte spa", "Steps from Piazza del Popolo"] },
+    { name: "J.K. Place Roma",          stars: 5, hotelType: "boutique", location: "Via di Monte d'Oro, Rome",   rating: 9.4, ratingSource: "TripAdvisor",    reviewCount: 980,  highlights: ["Intimate boutique feel", "Rooftop terrace", "Near the Pantheon"] },
+    { name: "Hotel Raphael",            stars: 4, hotelType: "boutique", location: "Largo Febo, Rome",           rating: 9.0, ratingSource: "Booking.com",    reviewCount: 2400, highlights: ["Ivy-covered façade", "Rooftop with Pantheon views", "Art collection"] },
+    { name: "Hotel Santa Maria",        stars: 4, hotelType: "hotel",    location: "Trastevere, Rome",           rating: 8.8, ratingSource: "Google Reviews", reviewCount: 3100, highlights: ["Trastevere neighbourhood", "Orange garden courtyard", "Quiet side streets"] },
+    { name: "Hotel Arco del Lauro",     stars: 3, hotelType: "guesthouse", location: "Trastevere, Rome",         rating: 8.6, ratingSource: "Booking.com",    reviewCount: 4200, highlights: ["Charming guesthouse", "Walking distance to everything", "Great value"] },
+    { name: "Hotel Navona",             stars: 3, hotelType: "hotel",    location: "Piazza Navona, Rome",        rating: 8.2, ratingSource: "TripAdvisor",    reviewCount: 5600, highlights: ["Unbeatable location", "Simple and clean", "Budget-friendly"] },
+  ],
+  amalfi: [
+    { name: "Hotel Santa Caterina",     stars: 5, hotelType: "hotel",    location: "Amalfi town",                rating: 9.6, ratingSource: "Google Reviews", reviewCount: 1450, highlights: ["Clifftop with sea elevator", "Saltwater pool", "Lemon grove gardens"] },
+    { name: "Le Sirenuse",              stars: 5, hotelType: "boutique", location: "Positano",                   rating: 9.5, ratingSource: "TripAdvisor",    reviewCount: 1820, highlights: ["Iconic Positano views", "Pool terrace", "La Sponda restaurant"] },
+    { name: "Hotel Luna Convento",      stars: 4, hotelType: "hotel",    location: "Amalfi town",                rating: 8.9, ratingSource: "Booking.com",    reviewCount: 2300, highlights: ["Former 13th-century convent", "Seafront pool", "Byzantine cloister"] },
+    { name: "Casa Angelina",            stars: 4, hotelType: "boutique", location: "Praiano",                    rating: 9.2, ratingSource: "Google Reviews", reviewCount: 1100, highlights: ["Clifftop infinity pool", "White minimalist design", "Quieter than Positano"] },
+    { name: "Hotel Buca di Bacco",      stars: 3, hotelType: "hotel",    location: "Positano",                   rating: 8.4, ratingSource: "Booking.com",    reviewCount: 3400, highlights: ["Right on the beach", "Terrace restaurant", "Lively atmosphere"] },
+    { name: "Albergo A'Scalinatella",   stars: 3, hotelType: "guesthouse", location: "Ravello",                  rating: 8.7, ratingSource: "TripAdvisor",    reviewCount: 1900, highlights: ["Quiet Ravello hilltop", "Garden with views", "Family-run charm"] },
+  ],
+  dolomit: [
+    { name: "Rosa Alpina",              stars: 5, hotelType: "boutique", location: "San Cassiano, Alta Badia",   rating: 9.7, ratingSource: "Google Reviews", reviewCount: 890,  highlights: ["St. Hubertus 3★ Michelin", "Ski-in/ski-out", "Legendary spa"] },
+    { name: "Cristallo Resort & Spa",   stars: 5, hotelType: "resort",   location: "Cortina d'Ampezzo",          rating: 9.3, ratingSource: "TripAdvisor",    reviewCount: 1540, highlights: ["Palace hotel since 1901", "Panoramic Dolomite views", "Full spa"] },
+    { name: "Hotel Adler Dolomiti",     stars: 4, hotelType: "resort",   location: "Val Gardena",                rating: 9.1, ratingSource: "Booking.com",    reviewCount: 2100, highlights: ["Ski-in/ski-out", "Panoramic pool", "Traditional South Tyrolean style"] },
+    { name: "Chalet Gerard",            stars: 4, hotelType: "boutique", location: "Corvara, Alta Badia",        rating: 9.0, ratingSource: "Google Reviews", reviewCount: 1200, highlights: ["Authentic mountain chalet", "Panoramic terrace", "Local wine cellar"] },
+    { name: "Hotel Posta Zirm",         stars: 3, hotelType: "hotel",    location: "Corvara, Alta Badia",        rating: 8.5, ratingSource: "Booking.com",    reviewCount: 2800, highlights: ["Classic mountain hotel", "Good ski access", "Traditional cuisine"] },
+    { name: "Garni Pia",                stars: 3, hotelType: "guesthouse", location: "Ortisei, Val Gardena",     rating: 8.8, ratingSource: "TripAdvisor",    reviewCount: 1600, highlights: ["Family-run guesthouse", "Mountain breakfast", "Great value"] },
+  ],
   tokyo: [
     { name: "Aman Tokyo",            stars: 5, hotelType: "boutique", location: "Otemachi, Tokyo",    rating: 9.6, ratingSource: "Google Reviews", reviewCount: 1240, highlights: ["Stunning city views", "Aman spa", "Traditional aesthetics"] },
     { name: "The Peninsula Tokyo",   stars: 5, hotelType: "hotel",    location: "Yurakucho, Tokyo",   rating: 9.4, ratingSource: "TripAdvisor",    reviewCount: 2180, highlights: ["Impeccable service", "Michelin dining", "Ginza proximity"] },
@@ -52,10 +76,20 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
   ],
 };
 
+const HOTEL_ALIASES: Record<string, string> = {
+  "positano": "amalfi", "ravello": "amalfi", "praiano": "amalfi", "sorrento": "amalfi",
+  "cortina":  "dolomit","bolzano": "dolomit","merano":  "dolomit","alta badia": "dolomit",
+  "val gardena": "dolomit","ortisei": "dolomit","corvara": "dolomit",
+  "florence": "rome",   "tuscany": "rome",   "venice": "rome",    "naples": "rome",
+  "milan":    "rome",   "sicily":  "rome",   "bologna": "rome",   "italy": "rome",
+};
+
 function findHotelBase(destination: string): (Partial<HotelOption> & { hotelType?: HotelType })[] {
   const lower = (destination ?? "").toLowerCase();
-  const key = Object.keys(HOTEL_DB).find((k) => lower.includes(k));
-  return HOTEL_DB[key ?? "default"];
+  const direct = Object.keys(HOTEL_DB).find((k) => lower.includes(k));
+  if (direct) return HOTEL_DB[direct];
+  const alias = Object.entries(HOTEL_ALIASES).find(([a]) => lower.includes(a));
+  return HOTEL_DB[alias?.[1] ?? "default"];
 }
 
 
@@ -67,8 +101,8 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
   // return transformBookingResponse(response);
 
   const base = findHotelBase(params.destination);
-  const maxPrice = params.max_price_per_night ?? 1200;
-  const minStars = params.min_stars ?? 4;
+  const maxPrice = params.max_price_per_night ?? 300;  // conservative default — AI should pass explicit value
+  const minStars = params.min_stars ?? 3;
   const requestedTypes = (params.types ?? []) as HotelType[];
 
   // Per-night price bands by star rating

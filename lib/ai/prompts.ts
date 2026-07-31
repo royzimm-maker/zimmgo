@@ -66,7 +66,7 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     parts.push(`Flying into: ${preferences.destination.arrivalAirport} (preferred gateway).`);
   }
   if (preferences.destination?.returnAirport) {
-    parts.push(`Returning from a different airport: ${preferences.destination.returnAirport} (open-jaw trip — return flight should depart from this airport back to the departure city).`);
+    parts.push(`Open-jaw trip: the traveler returns via ${preferences.destination.returnAirport}, NOT back to ${preferences.destination.departureAirport ?? "the departure city"}. Return flight = vacation endpoint (${preferences.destination.arrivalAirport ?? "destination airport"}) → ${preferences.destination.returnAirport}.`);
   }
 
   if (preferences.airlinePrefs) {
@@ -88,14 +88,20 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     parts.push(`Local transport: ${preferences.transportation.join(", ")}.`);
   }
 
+  const returnLegInstruction = preferences.destination?.returnAirport
+    ? `For the return leg (open-jaw): call search_flights with origin = arrivalAirport (${preferences.destination.arrivalAirport ?? "destination airport"}) and destination = ${preferences.destination.returnAirport}. Do NOT use the departure airport as the return destination.`
+    : `For the return leg: call search_flights with origin = arrivalAirport and destination = departureAirport (standard roundtrip), using the end date.`;
+
   parts.push(
     "\nPlease use the available tools to search for flights, hotels, and activities, then synthesise everything into a final day-by-day itinerary. " +
-    "For flights: call search_flights TWICE — once for the outbound leg (departureAirport → arrivalAirport, using the start date) " +
-    "and once for the return leg (arrivalAirport → departureAirport, using the end date). " +
+    "For flights: call search_flights TWICE — once for the outbound leg (departureAirport → arrivalAirport, using the start date). " +
+    returnLegInstruction + " " +
     "All flight prices are per person, one-way. " +
     "For every day in the itinerary, set the `location` field to the city or region for that day (e.g. \"Rome\", \"Amalfi Coast\", \"Dolomites\"). " +
+    "For multi-destination trips: call search_hotels SEPARATELY for EACH destination city — one tool call per city, using the correct city name. " +
     "For multi-destination trips: call search_activities AND search_restaurants SEPARATELY for EACH destination city — one tool call per city. Do NOT call these tools for the departure airport city. " +
     "For activities and restaurants: include a `location` field on every item naming the specific city or neighbourhood it belongs to (e.g. \"Rome\", \"Amalfi Coast\"). " +
+    "Always pass max_price_per_night and min_stars to search_hotels based on the traveler's stated budget and lodging preferences. " +
     "For each recommendation, briefly explain why it's the best fit for this traveller's specific preferences."
   );
 

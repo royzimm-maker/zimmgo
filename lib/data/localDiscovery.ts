@@ -548,19 +548,39 @@ const GENERIC_DISCOVERY: LocalDiscovery = {
   hiddenGems: [],
 };
 
-export function getLocalDiscovery(destinationName: string, cityCount = 1): LocalDiscovery {
+export function getLocalDiscovery(
+  destinationName: string,
+  cityCount = 1,
+  cities: string[] = []
+): LocalDiscovery {
   const lower = destinationName.toLowerCase();
 
-  if (cityCount > 1) {
-    // Multi-city trip: prefer country-level entries so we don't lock onto one sub-region
-    const countryMatch = DB.find(
-      (e) => e.level === "country" && e.keywords.some((kw) => lower.includes(kw))
-    );
-    const fallback = DB.find((e) => e.keywords.some((kw) => lower.includes(kw)));
-    return (countryMatch ?? fallback)?.data ?? { ...GENERIC_DISCOVERY, destination: destinationName };
+  if (cityCount <= 1) {
+    // Single destination: try specific region first, then country
+    const match = DB.find((e) => e.keywords.some((kw) => lower.includes(kw)));
+    return match?.data ?? { ...GENERIC_DISCOVERY, destination: destinationName };
   }
 
-  // Single destination: try specific region first, then country
-  const match = DB.find((e) => e.keywords.some((kw) => lower.includes(kw)));
-  return match?.data ?? { ...GENERIC_DISCOVERY, destination: destinationName };
+  // Multi-city: use country-level as base
+  const countryEntry = DB.find(
+    (e) => e.level === "country" && e.keywords.some((kw) => lower.includes(kw))
+  ) ?? DB.find((e) => e.keywords.some((kw) => lower.includes(kw)));
+  const base = countryEntry?.data ?? { ...GENERIC_DISCOVERY, destination: destinationName };
+
+  // Find region-specific entries that match each individual city, deduplicated
+  const seen = new Set<typeof DB[number]>();
+  const regionEntries = cities.flatMap((city) => {
+    const cl = city.toLowerCase();
+    return DB.filter((e) => e.level === "region" && e.keywords.some((kw) => cl.includes(kw)));
+  }).filter((e) => { if (seen.has(e)) return false; seen.add(e); return true; });
+
+  if (!regionEntries.length) return { ...base, destination: destinationName };
+
+  // Merge region-specific events and hidden gems into the country-level base
+  return {
+    ...base,
+    destination: destinationName,
+    events:      [...base.events,      ...regionEntries.flatMap((e) => e.data.events)],
+    hiddenGems:  [...base.hiddenGems,  ...regionEntries.flatMap((e) => e.data.hiddenGems)],
+  };
 }

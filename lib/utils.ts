@@ -39,7 +39,7 @@ export function pairFlights(
 ): { outbound: FlightOption; ret: FlightOption | null }[] {
   const depCode = extractIataCode(depAirport);
   const isOutbound = (f: FlightOption) =>
-    depAirport ? f.origin.toUpperCase().includes(depCode) : true;
+    depAirport ? (f.origin ?? "").toUpperCase().includes(depCode) : true;
   const outbound = flights.filter(isOutbound);
   const returns  = flights.filter((f) => !isOutbound(f));
 

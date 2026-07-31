@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MapPin, X, Clock } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -64,7 +64,10 @@ export function DestinationStep() {
   const saved = trip.preferences.destination;
 
   const [freeText, setFreeText] = useState(saved?.freeText ?? saved?.displayName ?? "");
-  const [history, setHistory] = useState<string[]>(() => readHistory());
+  // Read localStorage after mount only — reading it in the initializer would run
+  // during SSR too (where it's unavailable), causing a hydration mismatch.
+  const [history, setHistory] = useState<string[]>([]);
+  useEffect(() => setHistory(readHistory()), []);
 
   function handleFreeTextChange(value: string) {
     setFreeText(value);
