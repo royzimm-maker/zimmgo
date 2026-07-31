@@ -67,9 +67,102 @@ export interface LocalDiscovery {
   hiddenGems: HiddenGem[];
 }
 
-const DB: { keywords: string[]; data: LocalDiscovery }[] = [
+const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscovery }[] = [
+  // ── Region-specific entries (matched first for single-city trips) ───────────
   {
-    keywords: ["greece", "athens", "santorini", "mykonos", "crete", "rhodes"],
+    level: "region",
+    keywords: ["amalfi", "positano", "ravello", "praiano", "sorrento", "cetara"],
+    data: {
+      destination: "Amalfi Coast",
+      sceneIntro: "The Amalfi Coast moves at the pace of the sea — slow lunches that become slow dinners, lemon groves dripping over whitewashed walls, and fishing boats that leave at 5am and are back by noon. The best moments here aren't planned.",
+      events: [
+        { name: "Ravello Festival",          emoji: "🎼", type: "festival", description: "July–September. Classical concerts on a clifftop stage with a 270° view of the sea — including a legendary open-air concert platform cantilevered over the Tyrrhenian.", url: "https://www.ravellofestival.com", tipNote: "Buy tickets in advance — the Belvedere concert (held in Villa Rufolo gardens) sells out weeks ahead." },
+        { name: "Limoncello tasting trails",  emoji: "🍋", type: "food",     description: "Local producers along the Amalfi Drive open their terraces for tastings — Limone Costa d'Amalfi IGP is the real thing, made with local sfusato lemons, not imports.", tipNote: "Look for Limoncello di Amalfi or Limoncello di Sorrento labels — both are the genuine article." },
+        { name: "Festa di Sant'Andrea",       emoji: "⛵", type: "festival", description: "June 27 and November 30. Amalfi town goes all-in for its patron saint — evening procession down to the harbour, fireworks over the sea, and serious local pride on display." },
+        { name: "Fishing boat sunrise",       emoji: "🌅", type: "food",     description: "Walk to the harbour in Cetara or Minori at 6am and buy directly from fishermen returning with catch. The alici (anchovies) here are celebrated across Italy." },
+      ],
+      music: {
+        intro: "The Coast has its own musical DNA — tarantella rhythms from the south, the melancholic strumming of Neapolitan song, and the occasional international festival that brings serious classical talent to clifftop stages.",
+        artists: [
+          { name: "Roberto Murolo",     genre: "Neapolitan song / canzone", why: "The voice of Naples — his recordings of 'O Sole Mio' and 'Torna a Surriento' are essential for the drive down the Costiera.",  searchUrl: "https://open.spotify.com/search/Roberto%20Murolo" },
+          { name: "Pino Daniele",       genre: "Neapolitan rock / blues",   why: "The poet of Naples — blends southern Italian folk, blues, and jazz. 'Napule è' is one of the most beautiful songs ever written about a city.", searchUrl: "https://open.spotify.com/search/Pino%20Daniele" },
+          { name: "Almamegretta",       genre: "Neapolitan dub / reggae",   why: "Napoli's most original export — reggae sung in Neapolitan dialect. Unexpected and wonderful.",                                          searchUrl: "https://open.spotify.com/search/Almamegretta" },
+        ],
+        venues: [
+          { name: "Bar Calypso, Positano",   vibe: "Sunset terrace bar with live guitar most evenings — the classic Amalfi aperitivo spot", genre: "Acoustic / Guitar" },
+          { name: "Music on the Rocks, Positano", vibe: "Legendary club built into a sea cave — the most dramatic nightlife venue in Italy", genre: "Electronic / Pop", url: "https://www.musicontherocks.it" },
+        ],
+        playlistSearchUrl: "https://open.spotify.com/search/canzone%20napoletana%20playlist",
+      },
+      apps: [
+        { name: "Trenitalia",           category: "transit",  emoji: "🚄", description: "Book trains to Naples (NAP), your gateway to the Coast. Circumvesuviana line continues to Sorrento.", url: "https://www.trenitalia.com", platform: "both" },
+        { name: "MetroDelMare",         category: "transit",  emoji: "⛴️", description: "High-speed seasonal ferries connecting Amalfi towns and Naples. Much better than the road in summer.", url: "https://www.metrodelmare.com", platform: "both" },
+        { name: "FREE NOW",             category: "taxi",     emoji: "🚕", description: "Licensed taxis in Naples for the transfer to/from the airport. Agree the price before you set off — Naples taxis are metered but negotiations happen.", url: "https://free-now.com", platform: "both" },
+        { name: "TheFork",             category: "food",     emoji: "🍽️", description: "Reserve at the better restaurants — popular spots in Positano and Ravello book out weeks ahead in high season.", url: "https://www.thefork.com", platform: "both" },
+      ],
+      airportTransfers: [
+        { option: "Naples (NAP) → Sorrento by train + ferry", emoji: "⛴️", timeEst: "90–120 min", costEst: "€12–20", recommended: true,  description: "Train from Naples Centrale to Sorrento via Circumvesuviana (70 min), then ferry or SITA bus along the Coast. The most scenic and affordable option.", tip: "SITA buses run the Amalfi Drive but can be brutally crowded July–August — take the ferry whenever possible." },
+        { option: "Naples (NAP) → Private transfer", emoji: "🚗", timeEst: "75–90 min", costEst: "€80–120", recommended: false, description: "Door-to-door to your hotel — worthwhile with luggage since bus and ferry combos involve carrying bags up steep steps. Book in advance.", tip: "Confirm your driver will come to the hotel entrance — not all vehicles can navigate narrow Amalfi streets." },
+        { option: "Rome (FCO) → Naples by train", emoji: "🚄", timeEst: "3.5–4.5 h total", costEst: "€25–45", recommended: false, description: "High-speed Frecciarossa Rome → Naples (70 min), then Circumvesuviana + ferry. Manageable but a long day with luggage.", tip: "Book the Rome–Naples leg on Trenitalia or Italo — fares drop significantly if booked 2+ weeks ahead." },
+      ],
+      hiddenGems: [
+        { name: "Sentiero degli Dei (Path of the Gods)", emoji: "🥾", type: "hike",        description: "The Amalfi hinterland trail from Agerola to Nocelle — arguably the most spectacular coastal walk in Europe. Best done early morning before the heat.", sourceUrl: "https://www.amalficoast.it" },
+        { name: "Cetara village",                         emoji: "🐟", type: "village",     description: "The last unfashionable village on the Coast — anchovy capital of southern Italy. No yachts, no influencers. Restaurants serve colatura di alici (anchovy extract) on everything.", sourceUrl: "https://www.timeout.com/naples" },
+        { name: "Valle delle Ferriere nature reserve",    emoji: "🌿", type: "nature",      description: "A hidden gorge above Amalfi town with waterfalls, ancient paper mills, and rare ferns that survived the ice age. Completely empty on weekdays." },
+        { name: "Ravello's private gardens",              emoji: "🌸", type: "garden",      description: "Villa Cimbrone and Villa Rufolo are famous — but ask at the Ravello tourist office about privately-owned garden estates that occasionally open to visitors. Extraordinary." },
+      ],
+    },
+  },
+  {
+    level: "region",
+    keywords: ["dolomit", "cortina", "alta badia", "val gardena", "bolzano", "merano", "south tyrol", "alto adige", "ortisei", "canazei"],
+    data: {
+      destination: "The Dolomites",
+      sceneIntro: "The Dolomites belong to both Italy and Austria in spirit — strudel and grappa at the same table, German and Italian on every sign, and mountain rifugi where hikers have been eating the same goulash for a century. The air is genuinely different here.",
+      events: [
+        { name: "Rifugio culture",              emoji: "🏔️", type: "food",    description: "The mountain huts (rifugi) are the real social life of the Dolomites — hikers, climbers, and locals share benches at long tables eating polenta, canederli dumplings, and drinking local Lagrein wine.", tipNote: "Book ahead for lunch at Rifugio Averau or Rifugio Lagazuoi — both have 360° views that make lunch a two-hour affair." },
+        { name: "Bolzano Christmas market",     emoji: "🎄", type: "market",  description: "One of Italy's best Christmas markets (late November–January) — Austrian-style stalls, mulled Glühwein, hand-carved ornaments, and grilled sausages in the medieval piazza.", url: "https://www.bolzano-bozen.it" },
+        { name: "Dolomiti Superbike race",      emoji: "🚵", type: "sport",   description: "July. 4,000 cyclists tackle 85km of legendary passes — Pordoi, Sella, Gardena, Campolongo. Even if you're not racing, the spectacle from a roadside is extraordinary.", url: "https://www.dolomitisuperbike.com" },
+        { name: "Reinhold Messner Museum circuit", emoji: "🧗", type: "art", description: "Six mountain fortress museums scattered across the Dolomites — each dedicated to a different chapter of mountaineering history. JUVAL castle is the most atmospheric.", url: "https://www.messner-mountain-museum.it" },
+      ],
+      music: {
+        intro: "South Tyrol is culturally between two worlds — Austrian folk traditions, Italian pop radio, and an emerging electronic scene in Bolzano and Merano that few outsiders know about.",
+        artists: [
+          { name: "Herbert Pixner Projekt", genre: "Alpine folk / jazz fusion", why: "The most original voice from South Tyrol — accordion-driven folk that sounds like nothing else. Their live shows in village squares are legendary.", searchUrl: "https://open.spotify.com/search/Herbert%20Pixner%20Projekt" },
+          { name: "Peter Fox",             genre: "German hip-hop / pop",       why: "Not Tyrolean — but his 'Stadtaffe' album soundtracks every road trip through the Alps perfectly.",                                               searchUrl: "https://open.spotify.com/search/Peter%20Fox" },
+          { name: "Haiku Garden",          genre: "Indie / folk",               why: "Bolzano indie act — understated and beautiful. Best heard on a mountain walk.",                                                                    searchUrl: "https://open.spotify.com/search/Haiku%20Garden%20Bolzano" },
+        ],
+        venues: [
+          { name: "Carambolage, Bolzano",     vibe: "The best live music venue in South Tyrol — small, intimate, genuinely local", genre: "Indie / Folk / Jazz", url: "https://www.carambolage.it" },
+          { name: "Rifugio aperitivo hour",    vibe: "Mountain huts do their own version of aperitivo — Aperol Spritz at 1,800m elevation while watching the Tre Cime turn pink", genre: "Alpine ambiance" },
+        ],
+        playlistSearchUrl: "https://open.spotify.com/search/alpine%20folk%20south%20tyrol%20playlist",
+      },
+      apps: [
+        { name: "SüdtirolMobil",        category: "transit",  emoji: "🚌", description: "The official South Tyrol transport app — buses, trains, and cable cars in one place. Covers the entire Dolomite region.", url: "https://www.suedtirolmobil.info", platform: "both" },
+        { name: "Trenitalia",           category: "transit",  emoji: "🚄", description: "Train to Bolzano from Venice or Verona — the gateway to the Dolomites. Scenic ride through the Adige valley.", url: "https://www.trenitalia.com", platform: "both" },
+        { name: "Dolomiti Superski",    category: "events",   emoji: "⛷️", description: "The official ski pass app — covers 1,200km of pistes across 12 valleys. Buy and reload your card from your phone.", url: "https://www.dolomitisuperski.com", platform: "both" },
+        { name: "Komoot",              category: "maps",     emoji: "🗺️", description: "The best hiking navigation app for the Alps — download offline maps of your area before you leave the valley.", url: "https://www.komoot.com", platform: "both" },
+        { name: "TheFork",             category: "food",     emoji: "🍽️", description: "Reserve at Michelin-starred mountain restaurants (Stüa de Michil, Ristorante Tivoli) — these book out months ahead in peak season.", url: "https://www.thefork.com", platform: "both" },
+      ],
+      airportTransfers: [
+        { option: "Venice (VCE) → Bolzano/Cortina by car", emoji: "🚗", timeEst: "2.5–3 h", costEst: "€70–110 transfer or rental", recommended: true,  description: "The most flexible option — rent a car in Venice and drive through the mountains. The A27 motorway then Dolomite passes is one of the great drives in Europe.", tip: "Snow chains or winter tyres are legally required October–April. Check the hire car includes them." },
+        { option: "Venice (VCE) → Cortina by FlixBus/Cortina Express", emoji: "🚌", timeEst: "2.5–3 h", costEst: "€20–35", recommended: false, description: "Direct seasonal coaches from Venice Marco Polo to Cortina d'Ampezzo — runs daily in summer, reduced in off-season.", tip: "Book the Cortina Express online at least a day ahead — the coach fills fast in July and August." },
+        { option: "Innsbruck (INN) → Dolomites by car/train", emoji: "🚄", timeEst: "1.5–2 h", costEst: "€40–80", recommended: false, description: "Often overlooked — Innsbruck airport (Austria) is closer to Cortina and Alta Badia than Venice. Good for pure Dolomite trips without Italian city add-ons." },
+      ],
+      hiddenGems: [
+        { name: "Lago di Braies at dawn",             emoji: "🌅", type: "lake",       description: "The most photographed lake in the Dolomites is genuinely extraordinary — but only before 8am. After that it's bus queues and selfie sticks. Stay nearby and walk down at first light.", sourceUrl: "https://www.dolomiti.org" },
+        { name: "Val di Funes church",                emoji: "⛪", type: "viewpoint",  description: "Santa Maddalena church with the Odle massif directly behind it — the single most iconic image of the Dolomites. A 10-minute walk from the car park, empty on weekday mornings." },
+        { name: "Castel Roncolo (Bolzano)",           emoji: "🏰", type: "museum",     description: "A medieval castle perched above Bolzano's wine trail, decorated with 14th-century secular frescoes showing courtly life — no religious art, no armies. Remarkably rare.", sourceUrl: "https://www.runkelstein.info" },
+        { name: "Alpe di Siusi at golden hour",       emoji: "🌄", type: "landscape",  description: "Europe's largest high-altitude alpine meadow — 56 square kilometres at 1,800m. Take the cable car from Ortisei at 5:30pm and stay for the Enrosadira (the famous Dolomite 'alpenglow')." },
+      ],
+    },
+  },
+
+  // ── Country-level entries ──────────────────────────────────────────────────
+  {
+    level: "country",
+    keywords: ["greece", "athens", "santorini", "mykonos", "crete", "rhodes", "thessaloniki"],
     data: {
       destination: "Greece",
       sceneIntro: "Greece hums after dark in ways the guidebooks skim over. Bouzouki bars hidden in Psiri, rooftop cinemas still showing films al fresco, fishermen's tavernas where the raki arrives unasked-for.",
@@ -119,12 +212,13 @@ const DB: { keywords: string[]; data: LocalDiscovery }[] = [
   },
 
   {
+    level: "country",
     keywords: ["italy", "rome", "florence", "tuscany", "venice", "milan", "naples", "amalfi", "sicily", "bologna"],
     data: {
       destination: "Italy",
       sceneIntro: "Italy doesn't do nightlife early — dinner begins at 9pm, the aperitivo hour is sacred, and the best jazz bar in Rome closes whenever it feels like it. Plan accordingly, and plan to love it.",
       events: [
-        { name: "Aperitivo hour",                emoji: "🍹", type: "food",     description: "5–8pm across every Italian city. Order a Negroni or Aperol Spritz and the bar typically lays out free snacks. In Milan, some bars turn aperitivo into a full buffet dinner.", tipNote: "In Milan, splurge at a Navigli canal bar — the spreads are extraordinary." },
+        { name: "Aperitivo hour",                emoji: "🍹", type: "food",     description: "5–8pm across every Italian city. Order a Negroni or Aperol Spritz and the bar typically lays out free snacks. In larger cities, some bars turn aperitivo into a full buffet dinner.", tipNote: "Ask locals where they actually go — the tourist-facing bars charge twice as much for half the spread." },
         { name: "Arena di Verona opera festival", emoji: "🎼", type: "theater",  description: "June–September, in a 2,000-year-old Roman amphitheatre. They perform Aida and Verdi here under the stars — it's as operatic as opera gets.", url: "https://www.arena.it" },
         { name: "Testaccio Market, Rome",         emoji: "🧀", type: "market",   description: "Rome's best covered market — not the tourist one. Go early for vendors selling tripe sandwiches, hand-rolled pasta, and the cheapest espresso in the city.", url: "https://www.timeout.com/rome" },
         { name: "Mercato Centrale, Florence",     emoji: "🥩", type: "market",   description: "San Lorenzo's sprawling food hall — Florentine steak, lampredotto (tripe) sandwiches, and a rooftop dining floor with great pasta.", url: "https://www.mercatocentrale.it" },
@@ -171,6 +265,7 @@ const DB: { keywords: string[]; data: LocalDiscovery }[] = [
   },
 
   {
+    level: "country",
     keywords: ["france", "paris", "lyon", "bordeaux", "marseille", "nice", "provence"],
     data: {
       destination: "France",
@@ -221,6 +316,7 @@ const DB: { keywords: string[]; data: LocalDiscovery }[] = [
   },
 
   {
+    level: "country",
     keywords: ["spain", "barcelona", "madrid", "seville", "granada", "valencia", "bilbao"],
     data: {
       destination: "Spain",
@@ -271,6 +367,7 @@ const DB: { keywords: string[]; data: LocalDiscovery }[] = [
   },
 
   {
+    level: "country",
     keywords: ["japan", "tokyo", "kyoto", "osaka", "hiroshima", "nara", "hakone"],
     data: {
       destination: "Japan",
@@ -322,6 +419,7 @@ const DB: { keywords: string[]; data: LocalDiscovery }[] = [
   },
 
   {
+    level: "country",
     keywords: ["uk", "london", "england", "scotland", "edinburgh", "manchester", "bath", "oxford", "cambridge"],
     data: {
       destination: "United Kingdom",
@@ -373,6 +471,7 @@ const DB: { keywords: string[]; data: LocalDiscovery }[] = [
   },
 
   {
+    level: "country",
     keywords: ["portugal", "lisbon", "porto", "algarve", "madeira", "azores", "sintra"],
     data: {
       destination: "Portugal",
@@ -451,8 +550,18 @@ const GENERIC_DISCOVERY: LocalDiscovery = {
 
 export function getLocalDiscovery(destinationName: string): LocalDiscovery {
   const lower = destinationName.toLowerCase();
-  const match = DB.find((entry) =>
-    entry.keywords.some((kw) => lower.includes(kw))
-  );
+  const isMultiCity = lower.includes(",");
+
+  if (isMultiCity) {
+    // Multi-city trip: prefer country-level entries so we don't lock onto one sub-region
+    const countryMatch = DB.find(
+      (e) => e.level === "country" && e.keywords.some((kw) => lower.includes(kw))
+    );
+    const fallback = DB.find((e) => e.keywords.some((kw) => lower.includes(kw)));
+    return (countryMatch ?? fallback)?.data ?? { ...GENERIC_DISCOVERY, destination: destinationName };
+  }
+
+  // Single destination: try specific region first, then country
+  const match = DB.find((e) => e.keywords.some((kw) => lower.includes(kw)));
   return match?.data ?? { ...GENERIC_DISCOVERY, destination: destinationName };
 }
