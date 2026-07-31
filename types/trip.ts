@@ -217,6 +217,18 @@ export interface FinalizedPlan {
   bankCards: string[];
 }
 
+// A saved-for-later note the traveller can pull up during the trip — an
+// activity/restaurant they skipped scheduling, a local-discovery pick, or a
+// free-text entry of their own. Distinct from the day-by-day plan.
+export interface WanderlogItem {
+  id: string;
+  label: string;
+  note?: string;
+  source: "activity" | "restaurant" | "discovery" | "custom";
+  location?: string;
+  addedAt: string;
+}
+
 export interface GeneratedItinerary {
   id: string;
   tripId: string;
@@ -233,6 +245,7 @@ export interface GeneratedItinerary {
   whyThisWorks: string;
   neighborhoods?: NeighborhoodOption[];
   refinements?: ItineraryRefinements;
+  wanderlog?: WanderlogItem[];
   finalizedPlan?: FinalizedPlan;
   reviewCompleted?: boolean; // true once the user has stepped through the flights/hotels/restaurants/activities wizard
 }

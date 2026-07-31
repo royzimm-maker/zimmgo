@@ -20,6 +20,7 @@ import type {
   VibeTag,
   TransportMode,
   BudgetRange,
+  WanderlogItem,
 } from "@/types/trip";
 import { calcProgress } from "@/types/trip";
 
@@ -58,6 +59,9 @@ interface TripState {
   updateItineraryRefinements: (itineraryId: string, refinements: ItineraryRefinements) => void;
   saveFinalizedPlan: (itineraryId: string, plan: FinalizedPlan) => void;
   markItineraryReviewed: (itineraryId: string) => void;
+  addWanderlogItem: (itineraryId: string, item: Omit<WanderlogItem, "id" | "addedAt">) => void;
+  removeWanderlogItem: (itineraryId: string, itemId: string) => void;
+  updateWanderlogNote: (itineraryId: string, itemId: string, note: string) => void;
 
   // Chat
   addMessage: (msg: Omit<ChatMessage, "id" | "createdAt">) => void;
@@ -302,6 +306,45 @@ export const useTripStore = create<TripState>()(
             ...s.trip,
             itineraries: s.trip.itineraries.map((it) =>
               it.id === itineraryId ? { ...it, reviewCompleted: true } : it
+            ),
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      addWanderlogItem: (itineraryId, item) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            itineraries: s.trip.itineraries.map((it) =>
+              it.id === itineraryId
+                ? { ...it, wanderlog: [...(it.wanderlog ?? []), { ...item, id: uuid(), addedAt: new Date().toISOString() }] }
+                : it
+            ),
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      removeWanderlogItem: (itineraryId, itemId) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            itineraries: s.trip.itineraries.map((it) =>
+              it.id === itineraryId
+                ? { ...it, wanderlog: (it.wanderlog ?? []).filter((w) => w.id !== itemId) }
+                : it
+            ),
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      updateWanderlogNote: (itineraryId, itemId, note) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            itineraries: s.trip.itineraries.map((it) =>
+              it.id === itineraryId
+                ? { ...it, wanderlog: (it.wanderlog ?? []).map((w) => (w.id === itemId ? { ...w, note } : w)) }
+                : it
             ),
             updatedAt: new Date().toISOString(),
           },

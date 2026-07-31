@@ -14,7 +14,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { X, Sparkles } from "lucide-react";
+import { X, Sparkles, BookMarked } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -47,10 +47,12 @@ interface CardInfo {
 function CardInner({
   info,
   onRemove,
+  onSave,
   overlay = false,
 }: {
   info: CardInfo;
   onRemove?: () => void;
+  onSave?: () => void;
   overlay?: boolean;
 }) {
   const { activity, restaurant } = info;
@@ -72,6 +74,17 @@ function CardInner({
             {activity.price > 0 && <span>{formatCurrency(activity.price)}</span>}
           </div>
         </div>
+        {onSave && (
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onSave(); }}
+            className="shrink-0 text-slate-300 hover:text-brand-500 transition-colors"
+            title="Save to Wanderlog instead"
+          >
+            <BookMarked size={12} />
+          </button>
+        )}
         {onRemove && (
           <button
             type="button"
@@ -100,6 +113,17 @@ function CardInner({
             <span className="font-medium text-amber-600">{restaurant.priceRange}</span>
           </div>
         </div>
+        {onSave && (
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onSave(); }}
+            className="shrink-0 text-slate-300 hover:text-brand-500 transition-colors"
+            title="Save to Wanderlog instead"
+          >
+            <BookMarked size={12} />
+          </button>
+        )}
         {onRemove && (
           <button
             type="button"
@@ -120,7 +144,7 @@ function CardInner({
 
 // ─── DraggableCard ────────────────────────────────────────────────────────────
 
-function DraggableCard({ info, onRemove }: { info: CardInfo; onRemove?: () => void }) {
+function DraggableCard({ info, onRemove, onSave }: { info: CardInfo; onRemove?: () => void; onSave?: () => void }) {
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: info.cardId });
   return (
     <div
@@ -129,7 +153,7 @@ function DraggableCard({ info, onRemove }: { info: CardInfo; onRemove?: () => vo
       {...listeners}
       style={{ opacity: isDragging ? 0.15 : 1, touchAction: "none" }}
     >
-      <CardInner info={info} onRemove={onRemove} />
+      <CardInner info={info} onRemove={onRemove} onSave={onSave} />
     </div>
   );
 }
@@ -193,7 +217,7 @@ function DroppableContainer({
 // ─── Main RefineStep ──────────────────────────────────────────────────────────
 
 export function RefineStep() {
-  const { trip, goToStep, saveFinalizedPlan } = useTripStore();
+  const { trip, goToStep, saveFinalizedPlan, addWanderlogItem } = useTripStore();
   const itinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
   const activities = useMemo<ActivityOption[]>(
@@ -312,6 +336,16 @@ export function RefineStep() {
   function removeFromDay(cardId: string, dayNum: number) {
     setDayCards((prev) => ({ ...prev, [dayNum]: prev[dayNum].filter((id) => id !== cardId) }));
     setBank((prev) => [cardId, ...prev]);
+  }
+
+  function handleSaveToWanderlog(cardId: string) {
+    if (!itinerary) return;
+    const info = cardMap[cardId];
+    if (!info) return;
+    const name = info.kind === "activity" ? info.activity?.name : info.restaurant?.name;
+    if (!name) return;
+    addWanderlogItem(itinerary.id, { label: name, source: info.kind, location: getCardLocation(cardId) });
+    setBank((prev) => prev.filter((id) => id !== cardId));
   }
 
   async function handleSmartArrange() {
@@ -500,7 +534,13 @@ export function RefineStep() {
                     {ids.map((cardId) => {
                       const info = cardMap[cardId];
                       if (!info) return null;
-                      return <DraggableCard key={cardId} info={info} />;
+                      return (
+                        <DraggableCard
+                          key={cardId}
+                          info={info}
+                          onSave={() => handleSaveToWanderlog(cardId)}
+                        />
+                      );
                     })}
                   </div>
                 ));

@@ -3,13 +3,15 @@
 import { useMemo, useState } from "react";
 import {
   Music, Sparkles, Smartphone, ChevronDown, ChevronUp,
-  ExternalLink, MapPin, Bus, Ticket,
+  ExternalLink, MapPin, Bus, Ticket, BookMarked,
 } from "lucide-react";
 import { getLocalDiscovery } from "@/lib/data/localDiscovery";
+import { useTripStore } from "@/lib/store/tripStore";
 import type { TripPreferences } from "@/types/trip";
 
 interface Props {
   preferences: TripPreferences;
+  itineraryId?: string;
 }
 
 type Tab = "scene" | "music" | "apps" | "transfers";
@@ -21,9 +23,10 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "transfers", label: "Airport Transfers", emoji: "✈️" },
 ];
 
-export function LocalDiscovery({ preferences }: Props) {
+export function LocalDiscovery({ preferences, itineraryId }: Props) {
   const [open, setOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("scene");
+  const { addWanderlogItem } = useTripStore();
 
   const destName  = preferences.destination?.displayName ?? "";
   const cities    = useMemo(() => preferences.destination?.cities ?? [], [preferences.destination?.cities]);
@@ -32,6 +35,10 @@ export function LocalDiscovery({ preferences }: Props) {
     () => getLocalDiscovery(destName, cityCount, cities),
     [destName, cityCount, cities]
   );
+
+  const onSave = itineraryId
+    ? (label: string) => addWanderlogItem(itineraryId, { label, source: "discovery" })
+    : undefined;
 
   return (
     <div className="rounded-xl border border-brand-200 bg-white overflow-hidden">
@@ -79,7 +86,7 @@ export function LocalDiscovery({ preferences }: Props) {
 
           {/* Tab content */}
           <div className="p-4">
-            {activeTab === "scene" && <SceneTab discovery={discovery} />}
+            {activeTab === "scene" && <SceneTab discovery={discovery} onSave={onSave} />}
             {activeTab === "music" && <MusicTab discovery={discovery} />}
             {activeTab === "apps" && <AppsTab discovery={discovery} />}
             {activeTab === "transfers" && <TransfersTab discovery={discovery} />}
@@ -92,7 +99,13 @@ export function LocalDiscovery({ preferences }: Props) {
 
 // ── Scene tab ────────────────────────────────────────────────────────────────
 
-function SceneTab({ discovery }: { discovery: ReturnType<typeof getLocalDiscovery> }) {
+function SceneTab({
+  discovery,
+  onSave,
+}: {
+  discovery: ReturnType<typeof getLocalDiscovery>;
+  onSave?: (label: string) => void;
+}) {
   const { events, hiddenGems } = discovery;
 
   return (
@@ -110,6 +123,16 @@ function SceneTab({ discovery }: { discovery: ReturnType<typeof getLocalDiscover
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-xs font-semibold text-slate-800">{ev.name}</p>
                     <EventTypeBadge type={ev.type} />
+                    {onSave && (
+                      <button
+                        type="button"
+                        onClick={() => onSave(ev.name)}
+                        className="text-slate-300 hover:text-brand-500 transition-colors"
+                        title="Save to Wanderlog"
+                      >
+                        <BookMarked size={11} />
+                      </button>
+                    )}
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed mt-0.5">{ev.description}</p>
                   {ev.tipNote && (
@@ -140,7 +163,19 @@ function SceneTab({ discovery }: { discovery: ReturnType<typeof getLocalDiscover
               <div key={gem.name} className="flex gap-3">
                 <span className="text-xl shrink-0 mt-0.5">{gem.emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-800">{gem.name}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs font-semibold text-slate-800">{gem.name}</p>
+                    {onSave && (
+                      <button
+                        type="button"
+                        onClick={() => onSave(gem.name)}
+                        className="text-slate-300 hover:text-brand-500 transition-colors"
+                        title="Save to Wanderlog"
+                      >
+                        <BookMarked size={11} />
+                      </button>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-600 leading-relaxed mt-0.5">{gem.description}</p>
                   {gem.sourceUrl && (
                     <a href={gem.sourceUrl} target="_blank" rel="noreferrer"

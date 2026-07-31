@@ -10,6 +10,7 @@ import { TripGlance } from "@/components/planning/TripGlance";
 import { BudgetBreakdown } from "@/components/planning/BudgetBreakdown";
 import { PackingList } from "@/components/planning/PackingList";
 import { PreTripTasks } from "@/components/planning/PreTripTasks";
+import { Wanderlog } from "@/components/planning/Wanderlog";
 import { LocalDiscovery } from "@/components/planning/LocalDiscovery";
 import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
@@ -198,7 +199,10 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
       )}
 
       {/* Local discovery */}
-      <LocalDiscovery preferences={preferences} />
+      <LocalDiscovery preferences={preferences} itineraryId={itinerary.id} />
+
+      {/* ZiGy's Wanderlog */}
+      <Wanderlog itinerary={itinerary} />
 
       {/* Budget breakdown */}
       <BudgetBreakdown itinerary={itinerary} preferences={preferences} />
