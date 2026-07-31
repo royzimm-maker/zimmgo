@@ -282,12 +282,12 @@ export interface ApiResponse<T> {
 // ─── Progress calculation helper ───────────────────────────────────────────────
 export const ORDERED_STEPS: StepId[] = [
   "destination",
-  "activities",
-  "vibe",
   "dates",
+  "airlines",
   "budget",
   "lodging",
-  "airlines",
+  "activities",
+  "vibe",
   "transportation",
   "itinerary",
   "refine",
