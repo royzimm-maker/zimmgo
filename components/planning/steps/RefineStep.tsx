@@ -14,7 +14,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { X } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -249,6 +249,8 @@ export function RefineStep() {
   });
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [arranging, setArranging] = useState(false);
+  const [arrangeSummaries, setArrangeSummaries] = useState<Record<string, string>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -310,6 +312,61 @@ export function RefineStep() {
   function removeFromDay(cardId: string, dayNum: number) {
     setDayCards((prev) => ({ ...prev, [dayNum]: prev[dayNum].filter((id) => id !== cardId) }));
     setBank((prev) => [cardId, ...prev]);
+  }
+
+  async function handleSmartArrange() {
+    if (!effectiveCity) return;
+    setArranging(true);
+    try {
+      const cityDays = days.filter((d) => !d.location || locationsMatch(d.location, effectiveCity));
+      const cityBankIds = bank.filter((id) => {
+        const loc = getCardLocation(id);
+        return !loc || locationsMatch(loc, effectiveCity);
+      });
+      const cityActivities = cityBankIds
+        .map((id) => cardMap[id]?.activity)
+        .filter((a): a is ActivityOption => Boolean(a));
+      const cityRestaurants = cityBankIds
+        .map((id) => cardMap[id]?.restaurant)
+        .filter((r): r is RestaurantOption => Boolean(r));
+
+      const res = await fetch("/api/itinerary/smart-pick", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "schedule",
+          city: effectiveCity,
+          preferences: trip.preferences,
+          days: cityDays,
+          activities: cityActivities,
+          restaurants: cityRestaurants,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data: { picks: { id: string; dayNumber?: number; reason: string }[]; summary: string } = await res.json();
+
+      const validDayNums = new Set(cityDays.map((d) => d.dayNumber));
+      const toPlace = data.picks.filter(
+        (p) => p.dayNumber !== undefined && validDayNums.has(p.dayNumber) && cityBankIds.includes(p.id)
+      );
+
+      if (toPlace.length) {
+        const placedIds = new Set(toPlace.map((p) => p.id));
+        setBank((prev) => prev.filter((id) => !placedIds.has(id)));
+        setDayCards((prev) => {
+          const next = { ...prev };
+          for (const p of toPlace) {
+            next[p.dayNumber!] = [...(next[p.dayNumber!] ?? []), p.id];
+          }
+          return next;
+        });
+      }
+      setArrangeSummaries((prev) => ({ ...prev, [effectiveCity]: data.summary }));
+    } catch {
+      // Silently fail — manual drag-and-drop still works
+    } finally {
+      setArranging(false);
+    }
   }
 
   function handleDone() {
@@ -391,6 +448,27 @@ export function RefineStep() {
               </span>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Let ZiGy auto-arrange the active city's unplaced items across its days */}
+      {effectiveCity && visibleBank.length > 0 && (
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={handleSmartArrange}
+            disabled={arranging}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
+          >
+            <Sparkles size={14} />
+            {arranging ? "ZiGy is arranging…" : `Let ZiGy arrange ${effectiveCity}`}
+          </button>
+          {arrangeSummaries[effectiveCity] && (
+            <p className="text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2 mt-2">
+              <Sparkles size={11} className="inline mr-1" />
+              {arrangeSummaries[effectiveCity]}
+            </p>
+          )}
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import type { TripPreferences } from "@/types/trip";
+import type { TripPreferences, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 import { BUDGET_LABELS, BUDGET_MAX } from "@/types/trip";
 
 // Builds the user-facing prompt for itinerary generation from the stored preferences
@@ -143,4 +143,44 @@ export function buildChatSystemPrompt(preferences: TripPreferences): string {
   return `You are an AI travel advisor helping plan a trip. Answer questions, offer suggestions, and help the user refine their preferences.${context}
 
 Keep responses concise and specific. If asked about something outside the trip (e.g. unrelated topics), gently redirect to trip planning.`;
+}
+
+// "Let ZiGy choose" — pick the single best hotel for one city
+export function buildHotelPickPrompt(
+  city: string,
+  preferences: TripPreferences,
+  hotels: HotelOption[]
+): string {
+  const vibeStr = preferences.vibes.length ? ` The trip's vibe: ${preferences.vibes.join(", ")}.` : "";
+  const budgetStr = preferences.budgetRange ? ` Lodging budget tier: ${BUDGET_LABELS[preferences.budgetRange]}.` : "";
+  const list = hotels.map((h) =>
+    `- id="${h.id}" | ${h.name} | ${h.stars}★ | $${h.pricePerNight}/night | ${h.location} | ${h.highlights.join(", ")}`
+  ).join("\n");
+
+  return `Pick the single best hotel in ${city} for this traveller.${vibeStr}${budgetStr}\n\nOptions:\n${list}\n\nCall make_selection with exactly one pick — its id and a one-sentence reason it's the right fit for this trip.`;
+}
+
+// "Let ZiGy arrange" — assign a city's activities and restaurants across its days
+export function buildSchedulePickPrompt(
+  city: string,
+  preferences: TripPreferences,
+  days: ItineraryDay[],
+  activities: ActivityOption[],
+  restaurants: RestaurantOption[]
+): string {
+  const vibeStr = preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
+  const dayList = days.map((d) => `- day ${d.dayNumber}: "${d.theme}" (${d.date})`).join("\n");
+  const actList = activities.map((a) =>
+    `- id="act-${a.id}" [activity] ${a.name} | ${a.duration} | $${a.price} | ${a.description}`
+  ).join("\n");
+  const restList = restaurants.map((r) =>
+    `- id="rest-${r.id}" [restaurant] ${r.name} | ${r.tier} | ${r.cuisine} | ${r.description}`
+  ).join("\n");
+
+  return `Arrange ${city}'s activities and restaurants across its ${days.length} day(s) in this itinerary.${vibeStr}\n\n` +
+    `Days:\n${dayList}\n\nActivities:\n${actList}\n\nRestaurants:\n${restList}\n\n` +
+    `For each item worth including, call make_selection with its id and the dayNumber you're assigning it to, plus a one-sentence reason. ` +
+    `Guidelines: don't overload a single day (roughly 1-2 activities and 1-2 restaurants per day is plenty), sequence logically, ` +
+    `and it's fine to leave out an item entirely if the day is already full or it doesn't fit the pacing. ` +
+    `Also include a 1-2 sentence "summary" explaining your overall approach for this city.`;
 }

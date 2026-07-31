@@ -38,6 +38,8 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
   const [stageIdx, setStageIdx] = useState(0);
   const [cityIdx, setCityIdx] = useState(0);
   const [expandedRestaurantCities, setExpandedRestaurantCities] = useState<Set<string>>(new Set());
+  const [pickingHotel, setPickingHotel] = useState(false);
+  const [hotelPickReasons, setHotelPickReasons] = useState<Record<string, string>>({});
   const stage = STAGES[stageIdx];
   const currentCity = cities[cityIdx];
 
@@ -77,6 +79,29 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
     () => itinerary.hotels.filter((h) => fuzzyCityMatch(h.city ?? h.location, currentCity)),
     [itinerary.hotels, currentCity]
   );
+
+  async function handleSmartPickHotel() {
+    setPickingHotel(true);
+    try {
+      const res = await fetch("/api/itinerary/smart-pick", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "hotel", city: currentCity, preferences, hotels: hotelsForCity }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data: { picks: { id: string; reason: string }[] } = await res.json();
+      const pick = data.picks[0];
+      const hotel = pick && hotelsForCity.find((h) => h.id === pick.id);
+      if (hotel) {
+        setSelectedHotelForCity(currentCity, hotel);
+        setHotelPickReasons((prev) => ({ ...prev, [currentCity]: pick.reason }));
+      }
+    } catch {
+      // Silently fail — the picker UI is still there as a fallback
+    } finally {
+      setPickingHotel(false);
+    }
+  }
   const restaurantsForCity = useMemo(
     () => (itinerary.restaurants ?? []).filter((r) => fuzzyCityMatch(r.location, currentCity)),
     [itinerary.restaurants, currentCity]
@@ -142,6 +167,21 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
         {stage.id === "hotels" && (
           hotelsForCity.length > 0 ? (
             <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={handleSmartPickHotel}
+                disabled={pickingHotel}
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
+              >
+                <Sparkles size={14} />
+                {pickingHotel ? "ZiGy is choosing…" : `Let ZiGy choose for ${currentCity}`}
+              </button>
+              {hotelPickReasons[currentCity] && (
+                <p className="text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2 -mt-1">
+                  <Sparkles size={11} className="inline mr-1" />
+                  {hotelPickReasons[currentCity]}
+                </p>
+              )}
               {hotelsForCity.map((h) => {
                 const selected = preferences.selectedHotelsByCity?.[currentCity]?.id === h.id;
                 return (

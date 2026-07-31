@@ -116,3 +116,29 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
     },
   },
 ];
+
+// Forced-tool-call schema for "let ZiGy choose" — used both for picking a single
+// hotel and for arranging a city's activities/restaurants across its days.
+export const SMART_PICK_TOOL: Anthropic.Tool = {
+  name: "make_selection",
+  description: "Return the chosen item(s) with a brief reason for each pick.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      picks: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string", description: "The id of the chosen item" },
+            dayNumber: { type: "number", description: "Which day to place this on (schedule picks only)" },
+            reason: { type: "string", description: "One sentence on why this fits" },
+          },
+          required: ["id", "reason"],
+        },
+      },
+      summary: { type: "string", description: "1-2 sentence overview of the overall reasoning" },
+    },
+    required: ["picks", "summary"],
+  },
+};
