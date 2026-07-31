@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
+import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityCategory } from "@/types/trip";
 
@@ -25,6 +27,12 @@ const GENERAL: { id: ActivityCategory; label: string; icon: string; sublabel: st
 export function ActivitiesStep() {
   const { trip, setActivities } = useTripStore();
 
+  const [mode, setMode] = useState<"prompt" | "manual">(
+    () => (trip.preferences.activities.length > 0 ? "manual" : "prompt")
+  );
+  const [picking, setPicking] = useState(false);
+  const [pickSummary, setPickSummary] = useState<string | null>(null);
+
   const [selectedGeneral, setSelectedGeneral] = useState<ActivityCategory[]>(
     trip.preferences.activities.filter((a): a is ActivityCategory =>
       GENERAL.some((g) => g.id === a)
@@ -39,6 +47,33 @@ export function ActivitiesStep() {
     );
   }
 
+  async function handleZigyPick() {
+    setPicking(true);
+    try {
+      const res = await fetch("/api/itinerary/smart-pick", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "activities",
+          preferences: trip.preferences,
+          candidates: GENERAL.map((g) => ({ id: g.id, label: g.label })),
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data: { picks: { id: string; reason: string }[]; summary: string } = await res.json();
+      const picked = data.picks
+        .map((p) => p.id)
+        .filter((id): id is ActivityCategory => GENERAL.some((g) => g.id === id));
+      setSelectedGeneral(picked);
+      setPickSummary(data.summary);
+    } catch {
+      // Fall through to manual — nothing selected yet
+    } finally {
+      setPicking(false);
+      setMode("manual");
+    }
+  }
+
   function handleContinue() {
     const all: string[] = [
       ...selectedGeneral,
@@ -50,6 +85,26 @@ export function ActivitiesStep() {
   const totalSelected =
     selectedGeneral.length + (otherOpen && otherValue.trim() ? 1 : 0);
 
+  if (mode === "prompt") {
+    return (
+      <StepShell
+        stepId="activities"
+        continueLabel="I'll pick myself"
+        onContinue={() => setMode("manual")}
+        subtitle="How do you want to choose your activities?"
+      >
+        <ChooseModePrompt
+          manualLabel="I'll pick myself"
+          manualDescription="Browse the categories and choose what sounds good."
+          zigyDescription="ZiGy picks 3-5 categories that fit your destination — you can still adjust before continuing."
+          onManual={() => setMode("manual")}
+          onZigy={handleZigyPick}
+          loading={picking}
+        />
+      </StepShell>
+    );
+  }
+
   return (
     <StepShell
       stepId="activities"
@@ -57,6 +112,12 @@ export function ActivitiesStep() {
       continueDisabled={totalSelected === 0}
       subtitle="What kind of experiences do you love? We'll weave these into your itinerary."
     >
+      {pickSummary && (
+        <p className="mb-4 text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2">
+          <Sparkles size={11} className="inline mr-1" />
+          {pickSummary}
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {GENERAL.map((a) => (
           <SelectChip

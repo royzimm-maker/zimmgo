@@ -184,3 +184,24 @@ export function buildSchedulePickPrompt(
     `and it's fine to leave out an item entirely if the day is already full or it doesn't fit the pacing. ` +
     `Also include a 1-2 sentence "summary" explaining your overall approach for this city.`;
 }
+
+// "Let ZiGy choose" — pick activity categories, vibes, or lodging type/stars/amenities
+// on the traveller's behalf, before they've told us anything about that category yet.
+export function buildPreferencePickPrompt(
+  kind: "activities" | "vibes" | "lodging",
+  preferences: TripPreferences,
+  candidates: { id: string; label: string }[]
+): string {
+  const dest = preferences.destination?.displayName ?? "the destination";
+  const list = candidates.map((c) => `- id="${c.id}" ${c.label}`).join("\n");
+  const budgetStr = preferences.budgetRange ? ` Lodging budget tier: ${BUDGET_LABELS[preferences.budgetRange]}.` : "";
+  const vibeStr = kind !== "vibes" && preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
+
+  const instructions: Record<typeof kind, string> = {
+    activities: `Pick 3-5 activity categories that best suit a trip to ${dest}.${vibeStr}`,
+    vibes: `Pick 2-4 trip vibes that best suit a trip to ${dest}.`,
+    lodging: `Pick the lodging type(s) (usually just 1), exactly one star-rating tier, and 2-4 amenities that best suit a trip to ${dest}.${budgetStr}${vibeStr}`,
+  };
+
+  return `${instructions[kind]}\n\nOptions:\n${list}\n\nCall make_selection with your picks (their ids) and a one-sentence reason each, plus a 1-2 sentence overall summary of your approach.`;
+}

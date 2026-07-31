@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Star, ExternalLink, Check } from "lucide-react";
+import { Star, ExternalLink, Check, Sparkles } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
+import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -33,6 +34,9 @@ const HOTEL_TIER: Record<number, string> = {
 export function LodgingStep() {
   const { trip, setLodging, setSelectedHotel } = useTripStore();
   const existing = trip.preferences.lodging;
+  const [mode, setMode] = useState<"prompt" | "manual">(() => (existing ? "manual" : "prompt"));
+  const [picking, setPicking] = useState(false);
+  const [pickSummary, setPickSummary] = useState<string | null>(null);
   // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
   const destination = trip.preferences.destination?.cities?.[0]
     ?? trip.preferences.destination?.displayName ?? "";
@@ -96,6 +100,46 @@ export function LodgingStep() {
     setAmenities((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
   }
 
+  async function handleZigyPick() {
+    setPicking(true);
+    try {
+      const candidates = [
+        ...TYPES.map((t) => ({ id: `type:${t.id}`, label: `Lodging type: ${t.label}` })),
+        ...([3, 4, 5] as LodgingStarRating[]).map((s) => ({ id: `stars:${s}`, label: `${s}-star minimum` })),
+        ...AMENITIES.map((a) => ({ id: `amenity:${a}`, label: `Amenity: ${a}` })),
+      ];
+      const res = await fetch("/api/itinerary/smart-pick", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "lodging", preferences: trip.preferences, candidates }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data: { picks: { id: string; reason: string }[]; summary: string } = await res.json();
+
+      const pickedTypes = data.picks
+        .filter((p) => p.id.startsWith("type:"))
+        .map((p) => p.id.slice(5) as LodgingType)
+        .filter((t) => TYPES.some((x) => x.id === t));
+      const pickedStars = data.picks
+        .map((p) => p.id)
+        .find((id) => id.startsWith("stars:"));
+      const pickedAmenities = data.picks
+        .filter((p) => p.id.startsWith("amenity:"))
+        .map((p) => p.id.slice(8))
+        .filter((a) => AMENITIES.includes(a));
+
+      if (pickedTypes.length) setTypes(pickedTypes);
+      if (pickedStars) setMinStars(Number(pickedStars.slice(6)) as LodgingStarRating);
+      setAmenities(pickedAmenities);
+      setPickSummary(data.summary);
+    } catch {
+      // Fall through to manual — nothing selected yet
+    } finally {
+      setPicking(false);
+      setMode("manual");
+    }
+  }
+
   function handleContinue() {
     const allTypes = [...types];
     if (otherTypeOpen && otherTypeValue.trim()) allTypes.push(otherTypeValue.trim() as LodgingType);
@@ -113,6 +157,26 @@ export function LodgingStep() {
   // Only show hotel picker if accommodation type includes bookable hotel options
   const airbnbOnly = types.length > 0 && types.every((t) => t === "airbnb") && !otherTypeOpen;
 
+  if (mode === "prompt") {
+    return (
+      <StepShell
+        stepId="lodging"
+        continueLabel="I'll pick myself"
+        onContinue={() => setMode("manual")}
+        subtitle="How do you want to choose your lodging preferences?"
+      >
+        <ChooseModePrompt
+          manualLabel="I'll pick myself"
+          manualDescription="Choose the accommodation type, star rating, and amenities that matter to you."
+          zigyDescription="ZiGy picks a type, star tier, and a few amenities that fit your destination and budget — you can still adjust before continuing."
+          onManual={() => setMode("manual")}
+          onZigy={handleZigyPick}
+          loading={picking}
+        />
+      </StepShell>
+    );
+  }
+
   return (
     <StepShell
       stepId="lodging"
@@ -121,6 +185,12 @@ export function LodgingStep() {
       subtitle="We'll surface options that match your taste."
     >
       <div className="flex flex-col gap-6">
+        {pickSummary && (
+          <p className="text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2">
+            <Sparkles size={11} className="inline mr-1" />
+            {pickSummary}
+          </p>
+        )}
         {/* Type */}
         <div>
           <p className="mb-2 text-sm font-medium text-slate-700">Accommodation type</p>
