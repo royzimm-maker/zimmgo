@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, pairFlights, groupByLocation } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import { TripGlance } from "@/components/planning/TripGlance";
 import { BudgetBreakdown } from "@/components/planning/BudgetBreakdown";
@@ -150,7 +150,6 @@ export function ItineraryView({ itinerary }: Props) {
         <Section title="Where to Eat" icon={<UtensilsCrossed size={16} />}>
           <GroupedCards
             items={itinerary.restaurants}
-            getLocation={(r) => r.location}
             renderCard={(r) => <RestaurantCard key={r.id} restaurant={r} />}
           />
         </Section>
@@ -166,7 +165,7 @@ export function ItineraryView({ itinerary }: Props) {
               .filter((p): p is { name: string; kind: "activity" | "restaurant" } => Boolean(p));
             const dayHotel = preferences.selectedHotel
               ?? itinerary.hotels.find((h) =>
-                  day.location && h.location.toLowerCase().includes(day.location.toLowerCase())
+                  day.location && day.location.toLowerCase().includes(h.location.toLowerCase().split(",")[0].trim())
                 )
               ?? itinerary.hotels[0];
             return (
@@ -188,7 +187,6 @@ export function ItineraryView({ itinerary }: Props) {
         <Section title="Top Experiences" icon={<Star size={16} />}>
           <GroupedCards
             items={itinerary.activities}
-            getLocation={(a) => a.location}
             renderCard={(a) => <ActivityCard key={a.id} activity={a} />}
             gridCols
           />
@@ -369,30 +367,17 @@ function Section({ title, icon, subtitle, children }: { title: string; icon: Rea
   );
 }
 
-// Groups items by location and renders them under a location header
-function GroupedCards<T>({
+// Groups items by their `location` field and renders them under a location header
+function GroupedCards<T extends { location?: string }>({
   items,
-  getLocation,
   renderCard,
   gridCols = false,
 }: {
   items: T[];
-  getLocation: (item: T) => string | undefined;
   renderCard: (item: T) => React.ReactNode;
   gridCols?: boolean;
 }) {
-  // Build ordered groups preserving first-seen order
-  const groups: { location: string; items: T[] }[] = [];
-  const groupIndex: Record<string, number> = {};
-  for (const item of items) {
-    const loc = getLocation(item) ?? "Other";
-    if (groupIndex[loc] === undefined) {
-      groupIndex[loc] = groups.length;
-      groups.push({ location: loc, items: [] });
-    }
-    groups[groupIndex[loc]].items.push(item);
-  }
-
+  const groups = groupByLocation(items, (i) => i.location);
   const singleGroup = groups.length === 1;
 
   return (
@@ -435,19 +420,7 @@ function FlightPairList({
   selectedFlightId?: string;
   onSelect: (f: FlightOption) => void;
 }) {
-  // Extract IATA code from strings like "Seattle-Tacoma International (SEA)" or bare "SEA"
-  const depCode = (depAirport.match(/\(([A-Z]{3})\)/)?.[1] ?? depAirport.trim().toUpperCase().slice(-3));
-  const isOutbound = (f: FlightOption) =>
-    depAirport ? f.origin.toUpperCase().includes(depCode) : true;
-  const outbound = flights.filter(isOutbound);
-  const returns  = flights.filter((f) => !isOutbound(f));
-
-  const pairs = outbound.length
-    ? outbound.map((o) => ({
-        outbound: o,
-        ret: returns.find((r) => r.airline === o.airline) ?? returns[0] ?? null,
-      }))
-    : flights.map((f) => ({ outbound: f, ret: null }));
+  const pairs = pairFlights(flights, depAirport);
 
   return (
     <div className="flex flex-col gap-3">

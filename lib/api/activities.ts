@@ -3,6 +3,7 @@
 // GetYourGuide docs: https://api.getyourguide.com
 
 import { v4 as uuid } from "uuid";
+import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
 import type { ActivityOption } from "@/types/trip";
 
 interface ActivitySearchParams {
@@ -59,21 +60,11 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
   ],
 };
 
-const ACTIVITY_ALIASES: Record<string, string> = {
-  "florence": "italy",  "tuscany": "italy",  "venice": "italy",  "naples": "italy",
-  "milan":    "italy",  "sicily":  "italy",  "bologna": "italy", "cinque": "italy",
-  "positano": "amalfi", "ravello": "amalfi", "praiano": "amalfi", "salerno": "amalfi",
-  "cortina":  "dolomit","bolzano": "dolomit","merano":  "dolomit","alta badia": "dolomit",
-  "athens":   "greece", "thessal": "greece",
-  "lisbon":   "portugal","porto":  "portugal",
-  "barcelona":"spain",  "madrid": "spain",
-};
-
 function findActivityBase(destination: string): Partial<ActivityOption>[] {
   const lower = (destination ?? "").toLowerCase();
   const direct = Object.keys(ACTIVITY_POOLS).find((k) => lower.includes(k));
   if (direct) return ACTIVITY_POOLS[direct];
-  const alias = Object.entries(ACTIVITY_ALIASES).find(([a]) => lower.includes(a));
+  const alias = Object.entries(DESTINATION_ALIASES).find(([a]) => lower.includes(a));
   return ACTIVITY_POOLS[alias?.[1] ?? "default"];
 }
 

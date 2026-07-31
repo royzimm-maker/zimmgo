@@ -11,6 +11,16 @@ import { searchRestaurants } from "@/lib/api/restaurants";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
+function dedup<T extends { name?: string }>(arr: T[]): T[] {
+  const seen = new Set<string>();
+  return arr.filter((x) => {
+    const k = (x.name ?? "").toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
 // Tool dispatcher — maps tool_name → actual function call
 async function dispatchTool(
   name: string,
@@ -112,32 +122,25 @@ export async function POST(request: NextRequest) {
       restaurants  = restaurants.filter((r) => !r.location?.toLowerCase().includes(depCity.split("-")[0]));
     }
 
-    // For each destination city not yet covered, do a direct search
-    for (const city of destCities) {
-      const cityLower = city.toLowerCase();
-      const hasCityActivities   = activities.some((a)  => a.location?.toLowerCase().includes(cityLower));
-      const hasCityRestaurants  = restaurants.some((r) => r.location?.toLowerCase().includes(cityLower));
-
-      if (!hasCityActivities) {
-        const extra = await searchActivities({ destination: city, categories: preferences.activities as string[] });
-        activities = [...activities, ...extra];
-      }
-      if (!hasCityRestaurants) {
-        const extra = await searchRestaurants({ destination: city });
-        restaurants = [...restaurants, ...extra];
-      }
+    // For each destination city not yet covered, fetch supplemental data in parallel
+    const supplementalResults = await Promise.all(
+      destCities.flatMap((city) => {
+        const lc = city.toLowerCase();
+        const needActs  = !activities.some((a)  => a.location?.toLowerCase().includes(lc));
+        const needRests = !restaurants.some((r) => r.location?.toLowerCase().includes(lc));
+        return [
+          needActs  ? searchActivities({ destination: city, categories: preferences.activities as string[] }) : null,
+          needRests ? searchRestaurants({ destination: city }) : null,
+        ];
+      })
+    );
+    for (const result of supplementalResults) {
+      if (!result) continue;
+      if (result.length && "duration" in result[0]) activities   = [...activities,   ...(result as ActivityOption[])];
+      else                                           restaurants  = [...restaurants,  ...(result as RestaurantOption[])];
     }
 
     // ── Deduplicate by name across all cities ──
-    const dedup = <T extends { name?: string }>(arr: T[]): T[] => {
-      const seen = new Set<string>();
-      return arr.filter((x) => {
-        const k = (x.name ?? "").toLowerCase();
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      });
-    };
     activities  = dedup(activities);
     restaurants = dedup(restaurants);
     hotels      = dedup(hotels);

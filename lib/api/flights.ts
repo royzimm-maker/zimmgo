@@ -4,6 +4,7 @@
 
 import { v4 as uuid } from "uuid";
 import type { FlightOption } from "@/types/trip";
+import { randomInt } from "@/lib/utils";
 
 interface FlightSearchParams {
   origin: string;
@@ -47,9 +48,6 @@ const CABIN_MULTIPLIER: Record<string, number> = {
   economy: 1, premium_economy: 2.2, business: 4.5, first: 8,
 };
 
-function randomInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 function pickAirlines(
   preferred: string[] = [],

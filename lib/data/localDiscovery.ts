@@ -548,11 +548,10 @@ const GENERIC_DISCOVERY: LocalDiscovery = {
   hiddenGems: [],
 };
 
-export function getLocalDiscovery(destinationName: string): LocalDiscovery {
+export function getLocalDiscovery(destinationName: string, cityCount = 1): LocalDiscovery {
   const lower = destinationName.toLowerCase();
-  const isMultiCity = lower.includes(",");
 
-  if (isMultiCity) {
+  if (cityCount > 1) {
     // Multi-city trip: prefer country-level entries so we don't lock onto one sub-region
     const countryMatch = DB.find(
       (e) => e.level === "country" && e.keywords.some((kw) => lower.includes(kw))

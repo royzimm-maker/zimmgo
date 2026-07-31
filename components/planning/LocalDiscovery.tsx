@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Music, Sparkles, Smartphone, ChevronDown, ChevronUp,
   ExternalLink, MapPin, Bus, Ticket,
@@ -25,8 +25,9 @@ export function LocalDiscovery({ preferences }: Props) {
   const [open, setOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("scene");
 
-  const destName = preferences.destination?.displayName ?? "";
-  const discovery = getLocalDiscovery(destName);
+  const destName  = preferences.destination?.displayName ?? "";
+  const cityCount = preferences.destination?.cities?.length ?? 1;
+  const discovery = useMemo(() => getLocalDiscovery(destName, cityCount), [destName, cityCount]);
 
   return (
     <div className="rounded-xl border border-brand-200 bg-white overflow-hidden">
@@ -248,12 +249,15 @@ const APP_CATEGORY_LABELS: Record<string, string> = {
 function AppsTab({ discovery }: { discovery: ReturnType<typeof getLocalDiscovery> }) {
   const { apps } = discovery;
 
-  const grouped = apps.reduce<Record<string, typeof apps>>((acc, app) => {
-    const key = APP_CATEGORY_LABELS[app.category] ?? app.category;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(app);
-    return acc;
-  }, {});
+  const grouped = useMemo(
+    () => apps.reduce<Record<string, typeof apps>>((acc, app) => {
+      const key = APP_CATEGORY_LABELS[app.category] ?? app.category;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(app);
+      return acc;
+    }, {}),
+    [apps]
+  );
 
   return (
     <div className="flex flex-col gap-4">

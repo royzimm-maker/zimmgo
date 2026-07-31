@@ -1,38 +1,15 @@
 "use client";
 
 import { Plane, Hotel, Users, Calendar, MapPin, Check } from "lucide-react";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDate, formatCurrency, pairFlights } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
-import type { GeneratedItinerary, TripPreferences, FlightOption } from "@/types/trip";
+import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 
 interface Props {
   itinerary: GeneratedItinerary;
   preferences: TripPreferences;
 }
 
-// Pair outbound and return flights so we can show a roundtrip price
-function pairFlights(flights: FlightOption[], depAirport: string) {
-  const outbound: FlightOption[] = [];
-  const returns: FlightOption[] = [];
-  const depCode = depAirport.toUpperCase().slice(-3);
-
-  for (const f of flights) {
-    const isOut = depAirport
-      ? f.origin.toUpperCase().includes(depCode)
-      : true;
-    if (isOut) outbound.push(f); else returns.push(f);
-  }
-
-  // If we have both legs, pair them; otherwise show outbound alone
-  if (outbound.length && returns.length) {
-    return outbound.map((o) => ({
-      outbound: o,
-      // try to match by airline; otherwise use first return
-      return: returns.find((r) => r.airline === o.airline) ?? returns[0],
-    }));
-  }
-  return outbound.map((o) => ({ outbound: o, return: null }));
-}
 
 export function TripGlance({ itinerary, preferences }: Props) {
   const { trip, setSelectedFlight } = useTripStore();
@@ -75,7 +52,7 @@ export function TripGlance({ itinerary, preferences }: Props) {
             </span>
           </div>
           <div className="flex flex-col gap-2">
-            {pairs.map(({ outbound, return: ret }) => {
+            {pairs.map(({ outbound, ret }) => {
               const roundtripPp = outbound.price + (ret?.price ?? 0);
               const isSelected = selectedFlightId === outbound.id;
               return (

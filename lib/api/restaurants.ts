@@ -3,6 +3,7 @@
 
 import { v4 as uuid } from "uuid";
 import type { RestaurantOption, RestaurantTier } from "@/types/trip";
+import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
 
 interface RestaurantSearchParams {
   destination: string;
@@ -424,21 +425,11 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
   ],
 };
 
-const REGION_ALIASES: Record<string, string> = {
-  "florence": "italy",  "tuscany": "italy",  "venice": "italy",  "naples": "italy",
-  "milan":    "italy",  "sicily":  "italy",  "bologna": "italy", "cinque": "italy",
-  "positano": "amalfi", "ravello": "amalfi", "praiano": "amalfi", "salerno": "amalfi",
-  "cortina":  "dolomit","bolzano": "dolomit","merano":  "dolomit","alta badia": "dolomit",
-  "athens":   "greece", "thessal": "greece",
-  "lisbon":   "portugal","porto":  "portugal",
-  "barcelona":"spain",  "madrid": "spain",   "seville": "spain",
-};
-
 function findRestaurantBase(destination: string): RestaurantSeed[] {
   const lower = (destination ?? "").toLowerCase();
   const direct = Object.keys(RESTAURANT_DB).find((k) => lower.includes(k));
   if (direct) return RESTAURANT_DB[direct];
-  const alias = Object.entries(REGION_ALIASES).find(([a]) => lower.includes(a));
+  const alias = Object.entries(DESTINATION_ALIASES).find(([a]) => lower.includes(a));
   return RESTAURANT_DB[alias?.[1] ?? "default"];
 }
 

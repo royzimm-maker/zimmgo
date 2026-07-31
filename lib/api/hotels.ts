@@ -4,6 +4,7 @@
 
 import { v4 as uuid } from "uuid";
 import type { HotelOption } from "@/types/trip";
+import { randomInt } from "@/lib/utils";
 
 interface HotelSearchParams {
   destination: string;
@@ -57,9 +58,6 @@ function findHotelBase(destination: string): (Partial<HotelOption> & { hotelType
   return HOTEL_DB[key ?? "default"];
 }
 
-function randomInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 export async function searchHotels(params: HotelSearchParams): Promise<HotelOption[]> {
   // --- PRODUCTION SWAP POINT ---

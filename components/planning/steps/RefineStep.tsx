@@ -231,7 +231,6 @@ export function RefineStep() {
   });
 
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [activeCardLocation, setActiveCardLocation] = useState<string | undefined>(undefined);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -253,14 +252,11 @@ export function RefineStep() {
   }
 
   function handleDragStart({ active }: DragStartEvent) {
-    const id = active.id as string;
-    setActiveId(id);
-    setActiveCardLocation(getCardLocation(id));
+    setActiveId(active.id as string);
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     setActiveId(null);
-    setActiveCardLocation(undefined);
     if (!over) return;
 
     const cardId = active.id as string;
@@ -404,7 +400,7 @@ export function RefineStep() {
                     <DroppableContainer
                       id={`day-${day.dayNumber}`}
                       isEmpty={cards.length === 0}
-                      compatible={!activeCardLocation || !day.location || locationsMatch(activeCardLocation, day.location)}
+                      compatible={!activeId || !day.location || locationsMatch(getCardLocation(activeId), day.location)}
                     >
                       {cards.map((cardId) => {
                         const info = cardMap[cardId];
