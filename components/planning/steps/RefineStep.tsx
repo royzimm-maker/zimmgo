@@ -16,6 +16,7 @@ import {
 } from "@dnd-kit/core";
 import { X, Sparkles, BookMarked } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
+import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityOption, RestaurantOption } from "@/types/trip";
@@ -275,7 +276,7 @@ export function RefineStep() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [arranging, setArranging] = useState(false);
   const [arrangeSummaries, setArrangeSummaries] = useState<Record<string, string>>({});
-  const [autoPlanCity, setAutoPlanCity] = useState<string | null>(null);
+  const [autoPlanCities, setAutoPlanCities] = useState<Set<string>>(new Set());
   // Returning users who already personalized skip straight to the board
   const [mode, setMode] = useState<"prompt" | "manual">(() => (itinerary?.finalizedPlan ? "manual" : "prompt"));
 
@@ -414,16 +415,22 @@ export function RefineStep() {
 
   async function handleAutoPlanAll() {
     setArranging(true);
+    setAutoPlanCities(new Set(cities));
     try {
-      for (const city of cities) {
-        setAutoPlanCity(city);
-        await arrangeCity(city);
-      }
-    } catch {
-      // Whatever got placed stays placed — the rest is still there to arrange manually
+      await Promise.allSettled(
+        cities.map((city) =>
+          arrangeCity(city).finally(() => {
+            setAutoPlanCities((prev) => {
+              const next = new Set(prev);
+              next.delete(city);
+              return next;
+            });
+          })
+        )
+      );
     } finally {
       setArranging(false);
-      setAutoPlanCity(null);
+      setAutoPlanCities(new Set());
       setMode("manual");
     }
   }
@@ -454,30 +461,20 @@ export function RefineStep() {
         onContinue={() => { setMode("manual"); return false; }}
         subtitle="How do you want to personalize your plan?"
       >
-        <div className="flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => setMode("manual")}
-            className="rounded-xl border border-slate-200 bg-white p-4 text-left hover:border-brand-300 hover:shadow-sm transition-all"
-          >
-            <p className="text-sm font-semibold text-slate-800">I&apos;ll build it myself</p>
-            <p className="text-xs text-slate-500 mt-1">Drag activities and restaurants onto each day yourself, one city at a time.</p>
-          </button>
-          <button
-            type="button"
-            onClick={handleAutoPlanAll}
-            disabled={arranging}
-            className="rounded-xl border border-brand-300 bg-brand-50/50 p-4 text-left hover:border-brand-400 hover:shadow-sm transition-all disabled:opacity-70"
-          >
-            <p className="text-sm font-semibold text-brand-700 flex items-center gap-1.5">
-              <Sparkles size={14} />
-              {arranging ? `ZiGy is arranging${autoPlanCity ? ` — ${autoPlanCity}…` : "…"}` : "Let ZiGy plan it for me"}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">
-              ZiGy sequences every city&apos;s activities and restaurants across the days — you can still review and adjust anything after.
-            </p>
-          </button>
-        </div>
+        <ChooseModePrompt
+          manualLabel="I'll build it myself"
+          manualDescription="Drag activities and restaurants onto each day yourself, one city at a time."
+          zigyLabel="Let ZiGy plan it for me"
+          zigyLoadingLabel={
+            autoPlanCities.size > 0
+              ? `ZiGy is arranging — ${Array.from(autoPlanCities).join(", ")}…`
+              : "ZiGy is arranging…"
+          }
+          zigyDescription="ZiGy sequences every city's activities and restaurants across the days — you can still review and adjust anything after."
+          onManual={() => setMode("manual")}
+          onZigy={handleAutoPlanAll}
+          loading={arranging}
+        />
       </StepShell>
     );
   }

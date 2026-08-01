@@ -5,13 +5,24 @@ import { Sparkles } from "lucide-react";
 interface Props {
   manualLabel: string;
   manualDescription: string;
+  zigyLabel?: string;
+  zigyLoadingLabel?: string;
   zigyDescription: string;
   onManual: () => void;
   onZigy: () => void;
   loading: boolean;
 }
 
-export function ChooseModePrompt({ manualLabel, manualDescription, zigyDescription, onManual, onZigy, loading }: Props) {
+export function ChooseModePrompt({
+  manualLabel,
+  manualDescription,
+  zigyLabel = "Let ZiGy choose for me",
+  zigyLoadingLabel = "ZiGy is choosing…",
+  zigyDescription,
+  onManual,
+  onZigy,
+  loading,
+}: Props) {
   return (
     <div className="flex flex-col gap-3">
       <button
@@ -31,7 +42,7 @@ export function ChooseModePrompt({ manualLabel, manualDescription, zigyDescripti
       >
         <p className="text-sm font-semibold text-brand-700 flex items-center gap-1.5">
           <Sparkles size={14} />
-          {loading ? "ZiGy is choosing…" : "Let ZiGy choose for me"}
+          {loading ? zigyLoadingLabel : zigyLabel}
         </p>
         <p className="text-xs text-slate-500 mt-1">{zigyDescription}</p>
       </button>

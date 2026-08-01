@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Star, ExternalLink, Check, Sparkles } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import { BUDGET_MAX } from "@/types/trip";
-import { REVIEW_SOURCES } from "@/lib/data/reviewSources";
+import { REVIEW_SOURCES, applyReviewSourcePref } from "@/lib/data/reviewSources";
 import type { HotelOption, LodgingPreference, LodgingStarRating, LodgingType, ReviewSource } from "@/types/trip";
 
 const TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[] = [
@@ -121,20 +121,21 @@ export function LodgingStep() {
       if (!res.ok) throw new Error(await res.text());
       const data: { picks: { id: string; reason: string }[]; summary: string } = await res.json();
 
+      const stripPrefix = (id: string, prefix: string) =>
+        id.startsWith(prefix) ? id.slice(prefix.length) : null;
+
       const pickedTypes = data.picks
-        .filter((p) => p.id.startsWith("type:"))
-        .map((p) => p.id.slice(5) as LodgingType)
-        .filter((t) => TYPES.some((x) => x.id === t));
-      const pickedStars = data.picks
-        .map((p) => p.id)
-        .find((id) => id.startsWith("stars:"));
+        .map((p) => stripPrefix(p.id, "type:") as LodgingType | null)
+        .filter((t): t is LodgingType => t !== null && TYPES.some((x) => x.id === t));
+      const pickedStarsValue = data.picks
+        .map((p) => stripPrefix(p.id, "stars:"))
+        .find((s): s is string => s !== null);
       const pickedAmenities = data.picks
-        .filter((p) => p.id.startsWith("amenity:"))
-        .map((p) => p.id.slice(8))
-        .filter((a) => AMENITIES.includes(a));
+        .map((p) => stripPrefix(p.id, "amenity:"))
+        .filter((a): a is string => a !== null && AMENITIES.includes(a));
 
       if (pickedTypes.length) setTypes(pickedTypes);
-      if (pickedStars) setMinStars(Number(pickedStars.slice(6)) as LodgingStarRating);
+      if (pickedStarsValue) setMinStars(Number(pickedStarsValue) as LodgingStarRating);
       setAmenities(pickedAmenities);
       setPickSummary(data.summary);
     } catch {
@@ -160,9 +161,22 @@ export function LodgingStep() {
         : { mode: "cross_reference" }
     );
 
-    const picked = hotels.find((h) => h.id === selectedHotelId) ?? null;
+    const picked = displayHotels.find((h) => h.id === selectedHotelId) ?? null;
     setSelectedHotel(picked);
   }
+
+  // Live preview of the rating source the user is currently choosing, so the hotel
+  // cards below reflect it immediately instead of only after generation.
+  const displayHotels = useMemo(
+    () =>
+      applyReviewSourcePref(
+        hotels,
+        reviewMode === "single" && reviewSource
+          ? { mode: "single", source: reviewSource }
+          : { mode: "cross_reference" }
+      ),
+    [hotels, reviewMode, reviewSource]
+  );
 
   const hasType = types.length > 0 || (otherTypeOpen && !!otherTypeValue.trim());
   // Only show hotel picker if accommodation type includes bookable hotel options
@@ -384,7 +398,7 @@ export function LodgingStep() {
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {hotels.map((h) => {
+                {displayHotels.map((h) => {
                   const selected = selectedHotelId === h.id;
                   const tierLabel = HOTEL_TIER[h.stars] ?? HOTEL_TIER[4];
                   return (
@@ -421,6 +435,9 @@ export function LodgingStep() {
                             {formatCurrency(h.pricePerNight)}<span className="font-normal text-xs text-slate-400">/night</span>
                           </p>
                           <p className="text-xs text-sage-700 font-medium">{h.rating}/10</p>
+                          {h.ratingSource && (
+                            <p className="text-[9px] text-slate-400">{h.ratingSource}</p>
+                          )}
                           {selected ? (
                             <span className="flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white">
                               <Check size={9} /> Your pick
