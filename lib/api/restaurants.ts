@@ -4,6 +4,7 @@
 import { v4 as uuid } from "uuid";
 import type { RestaurantOption, RestaurantTier } from "@/types/trip";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
+import { fuzzyCityMatch } from "@/lib/utils";
 
 interface RestaurantSearchParams {
   destination: string;
@@ -491,7 +492,7 @@ export async function searchRestaurants(params: RestaurantSearchParams): Promise
   return filtered.slice(0, 6).map((r) => ({
     ...r,
     id: uuid(),
-    location: r.location.toLowerCase().includes(params.destination.toLowerCase()) ? r.location : params.destination,
+    location: fuzzyCityMatch(r.location, params.destination) ? r.location : params.destination,
     playfulCategory: PLAYFUL_LABELS[r.tier],
     priceRange: PRICE_RANGES[r.tier],
     imageUrl: `https://picsum.photos/seed/${encodeURIComponent(r.name)}/800/400`,

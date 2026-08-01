@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, MapPin, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
+import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { fetchSmartPick } from "@/lib/api/smartPick";
 import { fuzzyCityMatch } from "@/lib/utils";
 import {
@@ -28,18 +29,10 @@ const STAGES: { id: Stage; label: string; icon: React.ReactNode; perCity: boolea
 ];
 
 export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
-  const { trip, setSelectedFlight, setSelectedHotelForCity, addWanderlogItem } = useTripStore();
+  const { trip, setSelectedFlight, setSelectedHotelForCity } = useTripStore();
   const preferences = trip.preferences;
 
-  // Names already saved to this itinerary's Wanderlog — used to show a "Saved" state
-  const wanderlogLabels = useMemo(
-    () => new Set((itinerary.wanderlog ?? []).map((w) => w.label)),
-    [itinerary.wanderlog]
-  );
-  function handleSaveToWanderlog(label: string, source: "activity" | "restaurant", location?: string) {
-    if (wanderlogLabels.has(label)) return;
-    addWanderlogItem(itinerary.id, { label, source, location });
-  }
+  const { wanderlogLabels, handleSaveToWanderlog } = useWanderlogSave(itinerary);
 
   const cities = useMemo(() => {
     const c = preferences.destination?.cities?.filter(Boolean) ?? [];

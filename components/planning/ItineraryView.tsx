@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate, pairFlights, groupByLocation } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
+import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { TripGlance } from "@/components/planning/TripGlance";
 import { BudgetBreakdown } from "@/components/planning/BudgetBreakdown";
 import { PackingList } from "@/components/planning/PackingList";
@@ -22,22 +23,14 @@ interface Props {
 }
 
 export function ItineraryView({ itinerary, hideSelectionSections = false }: Props) {
-  const { trip, setSelectedHotel, setSelectedFlight, addWanderlogItem } = useTripStore();
+  const { trip, setSelectedHotel, setSelectedFlight } = useTripStore();
   const [expandedDay, setExpandedDay] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(
     trip.preferences.selectedHotel?.id ?? null
   );
 
-  // Names already saved to this itinerary's Wanderlog — used to show a "Saved" state
-  const wanderlogLabels = useMemo(
-    () => new Set((itinerary.wanderlog ?? []).map((w) => w.label)),
-    [itinerary.wanderlog]
-  );
-  function handleSaveToWanderlog(label: string, source: "activity" | "restaurant", location?: string) {
-    if (wanderlogLabels.has(label)) return;
-    addWanderlogItem(itinerary.id, { label, source, location });
-  }
+  const { wanderlogLabels, handleSaveToWanderlog } = useWanderlogSave(itinerary);
 
   // Build card-id → display info lookup for the finalized plan
   const cardNameMap = useMemo<Record<string, { name: string; kind: "activity" | "restaurant" }>>(() => {
