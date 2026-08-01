@@ -17,6 +17,7 @@ import {
 import { X, Sparkles, BookMarked } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
+import { fetchSmartPick } from "@/lib/api/smartPick";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityOption, RestaurantOption } from "@/types/trip";
@@ -367,20 +368,14 @@ export function RefineStep() {
       .map((id) => cardMap[id]?.restaurant)
       .filter((r): r is RestaurantOption => Boolean(r));
 
-    const res = await fetch("/api/itinerary/smart-pick", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        kind: "schedule",
-        city,
-        preferences: trip.preferences,
-        days: cityDays,
-        activities: cityActivities,
-        restaurants: cityRestaurants,
-      }),
+    const data = await fetchSmartPick({
+      kind: "schedule",
+      city,
+      preferences: trip.preferences,
+      days: cityDays,
+      activities: cityActivities,
+      restaurants: cityRestaurants,
     });
-    if (!res.ok) throw new Error(await res.text());
-    const data: { picks: { id: string; dayNumber?: number; reason: string }[]; summary: string } = await res.json();
 
     const validDayNums = new Set(cityDays.map((d) => d.dayNumber));
     const toPlace = data.picks.filter(

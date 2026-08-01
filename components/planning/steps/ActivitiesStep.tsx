@@ -6,6 +6,7 @@ import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
+import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityCategory } from "@/types/trip";
 
@@ -30,8 +31,7 @@ export function ActivitiesStep() {
   const [mode, setMode] = useState<"prompt" | "manual">(
     () => (trip.preferences.activities.length > 0 ? "manual" : "prompt")
   );
-  const [picking, setPicking] = useState(false);
-  const [pickSummary, setPickSummary] = useState<string | null>(null);
+  const { picking, summary: pickSummary, run: runSmartPick } = useSmartPick();
 
   const [selectedGeneral, setSelectedGeneral] = useState<ActivityCategory[]>(
     trip.preferences.activities.filter((a): a is ActivityCategory =>
@@ -48,30 +48,16 @@ export function ActivitiesStep() {
   }
 
   async function handleZigyPick() {
-    setPicking(true);
-    try {
-      const res = await fetch("/api/itinerary/smart-pick", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "activities",
-          preferences: trip.preferences,
-          candidates: GENERAL.map((g) => ({ id: g.id, label: g.label })),
-        }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data: { picks: { id: string; reason: string }[]; summary: string } = await res.json();
-      const picked = data.picks
-        .map((p) => p.id)
-        .filter((id): id is ActivityCategory => GENERAL.some((g) => g.id === id));
-      setSelectedGeneral(picked);
-      setPickSummary(data.summary);
-    } catch {
-      // Fall through to manual — nothing selected yet
-    } finally {
-      setPicking(false);
-      setMode("manual");
-    }
+    const picks = await runSmartPick({
+      kind: "activities",
+      preferences: trip.preferences,
+      candidates: GENERAL.map((g) => ({ id: g.id, label: g.label })),
+    });
+    const picked = picks
+      .map((p) => p.id)
+      .filter((id): id is ActivityCategory => GENERAL.some((g) => g.id === id));
+    setSelectedGeneral(picked);
+    setMode("manual");
   }
 
   function handleContinue() {

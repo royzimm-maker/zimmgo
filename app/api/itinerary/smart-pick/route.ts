@@ -2,31 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { SMART_PICK_TOOL } from "@/lib/ai/tools";
 import { buildHotelPickPrompt, buildSchedulePickPrompt, buildPreferencePickPrompt } from "@/lib/ai/prompts";
-import type { TripPreferences, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
-
-type SmartPickKind = "hotel" | "schedule" | "activities" | "vibes" | "lodging";
-
-interface SmartPickRequest {
-  kind: SmartPickKind;
-  city?: string;
-  preferences: TripPreferences;
-  hotels?: HotelOption[];
-  days?: ItineraryDay[];
-  activities?: ActivityOption[];
-  restaurants?: RestaurantOption[];
-  candidates?: { id: string; label: string }[];
-}
-
-interface SmartPickResult {
-  picks: { id: string; dayNumber?: number; reason: string }[];
-  summary: string;
-}
+import type { SmartPickKind, SmartPickRequestBody, SmartPickResponse } from "@/types/smartPick";
 
 const PREFERENCE_KINDS = new Set<SmartPickKind>(["activities", "vibes", "lodging"]);
 
 export async function POST(request: NextRequest) {
   try {
-    const body: SmartPickRequest = await request.json();
+    const body: SmartPickRequestBody = await request.json();
     const { kind, preferences } = body;
 
     const prompt = kind === "hotel"
@@ -56,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "AI did not return a selection" }, { status: 502 });
     }
 
-    const result = toolUse.input as SmartPickResult;
+    const result = toolUse.input as SmartPickResponse;
     return NextResponse.json(result);
   } catch (error: unknown) {
     console.error("[itinerary/smart-pick]", error);

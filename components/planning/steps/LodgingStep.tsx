@@ -6,6 +6,7 @@ import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
+import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -36,8 +37,7 @@ export function LodgingStep() {
   const { trip, setLodging, setSelectedHotel, setReviewSourcePref } = useTripStore();
   const existing = trip.preferences.lodging;
   const [mode, setMode] = useState<"prompt" | "manual">(() => (existing ? "manual" : "prompt"));
-  const [picking, setPicking] = useState(false);
-  const [pickSummary, setPickSummary] = useState<string | null>(null);
+  const { picking, summary: pickSummary, run: runSmartPick } = useSmartPick();
   // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
   const destination = trip.preferences.destination?.cities?.[0]
     ?? trip.preferences.destination?.displayName ?? "";
@@ -106,44 +106,30 @@ export function LodgingStep() {
   }
 
   async function handleZigyPick() {
-    setPicking(true);
-    try {
-      const candidates = [
-        ...TYPES.map((t) => ({ id: `type:${t.id}`, label: `Lodging type: ${t.label}` })),
-        ...([3, 4, 5] as LodgingStarRating[]).map((s) => ({ id: `stars:${s}`, label: `${s}-star minimum` })),
-        ...AMENITIES.map((a) => ({ id: `amenity:${a}`, label: `Amenity: ${a}` })),
-      ];
-      const res = await fetch("/api/itinerary/smart-pick", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "lodging", preferences: trip.preferences, candidates }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data: { picks: { id: string; reason: string }[]; summary: string } = await res.json();
+    const candidates = [
+      ...TYPES.map((t) => ({ id: `type:${t.id}`, label: `Lodging type: ${t.label}` })),
+      ...([3, 4, 5] as LodgingStarRating[]).map((s) => ({ id: `stars:${s}`, label: `${s}-star minimum` })),
+      ...AMENITIES.map((a) => ({ id: `amenity:${a}`, label: `Amenity: ${a}` })),
+    ];
+    const picks = await runSmartPick({ kind: "lodging", preferences: trip.preferences, candidates });
 
-      const stripPrefix = (id: string, prefix: string) =>
-        id.startsWith(prefix) ? id.slice(prefix.length) : null;
+    const stripPrefix = (id: string, prefix: string) =>
+      id.startsWith(prefix) ? id.slice(prefix.length) : null;
 
-      const pickedTypes = data.picks
-        .map((p) => stripPrefix(p.id, "type:") as LodgingType | null)
-        .filter((t): t is LodgingType => t !== null && TYPES.some((x) => x.id === t));
-      const pickedStarsValue = data.picks
-        .map((p) => stripPrefix(p.id, "stars:"))
-        .find((s): s is string => s !== null);
-      const pickedAmenities = data.picks
-        .map((p) => stripPrefix(p.id, "amenity:"))
-        .filter((a): a is string => a !== null && AMENITIES.includes(a));
+    const pickedTypes = picks
+      .map((p) => stripPrefix(p.id, "type:") as LodgingType | null)
+      .filter((t): t is LodgingType => t !== null && TYPES.some((x) => x.id === t));
+    const pickedStarsValue = picks
+      .map((p) => stripPrefix(p.id, "stars:"))
+      .find((s): s is string => s !== null);
+    const pickedAmenities = picks
+      .map((p) => stripPrefix(p.id, "amenity:"))
+      .filter((a): a is string => a !== null && AMENITIES.includes(a));
 
-      if (pickedTypes.length) setTypes(pickedTypes);
-      if (pickedStarsValue) setMinStars(Number(pickedStarsValue) as LodgingStarRating);
-      setAmenities(pickedAmenities);
-      setPickSummary(data.summary);
-    } catch {
-      // Fall through to manual — nothing selected yet
-    } finally {
-      setPicking(false);
-      setMode("manual");
-    }
+    if (pickedTypes.length) setTypes(pickedTypes);
+    if (pickedStarsValue) setMinStars(Number(pickedStarsValue) as LodgingStarRating);
+    setAmenities(pickedAmenities);
+    setMode("manual");
   }
 
   function handleContinue() {

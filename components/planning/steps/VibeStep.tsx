@@ -6,6 +6,7 @@ import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
+import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { VibeTag } from "@/types/trip";
 
@@ -24,8 +25,7 @@ export function VibeStep() {
   const [mode, setMode] = useState<"prompt" | "manual">(
     () => (trip.preferences.vibes.length > 0 ? "manual" : "prompt")
   );
-  const [picking, setPicking] = useState(false);
-  const [pickSummary, setPickSummary] = useState<string | null>(null);
+  const { picking, summary: pickSummary, run: runSmartPick } = useSmartPick();
   const [selected, setSelected] = useState<VibeTag[]>(trip.preferences.vibes);
   const [otherOpen,  setOtherOpen ] = useState(false);
   const [otherValue, setOtherValue] = useState("");
@@ -37,30 +37,16 @@ export function VibeStep() {
   }
 
   async function handleZigyPick() {
-    setPicking(true);
-    try {
-      const res = await fetch("/api/itinerary/smart-pick", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "vibes",
-          preferences: trip.preferences,
-          candidates: VIBES.map((v) => ({ id: v.id, label: v.label })),
-        }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data: { picks: { id: string; reason: string }[]; summary: string } = await res.json();
-      const picked = data.picks
-        .map((p) => p.id)
-        .filter((id): id is VibeTag => VIBES.some((v) => v.id === id));
-      setSelected(picked);
-      setPickSummary(data.summary);
-    } catch {
-      // Fall through to manual — nothing selected yet
-    } finally {
-      setPicking(false);
-      setMode("manual");
-    }
+    const picks = await runSmartPick({
+      kind: "vibes",
+      preferences: trip.preferences,
+      candidates: VIBES.map((v) => ({ id: v.id, label: v.label })),
+    });
+    const picked = picks
+      .map((p) => p.id)
+      .filter((id): id is VibeTag => VIBES.some((v) => v.id === id));
+    setSelected(picked);
+    setMode("manual");
   }
 
   function handleContinue() {
