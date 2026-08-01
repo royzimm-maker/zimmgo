@@ -14,14 +14,15 @@ const DESTINATIONS = [
   { name: "Morocco",    flag: "🇲🇦" },
 ];
 
+// Mirrors ORDERED_STEPS in types/trip.ts
 const STEPS = [
   { icon: "📍", label: "Destination" },
-  { icon: "🎯", label: "Activities" },
-  { icon: "✨", label: "Vibe" },
   { icon: "📅", label: "Dates" },
+  { icon: "✈️", label: "Flights" },
   { icon: "💰", label: "Budget" },
   { icon: "🏨", label: "Lodging" },
-  { icon: "✈️", label: "Flights" },
+  { icon: "🎯", label: "Activities" },
+  { icon: "✨", label: "Vibe" },
   { icon: "🚗", label: "Transport" },
   { icon: "🗺️", label: "Itinerary" },
 ];
