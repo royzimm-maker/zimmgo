@@ -37,11 +37,18 @@ export function Wanderlog({ itinerary }: Props) {
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
       >
-        <div className="flex items-center gap-2">
-          <BookMarked size={15} className="text-brand-500" />
-          <span className="text-sm font-semibold text-slate-800">ZiGy&apos;s Wanderlog</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <BookMarked size={15} className="text-brand-500 shrink-0" />
+          <div className="min-w-0">
+            <span className="text-sm font-semibold text-slate-800">ZiGy&apos;s Wanderlog</span>
+            {!open && (
+              <p className="text-[11px] text-slate-400 truncate">
+                Your save-for-later list — bookmark any restaurant or activity to keep it without scheduling it.
+              </p>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {items.length > 0 && (
             <span className="text-xs text-slate-400 font-medium">{items.length} saved</span>
           )}
@@ -52,7 +59,7 @@ export function Wanderlog({ itinerary }: Props) {
       {open && (
         <div className="border-t border-slate-100 px-4 py-3">
           <p className="text-xs text-slate-500 mb-3">
-            Things worth remembering for when you&apos;re actually there — save a pick instead of scheduling it, or jot your own note.
+            A save-for-later list, separate from your day-by-day plan. Tap the <BookMarked size={10} className="inline -mt-0.5" /> bookmark on any restaurant or activity to add it here instead of scheduling it — good for backups, "if we have time" ideas, or things you want to remember without committing to a day. You can also jot your own note below.
           </p>
 
           {items.length > 0 && (

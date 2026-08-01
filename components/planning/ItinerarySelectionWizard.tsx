@@ -28,8 +28,18 @@ const STAGES: { id: Stage; label: string; icon: React.ReactNode; perCity: boolea
 ];
 
 export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
-  const { trip, setSelectedFlight, setSelectedHotelForCity } = useTripStore();
+  const { trip, setSelectedFlight, setSelectedHotelForCity, addWanderlogItem } = useTripStore();
   const preferences = trip.preferences;
+
+  // Names already saved to this itinerary's Wanderlog — used to show a "Saved" state
+  const wanderlogLabels = useMemo(
+    () => new Set((itinerary.wanderlog ?? []).map((w) => w.label)),
+    [itinerary.wanderlog]
+  );
+  function handleSaveToWanderlog(label: string, source: "activity" | "restaurant", location?: string) {
+    if (wanderlogLabels.has(label)) return;
+    addWanderlogItem(itinerary.id, { label, source, location });
+  }
 
   const cities = useMemo(() => {
     const c = preferences.destination?.cities?.filter(Boolean) ?? [];
@@ -197,7 +207,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
         {stage.id === "restaurants" && (
           restaurantsForCity.length > 0 ? (
             <div className="flex flex-col gap-3">
-              {visibleRestaurants.map((r) => <RestaurantCard key={r.id} restaurant={r} />)}
+              {visibleRestaurants.map((r) => (
+                <RestaurantCard
+                  key={r.id}
+                  restaurant={r}
+                  saved={wanderlogLabels.has(r.name)}
+                  onSave={() => handleSaveToWanderlog(r.name, "restaurant", r.location)}
+                />
+              ))}
               {hasMoreRestaurants && !restaurantsExpanded && (
                 <button
                   type="button"
@@ -217,7 +234,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
         {stage.id === "activities" && (
           activitiesForCity.length > 0 ? (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {activitiesForCity.map((a) => <ActivityCard key={a.id} activity={a} />)}
+              {activitiesForCity.map((a) => (
+                <ActivityCard
+                  key={a.id}
+                  activity={a}
+                  saved={wanderlogLabels.has(a.name)}
+                  onSave={() => handleSaveToWanderlog(a.name, "activity", a.location)}
+                />
+              ))}
             </div>
           ) : (
             <EmptyState label={`activities for ${currentCity}`} />

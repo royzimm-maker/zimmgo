@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check } from "lucide-react";
+import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, BookMarked } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate, pairFlights, groupByLocation } from "@/lib/utils";
@@ -22,12 +22,22 @@ interface Props {
 }
 
 export function ItineraryView({ itinerary, hideSelectionSections = false }: Props) {
-  const { trip, setSelectedHotel, setSelectedFlight } = useTripStore();
+  const { trip, setSelectedHotel, setSelectedFlight, addWanderlogItem } = useTripStore();
   const [expandedDay, setExpandedDay] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(
     trip.preferences.selectedHotel?.id ?? null
   );
+
+  // Names already saved to this itinerary's Wanderlog — used to show a "Saved" state
+  const wanderlogLabels = useMemo(
+    () => new Set((itinerary.wanderlog ?? []).map((w) => w.label)),
+    [itinerary.wanderlog]
+  );
+  function handleSaveToWanderlog(label: string, source: "activity" | "restaurant", location?: string) {
+    if (wanderlogLabels.has(label)) return;
+    addWanderlogItem(itinerary.id, { label, source, location });
+  }
 
   // Build card-id → display info lookup for the finalized plan
   const cardNameMap = useMemo<Record<string, { name: string; kind: "activity" | "restaurant" }>>(() => {
@@ -152,10 +162,21 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
 
       {/* Restaurants — grouped by location */}
       {!hideSelectionSections && itinerary.restaurants && itinerary.restaurants.length > 0 && (
-        <Section title="Where to Eat" icon={<UtensilsCrossed size={16} />}>
+        <Section
+          title="Where to Eat"
+          icon={<UtensilsCrossed size={16} />}
+          subtitle="Tap the bookmark to save a pick to your Wanderlog for later."
+        >
           <GroupedCards
             items={itinerary.restaurants}
-            renderCard={(r) => <RestaurantCard key={r.id} restaurant={r} />}
+            renderCard={(r) => (
+              <RestaurantCard
+                key={r.id}
+                restaurant={r}
+                saved={wanderlogLabels.has(r.name)}
+                onSave={() => handleSaveToWanderlog(r.name, "restaurant", r.location)}
+              />
+            )}
           />
         </Section>
       )}
@@ -189,10 +210,21 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
 
       {/* Activities — grouped by location */}
       {!hideSelectionSections && itinerary.activities.length > 0 && (
-        <Section title="Top Experiences" icon={<Star size={16} />}>
+        <Section
+          title="Top Experiences"
+          icon={<Star size={16} />}
+          subtitle="Tap the bookmark to save a pick to your Wanderlog for later."
+        >
           <GroupedCards
             items={itinerary.activities}
-            renderCard={(a) => <ActivityCard key={a.id} activity={a} />}
+            renderCard={(a) => (
+              <ActivityCard
+                key={a.id}
+                activity={a}
+                saved={wanderlogLabels.has(a.name)}
+                onSave={() => handleSaveToWanderlog(a.name, "activity", a.location)}
+              />
+            )}
             gridCols
           />
         </Section>
@@ -619,7 +651,15 @@ const PRICE_LABEL_COLOR: Record<string, string> = {
   "$":    "text-slate-600",
 };
 
-export function RestaurantCard({ restaurant: r }: { restaurant: RestaurantOption }) {
+export function RestaurantCard({
+  restaurant: r,
+  saved = false,
+  onSave,
+}: {
+  restaurant: RestaurantOption;
+  saved?: boolean;
+  onSave?: () => void;
+}) {
   const emoji = RESTAURANT_TIER_EMOJI[r.tier] ?? "🍽️";
   const priceColor = PRICE_LABEL_COLOR[r.priceRange] ?? "text-slate-600";
 
@@ -652,10 +692,23 @@ export function RestaurantCard({ restaurant: r }: { restaurant: RestaurantOption
               </p>
             )}
           </div>
-          <div className="text-right shrink-0 ml-2">
-            <p className="text-xs font-medium text-sage-700">{r.rating}/10</p>
-            <p className="text-[10px] text-slate-400">{r.reviewCount.toLocaleString()} reviews</p>
-            {r.ratingSource && <p className="text-[9px] text-slate-400 mt-0.5">{r.ratingSource}</p>}
+          <div className="text-right shrink-0 ml-2 flex flex-col items-end gap-1.5">
+            {onSave && (
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={saved}
+                title={saved ? "Saved to Wanderlog" : "Save to Wanderlog"}
+                className={`transition-colors ${saved ? "text-brand-500" : "text-slate-300 hover:text-brand-500"}`}
+              >
+                <BookMarked size={15} className={saved ? "fill-brand-100" : undefined} />
+              </button>
+            )}
+            <div>
+              <p className="text-xs font-medium text-sage-700">{r.rating}/10</p>
+              <p className="text-[10px] text-slate-400">{r.reviewCount.toLocaleString()} reviews</p>
+              {r.ratingSource && <p className="text-[9px] text-slate-400 mt-0.5">{r.ratingSource}</p>}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-slate-100">
@@ -794,7 +847,15 @@ function DayCard({
   );
 }
 
-export function ActivityCard({ activity }: { activity: ActivityOption }) {
+export function ActivityCard({
+  activity,
+  saved = false,
+  onSave,
+}: {
+  activity: ActivityOption;
+  saved?: boolean;
+  onSave?: () => void;
+}) {
   return (
     <Card padding="sm">
       <div className="flex items-start justify-between gap-2">
@@ -809,14 +870,27 @@ export function ActivityCard({ activity }: { activity: ActivityOption }) {
             <span>⭐ {activity.rating}{activity.ratingSource ? ` (${activity.ratingSource})` : ""}</span>
           </div>
         </div>
-        <div className="text-right shrink-0">
-          <p className="font-bold text-slate-900 text-sm">{formatCurrency(activity.price)}</p>
-          {activity.bookingUrl && (
-            <a href={activity.bookingUrl} target="_blank" rel="noreferrer"
-              className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 justify-end mt-0.5">
-              Book <ExternalLink size={10} />
-            </a>
+        <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
+          {onSave && (
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saved}
+              title={saved ? "Saved to Wanderlog" : "Save to Wanderlog"}
+              className={`transition-colors ${saved ? "text-brand-500" : "text-slate-300 hover:text-brand-500"}`}
+            >
+              <BookMarked size={15} className={saved ? "fill-brand-100" : undefined} />
+            </button>
           )}
+          <div>
+            <p className="font-bold text-slate-900 text-sm">{formatCurrency(activity.price)}</p>
+            {activity.bookingUrl && (
+              <a href={activity.bookingUrl} target="_blank" rel="noreferrer"
+                className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 justify-end mt-0.5">
+                Book <ExternalLink size={10} />
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </Card>
