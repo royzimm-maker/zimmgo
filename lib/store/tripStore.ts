@@ -22,6 +22,7 @@ import type {
   BudgetRange,
   WanderlogItem,
   ReviewSourcePreference,
+  BeliPreference,
 } from "@/types/trip";
 import { calcProgress } from "@/types/trip";
 
@@ -50,6 +51,7 @@ interface TripState {
   setBudgetDetails: (details: { travelers?: number; rooms?: number; dailyFoodBudgetPerPerson?: number }) => void;
   setLodging: (lodging: LodgingPreference) => void;
   setReviewSourcePref: (pref: ReviewSourcePreference) => void;
+  setBeliPref: (pref: BeliPreference) => void;
   setSelectedHotel: (hotel: HotelOption | null) => void;
   setSelectedHotelForCity: (city: string, hotel: HotelOption | null) => void;
   setSelectedFlight: (flight: import("@/types/trip").FlightOption | null) => void;
@@ -220,6 +222,15 @@ export const useTripStore = create<TripState>()(
           trip: {
             ...s.trip,
             preferences: { ...s.trip.preferences, reviewSourcePref },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setBeliPref: (beliPref) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, beliPref },
             updatedAt: new Date().toISOString(),
           },
         })),

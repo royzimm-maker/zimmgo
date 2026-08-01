@@ -96,6 +96,15 @@ export interface ReviewSourcePreference {
   source?: ReviewSource; // set when mode === "single"
 }
 
+// Beli is a social restaurant-ranking app — connecting an account lets ZiGy
+// weight restaurant picks toward what the user has bookmarked/ranked highly
+// there. No public Beli API exists today, so this is mocked (see
+// lib/data/beli.ts), but shaped so a real OAuth connection is a drop-in swap.
+export interface BeliPreference {
+  connected: boolean;
+  username?: string;
+}
+
 export interface AirlinePreference {
   airlines: string[];
   alliances: AirlineAlliance[];
@@ -122,6 +131,7 @@ export interface TripPreferences {
   selectedFlight?: FlightOption;
   airlinePrefs?: AirlinePreference;
   reviewSourcePref?: ReviewSourcePreference; // how hotel/restaurant/activity ratings are sourced
+  beliPref?: BeliPreference; // optional Beli account to weight restaurant picks toward
   transportation: TransportMode[];
 }
 
@@ -206,6 +216,8 @@ export interface RestaurantOption {
   imageUrl?: string;
   bookingUrl?: string;
   menuUrl?: string;
+  isBeliPick?: boolean;
+  beliNote?: string;
 }
 
 export interface ItineraryDay {

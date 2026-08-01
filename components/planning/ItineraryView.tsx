@@ -683,9 +683,15 @@ export function RestaurantCard({
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-semibold text-slate-800 text-sm">{r.name}</p>
               <span className={`text-xs font-bold ${priceColor}`}>{r.priceRange}</span>
+              {r.isBeliPick && <Badge variant="success">Beli pick</Badge>}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">{r.cuisine} · {r.location}</p>
             <p className="text-xs text-slate-600 leading-relaxed mt-1.5">{r.description}</p>
+            {r.beliNote && (
+              <p className="mt-1.5 text-[11px] text-brand-600 bg-brand-50 rounded px-2 py-1 leading-snug">
+                📍 {r.beliNote}
+              </p>
+            )}
             {r.mustOrder && (
               <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 rounded px-2 py-1 leading-snug">
                 🍴 Must order: {r.mustOrder}
