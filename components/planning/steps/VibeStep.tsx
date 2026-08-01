@@ -25,7 +25,7 @@ export function VibeStep() {
   const [mode, setMode] = useState<"prompt" | "manual">(
     () => (trip.preferences.vibes.length > 0 ? "manual" : "prompt")
   );
-  const { picking, summary: pickSummary, run: runSmartPick } = useSmartPick();
+  const { picking, pickSummary, run: runSmartPick } = useSmartPick();
   const [selected, setSelected] = useState<VibeTag[]>(trip.preferences.vibes);
   const [otherOpen,  setOtherOpen ] = useState(false);
   const [otherValue, setOtherValue] = useState("");

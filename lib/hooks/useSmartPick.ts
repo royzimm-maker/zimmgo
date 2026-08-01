@@ -6,20 +6,21 @@ import type { SmartPickRequestBody, SmartPick } from "@/types/smartPick";
 
 export function useSmartPick() {
   const [picking, setPicking] = useState(false);
-  const [summary, setSummary] = useState<string | null>(null);
+  const [pickSummary, setPickSummary] = useState<string | null>(null);
 
   async function run(body: SmartPickRequestBody): Promise<SmartPick[]> {
     setPicking(true);
     try {
       const data = await fetchSmartPick(body);
-      setSummary(data.summary);
+      setPickSummary(data.summary);
       return data.picks;
     } catch {
+      // Swallow — callers fall through to manual selection with nothing picked.
       return [];
     } finally {
       setPicking(false);
     }
   }
 
-  return { picking, summary, run };
+  return { picking, pickSummary, run };
 }

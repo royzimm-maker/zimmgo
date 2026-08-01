@@ -31,7 +31,7 @@ export function ActivitiesStep() {
   const [mode, setMode] = useState<"prompt" | "manual">(
     () => (trip.preferences.activities.length > 0 ? "manual" : "prompt")
   );
-  const { picking, summary: pickSummary, run: runSmartPick } = useSmartPick();
+  const { picking, pickSummary, run: runSmartPick } = useSmartPick();
 
   const [selectedGeneral, setSelectedGeneral] = useState<ActivityCategory[]>(
     trip.preferences.activities.filter((a): a is ActivityCategory =>

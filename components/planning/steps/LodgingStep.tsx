@@ -37,7 +37,7 @@ export function LodgingStep() {
   const { trip, setLodging, setSelectedHotel, setReviewSourcePref } = useTripStore();
   const existing = trip.preferences.lodging;
   const [mode, setMode] = useState<"prompt" | "manual">(() => (existing ? "manual" : "prompt"));
-  const { picking, summary: pickSummary, run: runSmartPick } = useSmartPick();
+  const { picking, pickSummary, run: runSmartPick } = useSmartPick();
   // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
   const destination = trip.preferences.destination?.cities?.[0]
     ?? trip.preferences.destination?.displayName ?? "";

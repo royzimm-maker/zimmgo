@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, MapPin, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
+import { fetchSmartPick } from "@/lib/api/smartPick";
 import { fuzzyCityMatch } from "@/lib/utils";
 import {
   Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard,
@@ -83,13 +84,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
   async function handleSmartPickHotel() {
     setPickingHotel(true);
     try {
-      const res = await fetch("/api/itinerary/smart-pick", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "hotel", city: currentCity, preferences, hotels: hotelsForCity }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data: { picks: { id: string; reason: string }[] } = await res.json();
+      const data = await fetchSmartPick({ kind: "hotel", city: currentCity, preferences, hotels: hotelsForCity });
       const pick = data.picks[0];
       const hotel = pick && hotelsForCity.find((h) => h.id === pick.id);
       if (hotel) {
