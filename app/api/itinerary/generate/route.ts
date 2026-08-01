@@ -14,10 +14,13 @@ import { groupByLocation } from "@/lib/utils";
 import { BUDGET_LABELS } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
-function dedup<T extends { name?: string }>(arr: T[]): T[] {
+// Keyed by name + location — cities that share a mock content pool (e.g. Rome and
+// Florence both draw from the "italy" pool) return identically-named items, and a
+// name-only key would silently drop every city but the first.
+function dedup<T extends { name?: string; location?: string }>(arr: T[]): T[] {
   const seen = new Set<string>();
   return arr.filter((x) => {
-    const k = (x.name ?? "").toLowerCase();
+    const k = `${(x.location ?? "").toLowerCase()}::${(x.name ?? "").toLowerCase()}`;
     if (seen.has(k)) return false;
     seen.add(k);
     return true;

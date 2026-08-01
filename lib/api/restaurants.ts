@@ -483,14 +483,15 @@ export async function searchRestaurants(params: RestaurantSearchParams): Promise
     filtered = base.filter((r) => r.tier !== "fine_dining");
   }
 
-  // For "default" pool entries the seed location is generic ("City centre" etc.)
-  // Prepend the actual search destination so the user sees something useful.
-  const defaultKeys = new Set(["City centre", "Old town", "Local district", "Market square"]);
-
+  // Seed locations are real neighbourhoods within their pool's home city (or generic
+  // placeholders like "City centre" for the default pool). When a nearby city shares
+  // that pool via DESTINATION_ALIASES (e.g. Florence borrowing the "italy" pool, whose
+  // seeds are all Rome neighbourhoods), the seed location won't mention the actual
+  // search destination — swap it out so results aren't mislabeled as another city.
   return filtered.slice(0, 6).map((r) => ({
     ...r,
     id: uuid(),
-    location: defaultKeys.has(r.location) ? params.destination : r.location,
+    location: r.location.toLowerCase().includes(params.destination.toLowerCase()) ? r.location : params.destination,
     playfulCategory: PLAYFUL_LABELS[r.tier],
     priceRange: PRICE_RANGES[r.tier],
     imageUrl: `https://picsum.photos/seed/${encodeURIComponent(r.name)}/800/400`,
