@@ -6,6 +6,7 @@ import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
+import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { VibeTag } from "@/types/trip";
@@ -86,6 +87,11 @@ export function VibeStep() {
       continueDisabled={!hasSelection}
       subtitle="What's the feel of this trip? Pick as many as apply."
     >
+      <ModeToggleBanner
+        label="Vibes for you to choose from — or let ZiGy pick."
+        onZigy={handleZigyPick}
+        loading={picking}
+      />
       {pickSummary && (
         <p className="mb-4 text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2">
           <Sparkles size={11} className="inline mr-1" />

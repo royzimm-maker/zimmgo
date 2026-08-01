@@ -89,7 +89,7 @@ export interface LodgingPreference {
 
 // How hotel/restaurant/activity ratings are sourced — mock data today, but
 // shaped so a production swap to real review APIs is a straightforward drop-in.
-export type ReviewSource = "Google Reviews" | "TripAdvisor" | "Booking.com" | "Yelp" | "OpenTable";
+export type ReviewSource = "Google Reviews" | "TripAdvisor" | "Booking.com" | "Expedia" | "Hotels.com";
 
 export interface ReviewSourcePreference {
   mode: "single" | "cross_reference";

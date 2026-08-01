@@ -6,6 +6,7 @@ import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
+import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityCategory } from "@/types/trip";
@@ -98,6 +99,11 @@ export function ActivitiesStep() {
       continueDisabled={totalSelected === 0}
       subtitle="What kind of experiences do you love? We'll weave these into your itinerary."
     >
+      <ModeToggleBanner
+        label="Activities for you to choose from — or let ZiGy pick."
+        onZigy={handleZigyPick}
+        loading={picking}
+      />
       {pickSummary && (
         <p className="mb-4 text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2">
           <Sparkles size={11} className="inline mr-1" />

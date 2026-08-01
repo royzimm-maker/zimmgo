@@ -1,13 +1,16 @@
 // Applies the user's review-source preference to mock rating data.
 // PRODUCTION SWAP POINT: replace the mock jitter below with real per-source
-// API calls (Booking.com, Google Places, TripAdvisor, Yelp, OpenTable) keyed
-// off the same ReviewSourcePreference shape — everything downstream (types,
-// UI, this function's signature) already expects a sourceRatings breakdown.
+// API calls (Booking.com, Google Places, TripAdvisor, Expedia, Hotels.com)
+// keyed off the same ReviewSourcePreference shape — everything downstream
+// (types, UI, this function's signature) already expects a sourceRatings breakdown.
 
 import { randomInt } from "@/lib/utils";
 import type { ReviewSourcePreference } from "@/types/trip";
 
-export const REVIEW_SOURCES = ["Google Reviews", "TripAdvisor", "Booking.com", "Yelp", "OpenTable"] as const;
+// One preference covers hotels, restaurants, and activities at once (asked for
+// during the Lodging step, applied everywhere) — so sources are picked to be
+// reasonable across all three rather than dining- or lodging-specific only.
+export const REVIEW_SOURCES = ["Google Reviews", "TripAdvisor", "Booking.com", "Expedia", "Hotels.com"] as const;
 
 const CROSS_REFERENCE_SOURCES = ["Google Reviews", "TripAdvisor", "Booking.com"] as const;
 

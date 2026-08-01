@@ -6,6 +6,7 @@ import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
+import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
@@ -195,6 +196,11 @@ export function LodgingStep() {
       continueDisabled={!hasType}
       subtitle="We'll surface options that match your taste."
     >
+      <ModeToggleBanner
+        label="Lodging preferences for you to choose from — or let ZiGy pick."
+        onZigy={handleZigyPick}
+        loading={picking}
+      />
       <div className="flex flex-col gap-6">
         {pickSummary && (
           <p className="text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2">
