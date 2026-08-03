@@ -90,7 +90,10 @@ function findHotelBase(destination: string): (Partial<HotelOption> & { hotelType
   const direct = Object.keys(HOTEL_DB).find((k) => lower.includes(k));
   if (direct) return HOTEL_DB[direct];
   const alias = Object.entries(HOTEL_ALIASES).find(([a]) => lower.includes(a));
-  return HOTEL_DB[alias?.[1] ?? "default"];
+  // Defensive fallback (see the same pattern in activities.ts/restaurants.ts,
+  // added after a missing pool crashed generation for an entire alias target):
+  // never return undefined even if an alias points to a pool key with no content.
+  return HOTEL_DB[alias?.[1] ?? "default"] ?? HOTEL_DB.default;
 }
 
 

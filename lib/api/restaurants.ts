@@ -471,7 +471,10 @@ function findRestaurantBase(destination: string): RestaurantSeed[] {
   const direct = Object.keys(RESTAURANT_DB).find((k) => lower.includes(k));
   if (direct) return RESTAURANT_DB[direct];
   const alias = Object.entries(DESTINATION_ALIASES).find(([a]) => lower.includes(a));
-  return RESTAURANT_DB[alias?.[1] ?? "default"];
+  // Same defensive fallback as activities.ts's findActivityBase: DESTINATION_ALIASES
+  // is shared, so a future alias target without matching content here shouldn't
+  // crash every caller — fall back to "default" instead of undefined.
+  return RESTAURANT_DB[alias?.[1] ?? "default"] ?? RESTAURANT_DB.default;
 }
 
 export async function searchRestaurants(params: RestaurantSearchParams): Promise<RestaurantOption[]> {

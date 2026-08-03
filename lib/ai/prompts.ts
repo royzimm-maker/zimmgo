@@ -1,13 +1,21 @@
 import type { TripPreferences, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 import { resolveBudget } from "@/types/trip";
 
+// "Where do you want to go?" free-text input — parsed with parse_destination
+export function buildDestinationParsePrompt(text: string): string {
+  return `The traveller typed this into a "where do you want to go?" field:\n\n"${text}"\n\nCall parse_destination with the real place names they mentioned (respecting any explicit constraints they stated, like "just X" or "no side trips" implying a single city) and a clean display label.`;
+}
+
 // Builds the user-facing prompt for itinerary generation from the stored preferences
 export function buildItineraryPrompt(preferences: TripPreferences): string {
   const parts: string[] = [];
 
   const destNames = preferences.destination?.displayName ?? "the destination";
-  const destList  = destNames.split(", ").filter(Boolean);
-  const isMulti   = destList.length > 1;
+  // destination.cities is the authoritative city list (parsed once, on the
+  // Destination step) — displayName is just a label and often contains its
+  // own commas (e.g. "Barcelona, Spain"), so splitting it here would
+  // misdetect single-city trips as multi-destination.
+  const isMulti = (preferences.destination?.cities?.length ?? 0) > 1;
 
   if (isMulti) {
     parts.push(

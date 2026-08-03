@@ -45,7 +45,11 @@ const POPULAR = [
   "Patagonia",
 ];
 
-// Extract meaningful place names from free-text input, e.g.:
+// Fast-path regex parser — only reliable for the curated "Country — City,
+// City & City" quick-pick format (it assumes the first special character is
+// a dash/colon, before any comma). Free-typed sentences that don't follow
+// that exact shape are parsed by the AI instead (see handleContinue) since
+// this heuristic mangles them into sentence-fragment "cities".
 //   "Italy — Rome, Amalfi Coast & Dolomites"  → ["Rome", "Amalfi Coast", "Dolomites"]
 //   "Japan — Tokyo, Kyoto & Osaka"            → ["Tokyo", "Kyoto", "Osaka"]
 function parseCitiesFromText(text: string): string[] {
@@ -64,6 +68,7 @@ export function DestinationStep() {
   const saved = trip.preferences.destination;
 
   const [freeText, setFreeText] = useState(saved?.freeText ?? saved?.displayName ?? "");
+  const [parsing, setParsing] = useState(false);
   // Read localStorage after mount only — reading it in the initializer would run
   // during SSR too (where it's unavailable), causing a hydration mismatch.
   const [history, setHistory] = useState<string[]>([]);
@@ -81,11 +86,36 @@ export function DestinationStep() {
     });
   }
 
-  function handleContinue() {
+  async function handleContinue() {
     const text = freeText.trim();
-    if (!text) return;
+    if (!text) return false;
     saveToHistory(text);
     setHistory(readHistory());
+
+    // The curated quick-pick strings always match "Country — City, City & City"
+    // exactly, so the fast regex parser is reliable for them — skip the AI
+    // round-trip. Anything else (real free-typed text) goes through the AI,
+    // since the regex heuristic only handles that one specific shape.
+    let cities = parseCitiesFromText(text);
+    let displayName = text;
+    if (!POPULAR.includes(text)) {
+      setParsing(true);
+      try {
+        const res = await fetch("/api/destination/parse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data: { cities: string[]; displayName: string } = await res.json();
+        if (data.cities?.length) cities = data.cities;
+        if (data.displayName?.trim()) displayName = data.displayName;
+      } catch {
+        // Fall back to the regex heuristic — better than blocking the user entirely
+      } finally {
+        setParsing(false);
+      }
+    }
 
     // Silently compute routing to pass context to the AI and pre-fill Flights step
     const { routing, excludedPlaces } = getFilteredRoutingSuggestion(text);
@@ -102,9 +132,9 @@ export function DestinationStep() {
     const existing = useTripStore.getState().trip.preferences.destination;
     const dest: Destination = {
       ...(existing ?? {}),
-      displayName: text,
+      displayName,
       freeText: text,
-      cities: parseCitiesFromText(text),
+      cities,
       arrivalAirport: bestArrival ?? existing?.arrivalAirport,
       routingNote: routeUsable
         ? `${routing.suggestedRoute}\n\nWhy this works: ${routing.routingWhy}`
@@ -120,6 +150,7 @@ export function DestinationStep() {
       stepId="destination"
       onContinue={handleContinue}
       continueDisabled={!canContinue}
+      continueLoading={parsing}
       subtitle="Tell us where you want to go — the more detail the better."
     >
       {/* ── Free-text destination input ── */}

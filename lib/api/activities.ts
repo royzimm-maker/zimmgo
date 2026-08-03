@@ -51,6 +51,30 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Sunrise photography at Tre Cime",category: "photography",  duration: "4h",   price: 75,  rating: 9.8, reviewCount: 4600, isLocalFavorite: false, description: "The Tre Cime di Lavaredo at golden hour is one of the great mountain photographs. A guide gets you there at the right moment." },
     { name: "Dolomites e-bike tour",          category: "cycling",      duration: "5h",   price: 120, rating: 9.3, reviewCount: 3100, isLocalFavorite: true,  description: "Pedal through alpine meadows and traditional Ladin villages with a local guide, letting the motor help on the climbs." },
   ],
+  spain: [
+    { name: "Sagrada Família & Park Güell guided tour", category: "cultural", duration: "4h", price: 95, rating: 9.5, reviewCount: 12000, isLocalFavorite: false, description: "Skip-the-line access to Gaudí's masterpieces with an architecture-focused guide who makes the modernist movement click." },
+    { name: "Tapas & vermouth crawl in El Born",  category: "food",     duration: "3h",  price: 75,  rating: 9.4, reviewCount: 3400, isLocalFavorite: true,  description: "Hop between four family-run bodegas most tourists walk straight past, pairing vermut on tap with proper jamón." },
+    { name: "Flamenco show in a traditional tablao", category: "cultural", duration: "2h", price: 55, rating: 9.0, reviewCount: 5200, isLocalFavorite: false, description: "An intimate, un-touristy tablao in Poble Sec — raw, percussive flamenco with no dinner-theatre gimmicks." },
+    { name: "Costa Brava sailing day trip",       category: "sailing",  duration: "Full day", price: 140, rating: 9.3, reviewCount: 1600, isLocalFavorite: true, description: "Sail the coves north of Barcelona, with swimming stops in water most day-trippers never reach by land." },
+  ],
+  greece: [
+    { name: "Acropolis & Acropolis Museum private tour", category: "cultural", duration: "4h", price: 110, rating: 9.6, reviewCount: 9800, isLocalFavorite: false, description: "Early-access entry before the tour buses arrive, with an archaeologist guide who brings the ruins back to life." },
+    { name: "Athens food and market crawl",       category: "food",     duration: "3h",  price: 70,  rating: 9.3, reviewCount: 2900, isLocalFavorite: true,  description: "Central Market, a century-old souvlaki counter, and a family bakery locals queue for at dawn." },
+    { name: "Santorini caldera sunset sailing",   category: "sailing",  duration: "5h",  price: 130, rating: 9.7, reviewCount: 4100, isLocalFavorite: false, description: "Catamaran around the volcanic caldera with swimming stops and a barbecue dinner as the sun drops behind the cliffs." },
+    { name: "Hydra day trip by ferry",            category: "hiking",   duration: "Full day", price: 65, rating: 9.1, reviewCount: 1200, isLocalFavorite: true, description: "A car-free island an hour from Piraeus — donkey paths, hidden coves, and none of Mykonos's cruise-ship crowds." },
+  ],
+  portugal: [
+    { name: "Belém & Jerónimos Monastery guided walk", category: "cultural", duration: "3h", price: 60, rating: 9.2, reviewCount: 3300, isLocalFavorite: false, description: "The monastery, the tower, and the original pastel de nata bakery, tied together with Portugal's Age of Discovery history." },
+    { name: "Tram 28 & Alfama food tour",         category: "food",     duration: "3h",  price: 80,  rating: 9.4, reviewCount: 2600, isLocalFavorite: true,  description: "Ride the old wooden tram through Lisbon's oldest quarter, stopping for ginjinha, bifanas, and a fado-house nightcap." },
+    { name: "Sintra day trip: palaces and forests", category: "cultural", duration: "Full day", price: 95, rating: 9.5, reviewCount: 5400, isLocalFavorite: false, description: "Pena Palace's technicolor towers and the mossy Quinta da Regaleira, away from the Lisbon heat in the hills." },
+    { name: "Douro Valley wine tasting day trip", category: "food",     duration: "Full day", price: 150, rating: 9.6, reviewCount: 1800, isLocalFavorite: true, description: "Terraced vineyards by train from Porto, tasting port and table wine at a family-run quinta most tours skip." },
+  ],
+  uk: [
+    { name: "Westminster & Parliament insider tour", category: "cultural", duration: "3h", price: 85, rating: 9.1, reviewCount: 4200, isLocalFavorite: false, description: "Access areas closed to the general public, with a guide who separates the history from the tourist myths." },
+    { name: "Borough Market & Southwark food crawl", category: "food",  duration: "3h",  price: 75,  rating: 9.3, reviewCount: 3100, isLocalFavorite: true,  description: "London's oldest food market plus the backstreet pie shops and cheesemongers locals actually shop at." },
+    { name: "Edinburgh Old Town ghost & vaults tour", category: "cultural", duration: "2h", price: 45, rating: 9.0, reviewCount: 6700, isLocalFavorite: false, description: "The underground vaults beneath South Bridge, with the city's genuinely unsettling history rather than jump-scares." },
+    { name: "Scottish Highlands day trip from Edinburgh", category: "hiking", duration: "Full day", price: 110, rating: 9.5, reviewCount: 2900, isLocalFavorite: true, description: "Glencoe and Loch Ness in a single day, timed to reach the glens before the tour-bus convoys." },
+  ],
   default: [
     { name: "Private city food tour",            category: "food",     duration: "3h",  price: 95,  rating: 9.4, reviewCount: 2400, isLocalFavorite: true,  description: "Curated neighbourhoods and stops that locals love — vetted by our on-the-ground advisors." },
     { name: "Sunrise hike with local guide",     category: "hiking",   duration: "5h",  price: 80,  rating: 9.2, reviewCount: 1800, isLocalFavorite: true,  description: "The best viewpoints before the tour groups arrive, with a guide who grew up here." },
@@ -65,7 +89,11 @@ function findActivityBase(destination: string): Partial<ActivityOption>[] {
   const direct = Object.keys(ACTIVITY_POOLS).find((k) => lower.includes(k));
   if (direct) return ACTIVITY_POOLS[direct];
   const alias = Object.entries(DESTINATION_ALIASES).find(([a]) => lower.includes(a));
-  return ACTIVITY_POOLS[alias?.[1] ?? "default"];
+  // DESTINATION_ALIASES is shared with restaurants.ts and may map to a pool key
+  // this file doesn't (yet) have its own content for — fall back to "default"
+  // rather than crashing every caller downstream (searchActivities.filter, etc.)
+  // the way an undefined pool did for every Spain/Greece/Portugal/UK trip.
+  return ACTIVITY_POOLS[alias?.[1] ?? "default"] ?? ACTIVITY_POOLS.default;
 }
 
 export async function searchActivities(params: ActivitySearchParams): Promise<ActivityOption[]> {

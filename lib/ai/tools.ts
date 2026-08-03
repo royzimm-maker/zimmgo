@@ -117,6 +117,31 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
   },
 ];
 
+// Forced-tool-call schema for parsing the Destination step's free-text input.
+// A regex heuristic (tuned for the curated "Country — City, City & City"
+// quick-pick format) previously handled this and broke on arbitrary natural
+// language — e.g. a comma appearing before the first dash derailed the whole
+// parse into sentence-fragment "cities". This tool handles any phrasing.
+export const PARSE_DESTINATION_TOOL: Anthropic.Tool = {
+  name: "parse_destination",
+  description: "Extract the actual city/region names the traveller wants to visit, in the order they'd logically be visited, plus a clean display label.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      cities: {
+        type: "array",
+        items: { type: "string" },
+        description: "Real place names only (e.g. \"Barcelona\", \"Kyoto\") — never sentence fragments, filler words, or the traveller's own instructions. A single-city trip should have exactly one entry.",
+      },
+      displayName: {
+        type: "string",
+        description: "A short, clean human-readable label for this trip, e.g. \"Barcelona, Spain\" or \"Italy — Rome, Florence & Amalfi Coast\".",
+      },
+    },
+    required: ["cities", "displayName"],
+  },
+};
+
 // Chat tool — lets the conversational advisor actually save things, not just
 // talk about them. Not forced (tool_choice: "auto"): most messages are plain
 // Q&A, this only fires when the user asks to save/remember/bookmark something.
