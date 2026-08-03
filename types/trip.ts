@@ -261,6 +261,7 @@ export interface WanderlogItem {
   id: string;
   label: string;
   note?: string;
+  userRating?: number; // 1-5 — the traveller's own rating, set once they've actually been
   source: "activity" | "restaurant" | "discovery" | "custom";
   location?: string;
   addedAt: string;

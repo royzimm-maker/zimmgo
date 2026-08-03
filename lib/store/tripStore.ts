@@ -73,6 +73,7 @@ interface TripState {
   addWanderlogItem: (itineraryId: string, item: Omit<WanderlogItem, "id" | "addedAt">) => void;
   removeWanderlogItem: (itineraryId: string, itemId: string) => void;
   updateWanderlogNote: (itineraryId: string, itemId: string, note: string) => void;
+  updateWanderlogRating: (itineraryId: string, itemId: string, userRating: number | undefined) => void;
 
   // Chat
   addMessage: (msg: Omit<ChatMessage, "id" | "createdAt">) => void;
@@ -373,6 +374,19 @@ export const useTripStore = create<TripState>()(
             itineraries: s.trip.itineraries.map((it) =>
               it.id === itineraryId
                 ? { ...it, wanderlog: (it.wanderlog ?? []).map((w) => (w.id === itemId ? { ...w, note } : w)) }
+                : it
+            ),
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      updateWanderlogRating: (itineraryId, itemId, userRating) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            itineraries: s.trip.itineraries.map((it) =>
+              it.id === itineraryId
+                ? { ...it, wanderlog: (it.wanderlog ?? []).map((w) => (w.id === itemId ? { ...w, userRating } : w)) }
                 : it
             ),
             updatedAt: new Date().toISOString(),
