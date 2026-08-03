@@ -14,8 +14,17 @@ export function formatCurrency(amount: number, currency = "USD"): string {
   }).format(amount);
 }
 
+// `new Date("2026-08-12")` parses as UTC midnight, but reading it back with
+// local-time methods (.getDate(), .toLocaleDateString(), .toISOString()) in
+// a timezone behind UTC silently shows the previous day. Parsing the
+// components directly into a local Date sidesteps that mismatch entirely.
+export function parseLocalDate(dateOnly: string): Date {
+  const [y, m, d] = dateOnly.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+  return parseLocalDate(iso).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",

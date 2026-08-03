@@ -11,7 +11,7 @@ import { searchRestaurants } from "@/lib/api/restaurants";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
 import { applyReviewSourcePref } from "@/lib/data/reviewSources";
 import { applyBeliPreference } from "@/lib/data/beli";
-import { groupByLocation } from "@/lib/utils";
+import { groupByLocation, parseLocalDate } from "@/lib/utils";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
@@ -226,12 +226,12 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     startDate = preferences.dates?.startDate ?? new Date().toISOString().slice(0, 10);
     const endDate = preferences.dates?.endDate
       ?? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
-    const start = new Date(startDate);
-    const end   = new Date(endDate);
+    const start = parseLocalDate(startDate);
+    const end   = parseLocalDate(endDate);
     numDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
   }
 
-  const days: ItineraryDay[] = buildDays(new Date(startDate), numDays, activities, restaurants, preferences);
+  const days: ItineraryDay[] = buildDays(parseLocalDate(startDate), numDays, activities, restaurants, preferences);
 
   // If user pre-selected a hotel in the Lodging step, use it; otherwise use AI-searched results
   if (preferences.selectedHotel) {
@@ -311,7 +311,9 @@ function buildDays(
   return Array.from({ length: numDays }, (_, i) => {
     const date    = new Date(start);
     date.setDate(date.getDate() + i);
-    const isoDate = date.toISOString().slice(0, 10);
+    // Format from local components, not .toISOString() — that converts to
+    // UTC first, which would shift the date again in positive-offset zones.
+    const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
     const dayActivities = activities.filter((_, idx) => idx % numDays === i % numDays);
 
