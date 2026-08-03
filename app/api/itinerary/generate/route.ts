@@ -12,7 +12,7 @@ import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoo
 import { applyReviewSourcePref } from "@/lib/data/reviewSources";
 import { applyBeliPreference } from "@/lib/data/beli";
 import { groupByLocation } from "@/lib/utils";
-import { BUDGET_LABELS } from "@/types/trip";
+import { BUDGET_LABELS, BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
 // Keyed by name + location — cities that share a mock content pool (e.g. Rome and
@@ -26,6 +26,15 @@ function dedup<T extends { name?: string; location?: string }>(arr: T[]): T[] {
     seen.add(k);
     return true;
   });
+}
+
+// Highest ceiling across every lodging tier the user selected (or the custom
+// range's max, if set) — a hotel search capped to the lowest tier would filter
+// out options within any of the other tiers the user also said they'd consider.
+function maxNightlyBudget(preferences: TripPreferences): number {
+  if (preferences.customBudgetRange) return preferences.customBudgetRange.max;
+  if (preferences.budgetRanges?.length) return Math.max(...preferences.budgetRanges.map((r) => BUDGET_MAX[r]));
+  return 300;
 }
 
 // Tool dispatcher — maps tool_name → actual function call
@@ -135,9 +144,7 @@ export async function POST(request: NextRequest) {
       check_out:            preferences.dates?.type === "exact" ? preferences.dates.endDate   : undefined,
       min_stars:            preferences.lodging?.minStars,
       types:                preferences.lodging?.types,
-      max_price_per_night:  preferences.budgetRange ? ({
-        budget: 75, economy: 150, moderate: 250, upscale: 400, luxury: 800, "750_1000": 1000, "1000_plus": 1500,
-      } as Record<string, number>)[preferences.budgetRange] ?? 300 : 300,
+      max_price_per_night:  maxNightlyBudget(preferences),
       amenities:            preferences.lodging?.amenities,
     };
 
@@ -245,7 +252,11 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     `- Hand-picked restaurants and neighbourhood discoveries\n` +
     `- Logical day-by-day sequencing to minimise travel time`;
 
-  const budgetLabel = preferences.budgetRange ? BUDGET_LABELS[preferences.budgetRange] : "chosen";
+  const budgetLabel = preferences.customBudgetRange
+    ? `$${preferences.customBudgetRange.min}–$${preferences.customBudgetRange.max}`
+    : preferences.budgetRanges?.length
+    ? preferences.budgetRanges.map((r) => BUDGET_LABELS[r]).join(" or ")
+    : "chosen";
   const whyFallback =
     `- Activities near each other are grouped on the same day\n` +
     `- Lodging matches your ${budgetLabel} budget tier\n` +
@@ -320,7 +331,7 @@ function buildDays(
       morning:   buildTimeBlock("morning",   i, dayActivities, cityLabel),
       afternoon: buildTimeBlock("afternoon", i, dayActivities, cityLabel),
       evening:   buildTimeBlock("evening",   i, dayActivities, cityLabel),
-      meals:     buildMeals(i, preferences, restaurants),
+      meals:     buildMeals(i, numDays, preferences, restaurants),
       notes: i === 0 ? "Allow time for jet lag recovery — keep the first evening light." : undefined,
     };
   });
@@ -372,21 +383,34 @@ function buildTimeBlock(
   return base;
 }
 
+// Spreads `count` splurge outings evenly across the trip (same distribution
+// approach used elsewhere in this file for cities-across-days), so a 2-splurge,
+// 10-day trip lands them roughly a third and two-thirds of the way through
+// rather than bunched at the start.
+function splurgeDayIndices(count: number, numDays: number): Set<number> {
+  const n = Math.min(count, numDays);
+  return new Set(Array.from({ length: n }, (_, k) => Math.floor(((k + 1) / (n + 1)) * numDays)));
+}
+
 function buildMeals(
   dayIndex: number,
+  numDays: number,
   preferences: TripPreferences,
   restaurants: RestaurantOption[]
 ): ItineraryDay["meals"] {
   const foodBudget = preferences.dailyFoodBudgetPerPerson;
   const isHighBudget =
     (foodBudget !== undefined && foodBudget >= 150) ||
-    (foodBudget === undefined && (preferences.budgetRange === "750_1000" || preferences.budgetRange === "1000_plus"));
+    (foodBudget === undefined && preferences.budgetRanges?.some((r) => r === "750_1000" || r === "1000_plus"));
+
+  const splurge = preferences.splurge;
+  const isSplurgeDay = Boolean(splurge?.count) && splurgeDayIndices(splurge!.count, numDays).has(dayIndex);
 
   // Pull named restaurants from the fetched list by tier
   const byTier = (tier: string[]) => restaurants.filter((r) => tier.includes(r.tier));
   const brunchR    = byTier(["brunch", "casual"]);
   const lunchR     = byTier(["casual", "midrange", "street_food"]);
-  const dinnerR    = isHighBudget ? byTier(["fine_dining", "upscale"]) : byTier(["midrange", "casual"]);
+  const dinnerR    = (isHighBudget || isSplurgeDay) ? byTier(["fine_dining", "upscale"]) : byTier(["midrange", "casual"]);
 
   function named(pool: RestaurantOption[], idx: number, fallback: string): string {
     const r = pool[idx % (pool.length || 1)];
@@ -406,10 +430,12 @@ function buildMeals(
     ? [`Michelin-recognised restaurant — book ahead`, `Chef's tasting menu experience`, `Celebrated local restaurant with strong reviews`]
     : [`Neighbourhood restaurant popular with locals`, `A low-key spot serving regional specialities`, `Wine bar with small plates — great for grazing`];
 
+  const dinnerSuggestion = named(dinnerR, dayIndex, dinnerFallbacks[dayIndex % dinnerFallbacks.length]);
+
   return [
     { type: "breakfast", suggestion: named(brunchR, dayIndex, breakfastFallbacks[dayIndex % breakfastFallbacks.length]) },
     { type: "lunch",     suggestion: named(lunchR,  dayIndex, lunchFallbacks[dayIndex % lunchFallbacks.length]) },
-    { type: "dinner",    suggestion: named(dinnerR, dayIndex, dinnerFallbacks[dayIndex % dinnerFallbacks.length]) },
+    { type: "dinner",    suggestion: isSplurgeDay ? `🥂 Splurge night — ${dinnerSuggestion}` : dinnerSuggestion },
   ];
 }
 

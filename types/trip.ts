@@ -105,6 +105,14 @@ export interface BeliPreference {
   username?: string;
 }
 
+// A handful of higher-end meals over the trip, budgeted separately from the
+// flat daily food budget (e.g. "$70/person/day normally, but 2 splurge dinners
+// at $200/person").
+export interface SplurgePreference {
+  count: number;           // how many splurge outings over the whole trip
+  budgetPerPerson: number; // $ per person for those occasions
+}
+
 export interface AirlinePreference {
   airlines: string[];
   alliances: AirlineAlliance[];
@@ -123,8 +131,10 @@ export interface TripPreferences {
   dates?: DatePreference;
   travelers?: number;                    // number of people in the group
   rooms?: number;                        // number of rooms needed
-  budgetRange?: BudgetRange;             // lodging tier per room / night
+  budgetRanges?: BudgetRange[];          // one or more acceptable lodging tiers per room / night
+  customBudgetRange?: { min: number; max: number }; // custom $/night range, takes precedence over budgetRanges when set
   dailyFoodBudgetPerPerson?: number;     // food spend in $ per person per day
+  splurge?: SplurgePreference;           // occasional higher-end meals, separate from the daily food budget
   lodging?: LodgingPreference;
   selectedHotel?: HotelOption;
   selectedHotelsByCity?: Record<string, HotelOption>; // per-city picks for multi-destination trips

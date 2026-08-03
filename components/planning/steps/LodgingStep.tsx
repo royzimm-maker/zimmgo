@@ -42,8 +42,12 @@ export function LodgingStep() {
   // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
   const destination = trip.preferences.destination?.cities?.[0]
     ?? trip.preferences.destination?.displayName ?? "";
-  const budgetMax = trip.preferences.budgetRange
-    ? BUDGET_MAX[trip.preferences.budgetRange]
+  // Highest ceiling across every selected tier (or the custom range's max, if set)
+  // so hotel search doesn't filter out options within any tier the user picked.
+  const budgetMax = trip.preferences.customBudgetRange
+    ? trip.preferences.customBudgetRange.max
+    : trip.preferences.budgetRanges?.length
+    ? Math.max(...trip.preferences.budgetRanges.map((r) => BUDGET_MAX[r]))
     : 400;
 
   const [types,          setTypes         ] = useState<LodgingType[]>(existing?.types ?? []);

@@ -66,34 +66,47 @@ function Stepper({
   );
 }
 
+const SPLURGE_AMOUNTS = [
+  { value: 100, label: "$100/person" },
+  { value: 200, label: "$200/person" },
+  { value: 400, label: "$400+/person" },
+];
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export function BudgetStep() {
   const { trip, setBudget, setBudgetDetails } = useTripStore();
   const prefs = trip.preferences;
 
-  const [travelers,   setTravelers  ] = useState(prefs.travelers ?? 2);
-  const [rooms,       setRooms      ] = useState(prefs.rooms ?? 1);
-  const [lodgingTier, setLodgingTier] = useState<BudgetRange | "other" | null>(prefs.budgetRange ?? null);
-  const [customNight,  setCustomNight ] = useState("");
+  const [travelers,    setTravelers   ] = useState(prefs.travelers ?? 2);
+  const [rooms,        setRooms       ] = useState(prefs.rooms ?? 1);
+  const [lodgingTiers, setLodgingTiers] = useState<BudgetRange[]>(prefs.budgetRanges ?? []);
+  const [useCustomRange, setUseCustomRange] = useState(Boolean(prefs.customBudgetRange));
+  const [customMin,    setCustomMin    ] = useState(prefs.customBudgetRange ? String(prefs.customBudgetRange.min) : "");
+  const [customMax,    setCustomMax    ] = useState(prefs.customBudgetRange ? String(prefs.customBudgetRange.max) : "");
   const [foodPreset,   setFoodPreset  ] = useState<number | "custom" | null>(prefs.dailyFoodBudgetPerPerson ?? null);
   const [customFood,   setCustomFood  ] = useState("");
+  const [wantsSplurge, setWantsSplurge] = useState(Boolean(prefs.splurge));
+  const [splurgeCount, setSplurgeCount] = useState(prefs.splurge?.count ?? 2);
+  const [splurgeAmount,setSplurgeAmount] = useState<number | null>(prefs.splurge?.budgetPerPerson ?? 200);
   const [errors,       setErrors      ] = useState<{ night?: string; food?: string }>({});
+
+  function toggleTier(id: BudgetRange) {
+    setLodgingTiers((prev) => prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]);
+    setErrors((e) => ({ ...e, night: undefined }));
+  }
 
   function handleContinue() {
     const errs: { night?: string; food?: string } = {};
 
-    let resolvedTier: BudgetRange | null = null;
-    if (lodgingTier === "other") {
-      const num = parseInt(customNight.replace(/[^0-9]/g, ""), 10);
-      if (!num || num < 30) { errs.night = "Please enter a valid nightly amount (min $30)."; }
-      else {
-        resolvedTier =
-          num < 200  ? "under_500"  :
-          num < 400  ? "500_750"    :
-          num < 700  ? "750_1000"   : "1000_plus";
+    let customRange: { min: number; max: number } | undefined;
+    if (useCustomRange) {
+      const min = parseInt(customMin.replace(/[^0-9]/g, ""), 10);
+      const max = parseInt(customMax.replace(/[^0-9]/g, ""), 10);
+      if (!min || !max || min < 30 || max <= min) {
+        errs.night = "Please enter a valid range (min $30, and a max greater than the min).";
+      } else {
+        customRange = { min, max };
       }
-    } else if (lodgingTier) {
-      resolvedTier = lodgingTier;
     }
 
     let resolvedFood: number | undefined;
@@ -107,11 +120,17 @@ export function BudgetStep() {
 
     if (Object.keys(errs).length) { setErrors(errs); return false; }
 
-    if (resolvedTier) setBudget(resolvedTier);
-    setBudgetDetails({ travelers, rooms, dailyFoodBudgetPerPerson: resolvedFood });
+    setBudget(lodgingTiers);
+    setBudgetDetails({
+      travelers,
+      rooms,
+      dailyFoodBudgetPerPerson: resolvedFood,
+      customBudgetRange: customRange,
+      splurge: wantsSplurge ? { count: splurgeCount, budgetPerPerson: splurgeAmount ?? 200 } : undefined,
+    });
   }
 
-  const canContinue = lodgingTier !== null;
+  const canContinue = lodgingTiers.length > 0 || useCustomRange;
 
   return (
     <StepShell
@@ -146,20 +165,22 @@ export function BudgetStep() {
         {/* ── Section 2: Lodging budget per room / night ── */}
         <div>
           <p className="mb-1 text-sm font-semibold text-slate-700">Lodging budget</p>
-          <p className="mb-3 text-xs text-slate-400">Per room per night — we&apos;ll match hotels and rentals to this range.</p>
+          <p className="mb-3 text-xs text-slate-400">
+            Per room per night — pick as many tiers as you&apos;d consider, we&apos;ll match hotels and rentals across them.
+          </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {LODGING_TIERS.map((opt) => (
               <Card
                 key={opt.id}
                 hover
-                selected={lodgingTier === opt.id}
-                onClick={() => { setLodgingTier(opt.id); setErrors((e) => ({ ...e, night: undefined })); }}
+                selected={lodgingTiers.includes(opt.id)}
+                onClick={() => toggleTier(opt.id)}
                 className="cursor-pointer"
               >
                 <div className="flex items-start gap-3">
                   <span className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                    lodgingTier === opt.id ? "bg-brand-100 text-brand-600" : "bg-slate-100 text-slate-500"
+                    lodgingTiers.includes(opt.id) ? "bg-brand-100 text-brand-600" : "bg-slate-100 text-slate-500"
                   )}>
                     <DollarSign size={16} />
                   </span>
@@ -174,33 +195,43 @@ export function BudgetStep() {
 
             <Card
               hover
-              selected={lodgingTier === "other"}
-              onClick={() => { setLodgingTier("other"); setErrors((e) => ({ ...e, night: undefined })); }}
+              selected={useCustomRange}
+              onClick={() => { setUseCustomRange((v) => !v); setErrors((e) => ({ ...e, night: undefined })); }}
               className="cursor-pointer sm:col-span-2"
             >
               <div className="flex items-center gap-3">
                 <span className={cn(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                  lodgingTier === "other" ? "bg-brand-100 text-brand-600" : "bg-slate-100 text-slate-500"
+                  useCustomRange ? "bg-brand-100 text-brand-600" : "bg-slate-100 text-slate-500"
                 )}>
                   ✏️
                 </span>
                 <div className="flex-1">
-                  <p className="font-semibold text-slate-900 text-sm">Custom nightly budget</p>
-                  <p className="text-xs text-slate-500">Enter your own per-room amount</p>
+                  <p className="font-semibold text-slate-900 text-sm">Custom nightly range</p>
+                  <p className="text-xs text-slate-500">Set your own min–max per-room range</p>
                 </div>
               </div>
-              {lodgingTier === "other" && (
-                <div className="mt-3 flex items-center gap-2">
+              {useCustomRange && (
+                <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <span className="text-slate-500 text-sm">$</span>
                   <input
                     autoFocus
                     type="number"
                     min="30"
-                    value={customNight}
-                    onChange={(e) => { setCustomNight(e.target.value); setErrors((er) => ({ ...er, night: undefined })); }}
-                    placeholder="e.g. 350"
-                    className="w-36 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    value={customMin}
+                    onChange={(e) => { setCustomMin(e.target.value); setErrors((er) => ({ ...er, night: undefined })); }}
+                    placeholder="e.g. 250"
+                    className="w-28 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                  <span className="text-slate-400 text-xs">to</span>
+                  <span className="text-slate-500 text-sm">$</span>
+                  <input
+                    type="number"
+                    min="30"
+                    value={customMax}
+                    onChange={(e) => { setCustomMax(e.target.value); setErrors((er) => ({ ...er, night: undefined })); }}
+                    placeholder="e.g. 450"
+                    className="w-28 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                   <span className="text-slate-400 text-xs">per room / night</span>
                 </div>
@@ -274,16 +305,78 @@ export function BudgetStep() {
           </div>
         </div>
 
+        {/* ── Section 4: Splurge meals ── */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setWantsSplurge((v) => !v)}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
+              wantsSplurge ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
+            )}
+          >
+            <span className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg",
+              wantsSplurge ? "bg-sage-500 text-white" : "bg-slate-100"
+            )}>
+              🥂
+            </span>
+            <div className="flex-1">
+              <p className={cn("font-semibold text-sm", wantsSplurge ? "text-sage-800" : "text-slate-800")}>
+                Room for a few splurge meals? <span className="font-normal text-slate-400">(optional)</span>
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                A special-occasion dinner or two, budgeted separately from your everyday food spend.
+              </p>
+            </div>
+          </button>
+
+          {wantsSplurge && (
+            <div className="mt-3 flex flex-col gap-3 rounded-xl border border-sage-100 bg-sage-50/50 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-slate-700">How many splurge outings?</p>
+                <Stepper value={splurgeCount} min={1} max={10} onChange={setSplurgeCount} />
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-medium text-slate-700">Budget per person, for those</p>
+                <div className="flex gap-2">
+                  {SPLURGE_AMOUNTS.map((sa) => (
+                    <button
+                      key={sa.value}
+                      type="button"
+                      onClick={() => setSplurgeAmount(sa.value)}
+                      className={cn(
+                        "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+                        splurgeAmount === sa.value
+                          ? "border-brand-500 bg-brand-50 text-brand-700"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      )}
+                    >
+                      {sa.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* ── Summary line ── */}
-        {(travelers !== 2 || rooms !== 1 || lodgingTier !== null || (foodPreset && foodPreset !== "custom")) && (
+        {(travelers !== 2 || rooms !== 1 || lodgingTiers.length > 0 || useCustomRange || (foodPreset && foodPreset !== "custom") || wantsSplurge) && (
           <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-xs text-slate-600 space-y-1">
             <p className="font-semibold text-slate-700 mb-1">Your group summary</p>
             <p>👥 {travelers} traveller{travelers !== 1 ? "s" : ""}, {rooms} room{rooms !== 1 ? "s" : ""} per night</p>
-            {lodgingTier && lodgingTier !== "other" && (
-              <p>🏨 Lodging: {BUDGET_LABELS[lodgingTier]}</p>
+            {lodgingTiers.length > 0 && (
+              <p>🏨 Lodging: {lodgingTiers.map((t) => BUDGET_LABELS[t]).join(" or ")}</p>
+            )}
+            {useCustomRange && customMin && customMax && (
+              <p>🏨 Lodging: ${customMin}–${customMax}/room/night</p>
             )}
             {typeof foodPreset === "number" && (
               <p>🍽️ Food: ${foodPreset}/person/day</p>
+            )}
+            {wantsSplurge && (
+              <p>🥂 Splurge: {splurgeCount} outing{splurgeCount !== 1 ? "s" : ""} at ${splurgeAmount}/person</p>
             )}
           </div>
         )}

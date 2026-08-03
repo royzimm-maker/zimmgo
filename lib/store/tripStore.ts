@@ -20,6 +20,7 @@ import type {
   VibeTag,
   TransportMode,
   BudgetRange,
+  SplurgePreference,
   WanderlogItem,
   ReviewSourcePreference,
   BeliPreference,
@@ -47,8 +48,14 @@ interface TripState {
   setActivities: (activities: (ActivityCategory | string)[]) => void;
   setVibes: (vibes: VibeTag[]) => void;
   setDates: (dates: DatePreference) => void;
-  setBudget: (range: BudgetRange) => void;
-  setBudgetDetails: (details: { travelers?: number; rooms?: number; dailyFoodBudgetPerPerson?: number }) => void;
+  setBudget: (ranges: BudgetRange[]) => void;
+  setBudgetDetails: (details: {
+    travelers?: number;
+    rooms?: number;
+    dailyFoodBudgetPerPerson?: number;
+    customBudgetRange?: { min: number; max: number };
+    splurge?: SplurgePreference;
+  }) => void;
   setLodging: (lodging: LodgingPreference) => void;
   setReviewSourcePref: (pref: ReviewSourcePreference) => void;
   setBeliPref: (pref: BeliPreference) => void;
@@ -190,11 +197,11 @@ export const useTripStore = create<TripState>()(
           },
         })),
 
-      setBudget: (budgetRange) =>
+      setBudget: (budgetRanges) =>
         set((s) => ({
           trip: {
             ...s.trip,
-            preferences: { ...s.trip.preferences, budgetRange },
+            preferences: { ...s.trip.preferences, budgetRanges },
             updatedAt: new Date().toISOString(),
           },
         })),

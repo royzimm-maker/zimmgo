@@ -1,6 +1,22 @@
 import type { TripPreferences, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 import { BUDGET_LABELS, BUDGET_MAX } from "@/types/trip";
 
+// Shared across prompts — a user can pick multiple lodging tiers or a custom
+// $/night range instead of a single tier, so every prompt that mentions budget
+// needs the same "what did they actually pick" logic.
+function budgetDescription(preferences: TripPreferences): { label: string; max: number } | null {
+  if (preferences.customBudgetRange) {
+    const { min, max } = preferences.customBudgetRange;
+    return { label: `$${min}–$${max} / room / night`, max };
+  }
+  if (preferences.budgetRanges?.length) {
+    const label = preferences.budgetRanges.map((r) => BUDGET_LABELS[r]).join(" or ");
+    const max = Math.max(...preferences.budgetRanges.map((r) => BUDGET_MAX[r]));
+    return { label, max };
+  }
+  return null;
+}
+
 // Builds the user-facing prompt for itinerary generation from the stored preferences
 export function buildItineraryPrompt(preferences: TripPreferences): string {
   const parts: string[] = [];
@@ -41,14 +57,19 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     parts.push(`Group: ${t} traveller${t !== 1 ? "s" : ""}, ${r} room${r !== 1 ? "s" : ""} per night.`);
   }
 
-  if (preferences.budgetRange) {
-    const label = BUDGET_LABELS[preferences.budgetRange];
-    const max   = BUDGET_MAX[preferences.budgetRange];
-    parts.push(`Lodging budget: ${label} (max $${max} per room per night).`);
+  const budget = budgetDescription(preferences);
+  if (budget) {
+    parts.push(`Lodging budget: ${budget.label} (max $${budget.max} per room per night).`);
   }
 
   if (preferences.dailyFoodBudgetPerPerson) {
     parts.push(`Food budget: $${preferences.dailyFoodBudgetPerPerson} per person per day.`);
+  }
+  if (preferences.splurge) {
+    parts.push(
+      `The traveller wants ${preferences.splurge.count} special-occasion splurge meal${preferences.splurge.count !== 1 ? "s" : ""} ` +
+      `over the trip at around $${preferences.splurge.budgetPerPerson} per person, on top of the regular daily food budget.`
+    );
   }
 
   if (preferences.lodging) {
@@ -132,8 +153,9 @@ export function buildChatSystemPrompt(
     const r = preferences.rooms ?? 1;
     contextLines.push(`Group: ${t} traveller${t !== 1 ? "s" : ""}, ${r} room${r !== 1 ? "s" : ""}`);
   }
-  if (preferences.budgetRange) {
-    contextLines.push(`Lodging budget: ${BUDGET_LABELS[preferences.budgetRange]}`);
+  const chatBudget = budgetDescription(preferences);
+  if (chatBudget) {
+    contextLines.push(`Lodging budget: ${chatBudget.label}`);
   }
   if (preferences.dailyFoodBudgetPerPerson) {
     contextLines.push(`Food budget: $${preferences.dailyFoodBudgetPerPerson}/person/day`);
@@ -166,7 +188,8 @@ export function buildHotelPickPrompt(
   hotels: HotelOption[]
 ): string {
   const vibeStr = preferences.vibes.length ? ` The trip's vibe: ${preferences.vibes.join(", ")}.` : "";
-  const budgetStr = preferences.budgetRange ? ` Lodging budget tier: ${BUDGET_LABELS[preferences.budgetRange]}.` : "";
+  const hotelBudget = budgetDescription(preferences);
+  const budgetStr = hotelBudget ? ` Lodging budget tier: ${hotelBudget.label}.` : "";
   const list = hotels.map((h) =>
     `- id="${h.id}" | ${h.name} | ${h.stars}★ | $${h.pricePerNight}/night | ${h.location} | ${h.highlights.join(", ")}`
   ).join("\n");
@@ -208,7 +231,8 @@ export function buildPreferencePickPrompt(
 ): string {
   const dest = preferences.destination?.displayName ?? "the destination";
   const list = candidates.map((c) => `- id="${c.id}" ${c.label}`).join("\n");
-  const budgetStr = preferences.budgetRange ? ` Lodging budget tier: ${BUDGET_LABELS[preferences.budgetRange]}.` : "";
+  const prefBudget = budgetDescription(preferences);
+  const budgetStr = prefBudget ? ` Lodging budget tier: ${prefBudget.label}.` : "";
   const vibeStr = kind !== "vibes" && preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
 
   const instructions: Record<typeof kind, string> = {
