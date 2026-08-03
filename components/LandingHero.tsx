@@ -28,10 +28,22 @@ const STEPS = [
 ];
 
 export function LandingHero() {
-  const { resetTrip } = useTripStore();
+  const { trip, resetTrip } = useTripStore();
   const router = useRouter();
 
+  // A returning visitor who lands here (e.g. via a bookmark, not directly on
+  // /plan) would otherwise have their saved trip silently wiped by a button
+  // that just says "Start planning" — contradicts the "saved to this device"
+  // promise shown elsewhere. Resume instead of resetting when there's real
+  // progress; resetTrip() is still one click away via startNewTrip below.
+  const hasProgress = trip.completedSteps.length > 0 || trip.itineraries.length > 0;
+
   function startPlanning() {
+    if (!hasProgress) resetTrip();
+    router.push("/plan");
+  }
+
+  function startNewTrip() {
     resetTrip();
     router.push("/plan");
   }
@@ -81,10 +93,20 @@ export function LandingHero() {
 
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           <Button size="lg" onClick={startPlanning} className="px-8">
-            Start planning your trip
+            {hasProgress ? "Continue planning your trip" : "Start planning your trip"}
             <ArrowRight size={16} />
           </Button>
-          <p className="text-sm text-slate-500">Free · No sign-up required</p>
+          {hasProgress ? (
+            <button
+              type="button"
+              onClick={startNewTrip}
+              className="text-sm text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2"
+            >
+              Start a new trip instead
+            </button>
+          ) : (
+            <p className="text-sm text-slate-500">Free · No sign-up required</p>
+          )}
         </div>
 
         {/* Progress steps preview */}
