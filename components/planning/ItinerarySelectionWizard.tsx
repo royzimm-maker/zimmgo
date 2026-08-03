@@ -36,6 +36,17 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
 
   const { wanderlogLabels, handleSaveToWanderlog } = useWanderlogSave(itinerary);
 
+  // Skip the Hotels stage entirely for Airbnb-only trips — itinerary.hotels
+  // still gets populated during generation regardless of lodging type, so
+  // without this the wizard showed a hotel-picking stage nobody asked to see.
+  const airbnbOnlyLodging = Boolean(
+    preferences.lodging?.types?.length && preferences.lodging.types.every((t) => t === "airbnb")
+  );
+  const stages = useMemo(
+    () => STAGES.filter((s) => s.id !== "hotels" || !airbnbOnlyLodging),
+    [airbnbOnlyLodging]
+  );
+
   const cities = useMemo(() => {
     const c = preferences.destination?.cities?.filter(Boolean) ?? [];
     return c.length ? c : [preferences.destination?.displayName ?? "Your destination"];
@@ -45,11 +56,11 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
   const [cityIdx, setCityIdx] = useState(0);
   const [pickingHotel, setPickingHotel] = useState(false);
   const [hotelPickReasons, setHotelPickReasons] = useState<Record<string, string>>({});
-  const stage = STAGES[stageIdx];
+  const stage = stages[stageIdx];
   const currentCity = cities[cityIdx];
 
   // Overall step counter across the whole wizard, for the progress label
-  const stepsPerStage = STAGES.map((s) => (s.perCity ? cities.length : 1));
+  const stepsPerStage = stages.map((s) => (s.perCity ? cities.length : 1));
   const totalSteps = stepsPerStage.reduce((a, b) => a + b, 0);
   const currentStep = stepsPerStage.slice(0, stageIdx).reduce((a, b) => a + b, 0) + (stage.perCity ? cityIdx : 0) + 1;
 
@@ -60,7 +71,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
       setCityIdx((i) => i + 1);
       return;
     }
-    if (stageIdx < STAGES.length - 1) {
+    if (stageIdx < stages.length - 1) {
       setStageIdx((i) => i + 1);
       setCityIdx(0);
       return;
@@ -74,7 +85,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
       return;
     }
     if (stageIdx > 0) {
-      const prevStage = STAGES[stageIdx - 1];
+      const prevStage = stages[stageIdx - 1];
       setStageIdx((i) => i - 1);
       setCityIdx(prevStage.perCity ? cities.length - 1 : 0);
     }
@@ -150,7 +161,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
           )}
         </div>
         <div className="flex gap-1.5">
-          {STAGES.map((s, i) => (
+          {stages.map((s, i) => (
             <div
               key={s.id}
               className={`h-1.5 flex-1 rounded-full ${
