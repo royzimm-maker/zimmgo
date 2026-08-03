@@ -36,14 +36,17 @@ const CABIN_LABELS: Record<string, string> = {
 };
 
 export function AirlinesStep() {
-  const { trip, setAirlines, setDestination } = useTripStore();
+  const { trip, setAirlines, setDestination, defaultDepartureAirport, setDefaultDepartureAirport } = useTripStore();
   const existing   = trip.preferences.airlinePrefs;
   const destination = trip.preferences.destination;
 
   // ── Departure airport ──────────────────────────────────────────────────────
-  const [departure,   setDeparture  ] = useState(destination?.departureAirport ?? "");
+  // Falls back to the remembered default from a previous trip when this trip
+  // hasn't set one yet, so returning users don't retype their home airport.
+  const [departure,   setDeparture  ] = useState(destination?.departureAirport ?? defaultDepartureAirport ?? "");
   const [depResults,  setDepResults ] = useState<Airport[]>([]);
   const [depOpen,     setDepOpen    ] = useState(false);
+  const [askDefault,  setAskDefault ] = useState<string | null>(null);
   const depRef = useRef<HTMLDivElement>(null);
 
   // ── Gateway airports from routing suggestion ───────────────────────────────
@@ -80,8 +83,10 @@ export function AirlinesStep() {
   }
 
   function selectDeparture(airport: Airport) {
-    setDeparture(`${airport.city} (${airport.code})`);
+    const label = `${airport.city} (${airport.code})`;
+    setDeparture(label);
     setDepOpen(false);
+    if (label !== defaultDepartureAirport) setAskDefault(label);
   }
 
   // ── Airline preferences ───────────────────────────────────────────────────
@@ -177,6 +182,27 @@ export function AirlinesStep() {
               </div>
             )}
           </div>
+          {askDefault && (
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2">
+              <p className="flex-1 text-[11px] text-brand-700">
+                Set <span className="font-semibold">{askDefault}</span> as your default departure airport for future trips?
+              </p>
+              <button
+                type="button"
+                onClick={() => { setDefaultDepartureAirport(askDefault); setAskDefault(null); }}
+                className="shrink-0 rounded-md bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-brand-700 transition-colors"
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={() => setAskDefault(null)}
+                className="shrink-0 text-[11px] text-brand-500 hover:text-brand-700"
+              >
+                No thanks
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Gateway airports ── */}

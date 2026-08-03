@@ -14,6 +14,7 @@ import { TransportationStep } from "@/components/planning/steps/TransportationSt
 import { ItineraryStep }      from "@/components/planning/steps/ItineraryStep";
 import { RefineStep }         from "@/components/planning/steps/RefineStep";
 import { ChatPanel }          from "@/components/chat/ChatPanel";
+import { WanderlogPanel }     from "@/components/planning/WanderlogPanel";
 import { Button }             from "@/components/ui/Button";
 import { MessageSquare, X }   from "lucide-react";
 import type { StepId }        from "@/types/trip";
@@ -34,6 +35,7 @@ const STEP_COMPONENTS: Record<StepId, React.ComponentType> = {
 export function PlanningFlow() {
   const { trip, sidebarOpen, setSidebarOpen } = useTripStore();
   const StepComponent = STEP_COMPONENTS[trip.currentStep];
+  const latestItinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
   return (
     <div className="flex h-full gap-0">
@@ -67,9 +69,20 @@ export function PlanningFlow() {
             <X size={16} />
           </Button>
         </div>
-        <div className="flex-1 overflow-hidden">
-          <ChatPanel />
-        </div>
+        {latestItinerary ? (
+          <div className="flex flex-1 flex-col min-h-0">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <ChatPanel />
+            </div>
+            <div className="h-72 shrink-0 border-t border-slate-200 overflow-hidden">
+              <WanderlogPanel itinerary={latestItinerary} />
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-hidden">
+            <ChatPanel />
+          </div>
+        )}
       </div>
 
       {/* Mobile chat toggle */}

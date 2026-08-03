@@ -1,13 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
-import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
-import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
-import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { VibeTag } from "@/types/trip";
 
@@ -21,12 +17,10 @@ const VIBES: { id: VibeTag; label: string; icon: string; sublabel: string }[] = 
   { id: "off_the_beaten_path",  label: "Off the Beaten Path", icon: "🗺️", sublabel: "Local gems, no tour groups" },
 ];
 
+// No "let ZiGy pick" mode here, unlike Lodging/Activities — vibe is a direct
+// input into what ZiGy recommends elsewhere, so it has to come from the user.
 export function VibeStep() {
   const { trip, setVibes } = useTripStore();
-  const [mode, setMode] = useState<"prompt" | "manual">(
-    () => (trip.preferences.vibes.length > 0 ? "manual" : "prompt")
-  );
-  const { picking, pickSummary, run: runSmartPick } = useSmartPick();
   const [selected, setSelected] = useState<VibeTag[]>(trip.preferences.vibes);
   const [otherOpen,  setOtherOpen ] = useState(false);
   const [otherValue, setOtherValue] = useState("");
@@ -35,19 +29,6 @@ export function VibeStep() {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
-  }
-
-  async function handleZigyPick() {
-    const picks = await runSmartPick({
-      kind: "vibes",
-      preferences: trip.preferences,
-      candidates: VIBES.map((v) => ({ id: v.id, label: v.label })),
-    });
-    const picked = picks
-      .map((p) => p.id)
-      .filter((id): id is VibeTag => VIBES.some((v) => v.id === id));
-    setSelected(picked);
-    setMode("manual");
   }
 
   function handleContinue() {
@@ -60,26 +41,6 @@ export function VibeStep() {
 
   const hasSelection = selected.length > 0 || (otherOpen && !!otherValue.trim());
 
-  if (mode === "prompt") {
-    return (
-      <StepShell
-        stepId="vibe"
-        continueLabel="I'll pick myself"
-        onContinue={() => { setMode("manual"); return false; }}
-        subtitle="How do you want to set the trip's vibe?"
-      >
-        <ChooseModePrompt
-          manualLabel="I'll pick myself"
-          manualDescription="Choose the mood and feel you're going for."
-          zigyDescription="ZiGy picks 2-4 vibes that fit your destination — you can still adjust before continuing."
-          onManual={() => setMode("manual")}
-          onZigy={handleZigyPick}
-          loading={picking}
-        />
-      </StepShell>
-    );
-  }
-
   return (
     <StepShell
       stepId="vibe"
@@ -87,17 +48,6 @@ export function VibeStep() {
       continueDisabled={!hasSelection}
       subtitle="What's the feel of this trip? Pick as many as apply."
     >
-      <ModeToggleBanner
-        label="Vibes for you to choose from — or let ZiGy pick."
-        onZigy={handleZigyPick}
-        loading={picking}
-      />
-      {pickSummary && (
-        <p className="mb-4 text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2">
-          <Sparkles size={11} className="inline mr-1" />
-          {pickSummary}
-        </p>
-      )}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {VIBES.map((v) => (
           <SelectChip

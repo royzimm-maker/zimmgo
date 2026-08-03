@@ -84,7 +84,7 @@ export function ActivitiesStep() {
         <ChooseModePrompt
           manualLabel="I'll pick myself"
           manualDescription="Browse the categories and choose what sounds good."
-          zigyDescription="ZiGy picks 3-5 categories that fit your destination — you can still adjust before continuing."
+          zigyDescription="I'll suggest top-rated activities that fit the vibe of your trip and your destination — you can still adjust before continuing."
           onManual={() => setMode("manual")}
           onZigy={handleZigyPick}
           loading={picking}

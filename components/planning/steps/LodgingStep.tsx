@@ -183,7 +183,7 @@ export function LodgingStep() {
         <ChooseModePrompt
           manualLabel="I'll pick myself"
           manualDescription="Choose the accommodation type, star rating, and amenities that matter to you."
-          zigyDescription="ZiGy picks a type, star tier, and a few amenities that fit your destination and budget — you can still adjust before continuing."
+          zigyDescription="I'll suggest top-rated stays that fit the vibe of your trip, your destination, and your budget — you can still adjust before continuing."
           onManual={() => setMode("manual")}
           onZigy={handleZigyPick}
           loading={picking}

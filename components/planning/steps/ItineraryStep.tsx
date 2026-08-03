@@ -32,7 +32,15 @@ export function ItineraryStep() {
       addItinerary(data);
       completeStep("itinerary");
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      // A raw "Failed to fetch" means the connection dropped (e.g. a server
+      // timeout) rather than the API returning an error — that message is
+      // meaningless to a user, so give them something actionable instead.
+      const message = e instanceof Error ? e.message : "Something went wrong";
+      setError(
+        message === "Failed to fetch"
+          ? "Lost connection while building your itinerary — this can happen on a slow connection. Please try again."
+          : message
+      );
     } finally {
       setGenerating(false);
     }

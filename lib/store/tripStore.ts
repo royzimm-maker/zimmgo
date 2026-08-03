@@ -85,6 +85,10 @@ interface TripState {
 
   // Derived
   progress: number;
+
+  // User-level default (persists across trips, unlike trip.preferences)
+  defaultDepartureAirport?: string;
+  setDefaultDepartureAirport: (airport: string | undefined) => void;
 }
 
 // ─── Initial values ────────────────────────────────────────────────────────────
@@ -406,6 +410,9 @@ export const useTripStore = create<TripState>()(
       setGenerating: (isGenerating) => set({ isGenerating }),
 
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+
+      defaultDepartureAirport: undefined,
+      setDefaultDepartureAirport: (defaultDepartureAirport) => set({ defaultDepartureAirport }),
     }),
     {
       name: "zimmgo-trip",
@@ -415,6 +422,9 @@ export const useTripStore = create<TripState>()(
         trip: state.trip,
         chatMessages: state.chatMessages,
         progress: state.progress,
+        // Deliberately survives resetTrip() — a new trip should still default
+        // to the airport the user flies from most, unlike trip-scoped prefs.
+        defaultDepartureAirport: state.defaultDepartureAirport,
       }),
     }
   )

@@ -15,6 +15,12 @@ import { groupByLocation } from "@/lib/utils";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
+// Generation can take several agentic tool-call rounds against the real
+// Anthropic API — without this the platform's default function timeout
+// (as low as 10s) kills the connection mid-request, surfacing to the
+// client as an opaque "Failed to fetch" rather than a real error.
+export const maxDuration = 60;
+
 // Keyed by name + location — cities that share a mock content pool (e.g. Rome and
 // Florence both draw from the "italy" pool) return identically-named items, and a
 // name-only key would silently drop every city but the first.
