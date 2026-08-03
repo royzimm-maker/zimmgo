@@ -14,7 +14,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { X, Sparkles, BookMarked } from "lucide-react";
+import { X, Sparkles, BookMarked, ArrowRight } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
 import { fetchSmartPick } from "@/lib/api/smartPick";
@@ -494,6 +494,15 @@ export function RefineStep() {
     return { city, total, placed: total - unplaced };
   });
 
+  // Prompt to move on once the active city's bank is empty, rather than leaving
+  // the user to notice the city tabs on their own.
+  const activeCityStats = effectiveCity ? cityStats.find((s) => s.city === effectiveCity) : undefined;
+  const activeCityIdx = effectiveCity ? cities.indexOf(effectiveCity) : -1;
+  const nextCity = activeCityIdx >= 0 && activeCityIdx < cities.length - 1 ? cities[activeCityIdx + 1] : null;
+  const showNextCityPrompt = Boolean(
+    effectiveCity && nextCity && activeCityStats && activeCityStats.total > 0 && visibleBank.length === 0
+  );
+
   return (
     <StepShell
       stepId="refine"
@@ -535,6 +544,22 @@ export function RefineStep() {
               </span>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Prompt to move to the next city once this one's items are all placed */}
+      {showNextCityPrompt && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-sage-200 bg-sage-50 px-3 py-2.5">
+          <p className="text-xs text-sage-700">
+            <span className="font-semibold">{effectiveCity} is all set!</span> Ready to personalize {nextCity}?
+          </p>
+          <button
+            type="button"
+            onClick={() => setActiveCity(nextCity)}
+            className="shrink-0 flex items-center gap-1 rounded-md bg-sage-600 text-white px-3 py-1.5 text-xs font-semibold hover:bg-sage-700 transition-colors"
+          >
+            Next: {nextCity} <ArrowRight size={12} />
+          </button>
         </div>
       )}
 
