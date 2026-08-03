@@ -117,6 +117,34 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
   },
 ];
 
+// Chat tool — lets the conversational advisor actually save things, not just
+// talk about them. Not forced (tool_choice: "auto"): most messages are plain
+// Q&A, this only fires when the user asks to save/remember/bookmark something.
+export const ADD_TO_WANDERLOG_TOOL: Anthropic.Tool = {
+  name: "add_to_wanderlog",
+  description:
+    "Save one or more items to the user's Wanderlog — a save-for-later list separate from the day-by-day itinerary. Call this whenever the user asks to save, remember, bookmark, or add something to their Wanderlog (e.g. \"add that to my wanderlog\", \"remind me to check out X\").",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      items: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string", description: "Short name of the thing to save, e.g. a restaurant, activity, or place name" },
+            source: { type: "string", enum: ["activity", "restaurant", "discovery", "custom"], description: "What kind of item this is — use \"custom\" if unsure" },
+            location: { type: "string", description: "City or neighbourhood, if known" },
+          },
+          required: ["label", "source"],
+        },
+      },
+      reply: { type: "string", description: "A short, friendly confirmation message to show the user, naming what was saved" },
+    },
+    required: ["items", "reply"],
+  },
+};
+
 // Forced-tool-call schema for "let ZiGy choose" — used both for picking a single
 // hotel and for arranging a city's activities/restaurants across its days.
 export const SMART_PICK_TOOL: Anthropic.Tool = {

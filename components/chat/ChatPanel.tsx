@@ -16,10 +16,11 @@ const STARTER_PROMPTS = [
 ];
 
 export function ChatPanel() {
-  const { trip, chatMessages, addMessage } = useTripStore();
+  const { trip, chatMessages, addMessage, addWanderlogItem } = useTripStore();
   const [input,   setInput  ] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const latestItinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -38,6 +39,13 @@ export function ChatPanel() {
     setLoading(true);
 
     try {
+      const itineraryContext = latestItinerary
+        ? {
+            activities: latestItinerary.activities.map((a) => a.name),
+            restaurants: (latestItinerary.restaurants ?? []).map((r) => r.name),
+          }
+        : undefined;
+
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,11 +53,23 @@ export function ChatPanel() {
           message: trimmed,
           history: chatMessages,
           preferences: trip.preferences,
+          itineraryContext,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
+      if (latestItinerary && Array.isArray(data.wanderlogItems)) {
+        for (const item of data.wanderlogItems) {
+          addWanderlogItem(latestItinerary.id, {
+            label: item.label,
+            source: item.source,
+            location: item.location,
+          });
+        }
+      }
+
       addMessage({ role: "assistant", content: data.reply, stepContext: trip.currentStep });
     } catch {
       addMessage({

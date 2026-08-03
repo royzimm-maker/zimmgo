@@ -109,7 +109,10 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
 }
 
 // Prompt for the conversational advisor chat
-export function buildChatSystemPrompt(preferences: TripPreferences): string {
+export function buildChatSystemPrompt(
+  preferences: TripPreferences,
+  itineraryContext?: { activities: string[]; restaurants: string[] }
+): string {
   const contextLines: string[] = [];
 
   if (preferences.destination) {
@@ -140,9 +143,20 @@ export function buildChatSystemPrompt(preferences: TripPreferences): string {
     ? `\n\nCurrent trip context:\n${contextLines.map((l) => `- ${l}`).join("\n")}`
     : "";
 
-  return `You are an AI travel advisor helping plan a trip. Answer questions, offer suggestions, and help the user refine their preferences.${context}
+  const itineraryNote = itineraryContext?.activities.length || itineraryContext?.restaurants.length
+    ? `\n\nItems already in this trip's itinerary you can reference:\n${[
+        ...(itineraryContext.activities.length ? [`Activities: ${itineraryContext.activities.join(", ")}`] : []),
+        ...(itineraryContext.restaurants.length ? [`Restaurants: ${itineraryContext.restaurants.join(", ")}`] : []),
+      ].map((l) => `- ${l}`).join("\n")}`
+    : "";
 
-Keep responses concise and specific. If asked about something outside the trip (e.g. unrelated topics), gently redirect to trip planning.`;
+  return `You are an AI travel advisor helping plan a trip. Answer questions, offer suggestions, and help the user refine their preferences.${context}${itineraryNote}
+
+Keep responses concise and specific. If asked about something outside the trip (e.g. unrelated topics), gently redirect to trip planning.
+
+If the user asks you to save, remember, bookmark, or add something to their Wanderlog, call the add_to_wanderlog tool instead of just replying in text — match against the itinerary items above by name when the user is clearly referring to one of them, source "custom" otherwise.${
+    itineraryContext ? "" : " There's no itinerary yet, though — if asked to save something now, tell the user to generate their itinerary first rather than calling the tool."
+  }`;
 }
 
 // "Let ZiGy choose" — pick the single best hotel for one city
