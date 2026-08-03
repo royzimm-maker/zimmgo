@@ -230,6 +230,70 @@ export const UPDATE_ACTIVITY_PREFERENCES_TOOL: Anthropic.Tool = {
   },
 };
 
+// Chat tool — lets the advisor apply a vibe change directly instead of just
+// talking about it (e.g. "make it more romantic", "drop nightlife, add
+// beaches"). Not forced. Full-replacement, not additive — the model has the
+// traveller's current vibes in context and is instructed to carry forward
+// anything it isn't changing.
+export const UPDATE_VIBE_PREFERENCES_TOOL: Anthropic.Tool = {
+  name: "update_vibe_preferences",
+  description:
+    "Update the traveller's trip vibe when they explicitly ask to change the mood/feel of the trip (e.g. \"make it more romantic\", \"drop nightlife, add beaches\", \"add off the beaten path\"). Only call this for a clear change request, not general questions.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      vibes: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "The traveller's full desired list of vibes — ids from: romantic, nightlife, beaches, shopping, architecture, family_friendly, off_the_beaten_path, plus free text for anything that doesn't fit those (e.g. \"Pet-friendly\"). Carry forward their existing selections unless they're clearly replacing them. 2-4 total tends to work best — mention that if the traveller is about to end up with far more than that.",
+      },
+      reply: { type: "string", description: "A short, friendly confirmation message naming exactly what changed." },
+    },
+    required: ["vibes", "reply"],
+  },
+};
+
+// Chat tool — lets the advisor apply an airline/flight preference change
+// directly (e.g. "add nonstop only", "I want business class now", "just
+// find me the cheapest fares"). Not forced. Array/boolean fields are
+// full-replacement — the model has the traveller's current airline
+// preferences in context and is instructed to carry forward anything it
+// isn't changing. Deliberately excludes departure/arrival airport — those
+// are location lookups, not simple preference toggles.
+export const UPDATE_AIRLINE_PREFERENCES_TOOL: Anthropic.Tool = {
+  name: "update_airline_preferences",
+  description:
+    "Update the traveller's airline/flight preferences when they explicitly ask to change preferred airlines, alliances, cabin class, nonstop preference, or lowest-fare priority. Only call this for a clear change request, not general questions about flights.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      airlines: {
+        type: "array",
+        items: { type: "string", enum: ["Delta Air Lines", "United Airlines", "American Airlines", "Emirates", "Singapore Airlines", "Lufthansa", "British Airways", "Air France", "Qatar Airways", "Cathay Pacific"] },
+        description: "The traveller's full desired list of preferred airlines. Omit if not changing.",
+      },
+      alliances: {
+        type: "array",
+        items: { type: "string", enum: ["star_alliance", "oneworld", "skyteam"] },
+        description: "The traveller's full desired list of preferred alliances. Omit if not changing.",
+      },
+      prefer_nonstop: { type: "boolean", description: "Omit if not changing." },
+      cabin_classes: {
+        type: "array",
+        items: { type: "string", enum: ["economy", "premium_economy", "business", "first"] },
+        description: "The traveller's full desired list of cabin classes to compare. Omit if not changing.",
+      },
+      prioritize_lowest_fare: {
+        type: "boolean",
+        description: "True if the traveller wants the cheapest fares regardless of airline/cabin — this overrides airlines, alliances, and cabin_classes when true. Omit if not changing.",
+      },
+      reply: { type: "string", description: "A short, friendly confirmation message naming exactly what changed." },
+    },
+    required: ["reply"],
+  },
+};
+
 // Forced-tool-call schema for "let ZiGy choose" — used both for picking a single
 // hotel and for arranging a city's activities/restaurants across its days.
 export const SMART_PICK_TOOL: Anthropic.Tool = {

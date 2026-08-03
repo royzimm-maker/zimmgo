@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, DEFAULT_MODEL } from "@/lib/ai/client";
 import { buildChatSystemPrompt } from "@/lib/ai/prompts";
-import { ADD_TO_WANDERLOG_TOOL, UPDATE_LODGING_PREFERENCES_TOOL, UPDATE_ACTIVITY_PREFERENCES_TOOL } from "@/lib/ai/tools";
-import type { TripPreferences, ChatMessage, StepId, LodgingType } from "@/types/trip";
+import {
+  ADD_TO_WANDERLOG_TOOL,
+  UPDATE_LODGING_PREFERENCES_TOOL,
+  UPDATE_ACTIVITY_PREFERENCES_TOOL,
+  UPDATE_VIBE_PREFERENCES_TOOL,
+  UPDATE_AIRLINE_PREFERENCES_TOOL,
+} from "@/lib/ai/tools";
+import type { TripPreferences, ChatMessage, StepId, LodgingType, AirlineAlliance } from "@/types/trip";
 
 interface ChatRequest {
   message: string;
@@ -28,6 +34,20 @@ interface LodgingUpdateToolInput {
 
 interface ActivityUpdateToolInput {
   activities: string[];
+  reply: string;
+}
+
+interface VibeUpdateToolInput {
+  vibes: string[];
+  reply: string;
+}
+
+interface AirlineUpdateToolInput {
+  airlines?: string[];
+  alliances?: AirlineAlliance[];
+  prefer_nonstop?: boolean;
+  cabin_classes?: string[];
+  prioritize_lowest_fare?: boolean;
   reply: string;
 }
 
@@ -58,6 +78,8 @@ export async function POST(request: NextRequest) {
       ADD_TO_WANDERLOG_TOOL,
       ...(stepContext === "lodging" ? [UPDATE_LODGING_PREFERENCES_TOOL] : []),
       ...(stepContext === "activities" ? [UPDATE_ACTIVITY_PREFERENCES_TOOL] : []),
+      ...(stepContext === "vibe" ? [UPDATE_VIBE_PREFERENCES_TOOL] : []),
+      ...(stepContext === "airlines" ? [UPDATE_AIRLINE_PREFERENCES_TOOL] : []),
     ];
 
     const response = await client.messages.create({
@@ -92,6 +114,27 @@ export async function POST(request: NextRequest) {
     if (activityUse && activityUse.type === "tool_use") {
       const input = activityUse.input as ActivityUpdateToolInput;
       return NextResponse.json({ reply: input.reply, activityUpdate: input.activities });
+    }
+
+    const vibeUse = response.content.find((b) => b.type === "tool_use" && b.name === "update_vibe_preferences");
+    if (vibeUse && vibeUse.type === "tool_use") {
+      const input = vibeUse.input as VibeUpdateToolInput;
+      return NextResponse.json({ reply: input.reply, vibeUpdate: input.vibes });
+    }
+
+    const airlineUse = response.content.find((b) => b.type === "tool_use" && b.name === "update_airline_preferences");
+    if (airlineUse && airlineUse.type === "tool_use") {
+      const input = airlineUse.input as AirlineUpdateToolInput;
+      return NextResponse.json({
+        reply: input.reply,
+        airlineUpdate: {
+          airlines: input.airlines,
+          alliances: input.alliances,
+          preferNonstop: input.prefer_nonstop,
+          cabinClasses: input.cabin_classes,
+          prioritizeLowestFare: input.prioritize_lowest_fare,
+        },
+      });
     }
 
     const text = response.content

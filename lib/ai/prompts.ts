@@ -160,6 +160,17 @@ export function buildChatSystemPrompt(
       (l.amenities.length ? `, amenities: ${l.amenities.join(", ")}` : "")
     );
   }
+  if (preferences.airlinePrefs) {
+    const a = preferences.airlinePrefs;
+    contextLines.push(
+      a.prioritizeLowestFare
+        ? "Flight preferences: lowest fares, any airline"
+        : `Flight preferences: ${a.airlines.length ? `airlines: ${a.airlines.join(", ")}` : "no airline preference"}` +
+          (a.alliances.length ? `; alliances: ${a.alliances.join(", ")}` : "") +
+          `; ${a.preferNonstop ? "nonstop preferred" : "connections OK"}` +
+          (a.cabinClasses?.length ? `; cabin: ${a.cabinClasses.join(", ")}` : "")
+    );
+  }
 
   const context = contextLines.length
     ? `\n\nCurrent trip context:\n${contextLines.map((l) => `- ${l}`).join("\n")}`
@@ -178,6 +189,12 @@ export function buildChatSystemPrompt(
   const activitiesEditNote = stepContext === "activities"
     ? `\n\nThe traveller is currently on the Activities step. If they ask to change what kinds of experiences they want (e.g. "add hiking", "swap food tours for adventure sports", "I don't want anything cultural"), call the update_activity_preferences tool instead of just replying in text — don't just describe the change, apply it.`
     : "";
+  const vibeEditNote = stepContext === "vibe"
+    ? `\n\nThe traveller is currently on the Vibe step. If they ask to change the mood/feel of the trip (e.g. "make it more romantic", "drop nightlife, add beaches"), call the update_vibe_preferences tool instead of just replying in text — don't just describe the change, apply it.`
+    : "";
+  const airlinesEditNote = stepContext === "airlines"
+    ? `\n\nThe traveller is currently on the Flights step. If they ask to change preferred airlines, alliances, cabin class, nonstop preference, or ask for the cheapest fares (e.g. "add nonstop only", "business class please", "just find me the cheapest option"), call the update_airline_preferences tool instead of just replying in text — don't just describe the change, apply it. This tool doesn't cover departure/arrival airport changes — for those, tell the traveller to update the airport field directly.`
+    : "";
 
   return `You are an AI travel advisor helping plan a trip. Answer questions, offer suggestions, and help the user refine their preferences.${context}${itineraryNote}
 
@@ -185,7 +202,7 @@ Keep responses concise and specific. If asked about something outside the trip (
 
 If the user asks you to save, remember, bookmark, or add something to their Wanderlog, call the add_to_wanderlog tool instead of just replying in text — match against the itinerary items above by name when the user is clearly referring to one of them, source "custom" otherwise.${
     itineraryContext ? "" : " There's no itinerary yet, though — if asked to save something now, tell the user to generate their itinerary first rather than calling the tool."
-  }${lodgingEditNote}${activitiesEditNote}`;
+  }${lodgingEditNote}${activitiesEditNote}${vibeEditNote}${airlinesEditNote}`;
 }
 
 // "Let ZiGy choose" — pick the single best hotel for one city

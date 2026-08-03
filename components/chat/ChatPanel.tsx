@@ -5,7 +5,9 @@ import { Send, Sparkles, User, CheckCircle2 } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
 import { cn } from "@/lib/utils";
 import { GENERAL as ACTIVITY_CATEGORIES } from "@/components/planning/steps/ActivitiesStep";
-import type { LodgingType } from "@/types/trip";
+import { VIBES } from "@/components/planning/steps/VibeStep";
+import { ALLIANCES, CABIN_LABELS } from "@/components/planning/steps/AirlinesStep";
+import type { LodgingType, AirlineAlliance, AirlinePreference, VibeTag } from "@/types/trip";
 
 interface LodgingUpdatePayload {
   types?: LodgingType[];
@@ -41,6 +43,39 @@ function summarizeActivityUpdate(oldList: string[], newList: string[]): string {
   return parts.length ? `Updated activities: ${parts.join(" · ")}` : "Updated activities";
 }
 
+function vibeLabel(id: string): string {
+  return VIBES.find((v) => v.id === id)?.label ?? id;
+}
+
+function summarizeVibeUpdate(oldList: string[], newList: string[]): string {
+  const added = newList.filter((v) => !oldList.includes(v)).map(vibeLabel);
+  const removed = oldList.filter((v) => !newList.includes(v)).map(vibeLabel);
+  const parts: string[] = [];
+  if (added.length) parts.push(`+ ${added.join(", ")}`);
+  if (removed.length) parts.push(`− ${removed.join(", ")}`);
+  return parts.length ? `Updated vibe: ${parts.join(" · ")}` : "Updated vibe";
+}
+
+interface AirlineUpdatePayload {
+  airlines?: string[];
+  alliances?: AirlineAlliance[];
+  preferNonstop?: boolean;
+  cabinClasses?: string[];
+  prioritizeLowestFare?: boolean;
+}
+
+function summarizeAirlineUpdate(u: AirlineUpdatePayload): string {
+  if (u.prioritizeLowestFare) return "Updated flights: lowest fares, any airline";
+  const parts: string[] = [];
+  if (u.airlines?.length) parts.push(`Airlines → ${u.airlines.join(", ")}`);
+  if (u.alliances?.length) {
+    parts.push(`Alliances → ${u.alliances.map((a) => ALLIANCES.find((x) => x.id === a)?.label ?? a).join(", ")}`);
+  }
+  if (u.cabinClasses?.length) parts.push(`Cabin → ${u.cabinClasses.map((c) => CABIN_LABELS[c] ?? c).join(", ")}`);
+  if (u.preferNonstop !== undefined) parts.push(u.preferNonstop ? "Nonstop preferred" : "Connections OK");
+  return parts.length ? `Updated flights: ${parts.join(" · ")}` : "Updated flight preferences";
+}
+
 const STARTER_PROMPTS = [
   "What's the best time of year to visit?",
   "What should I pack for this trip?",
@@ -52,7 +87,7 @@ const STARTER_PROMPTS = [
 ];
 
 export function ChatPanel() {
-  const { trip, chatMessages, addMessage, addWanderlogItem, setLodging, setActivities } = useTripStore();
+  const { trip, chatMessages, addMessage, addWanderlogItem, setLodging, setActivities, setVibes, setAirlines } = useTripStore();
   const [input,   setInput  ] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -126,6 +161,30 @@ export function ChatPanel() {
         const newActivities: string[] = data.activityUpdate;
         preferenceUpdateSummary = summarizeActivityUpdate(trip.preferences.activities, newActivities);
         setActivities(newActivities);
+      }
+      if (Array.isArray(data.vibeUpdate)) {
+        const newVibes: string[] = data.vibeUpdate;
+        preferenceUpdateSummary = summarizeVibeUpdate(trip.preferences.vibes, newVibes);
+        setVibes(newVibes as VibeTag[]);
+      }
+      if (data.airlineUpdate) {
+        const update: AirlineUpdatePayload = data.airlineUpdate;
+        const existing = trip.preferences.airlinePrefs;
+        const lowestFare = update.prioritizeLowestFare ?? existing?.prioritizeLowestFare ?? false;
+        const cabinClasses = update.cabinClasses ?? existing?.cabinClasses ?? [];
+        setAirlines(
+          lowestFare
+            ? { airlines: [], alliances: [], preferNonstop: false, cabinClass: "economy", cabinClasses: [], prioritizeLowestFare: true }
+            : {
+                airlines: update.airlines ?? existing?.airlines ?? [],
+                alliances: update.alliances ?? existing?.alliances ?? [],
+                preferNonstop: update.preferNonstop ?? existing?.preferNonstop ?? true,
+                cabinClass: (cabinClasses[0] ?? "economy") as AirlinePreference["cabinClass"],
+                cabinClasses,
+                prioritizeLowestFare: false,
+              }
+        );
+        preferenceUpdateSummary = summarizeAirlineUpdate(update);
       }
 
       addMessage({ role: "assistant", content: data.reply, stepContext: trip.currentStep, preferenceUpdateSummary });

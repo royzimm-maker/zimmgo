@@ -23,14 +23,16 @@ const AIRLINES = [
   { name: "Cathay Pacific",    code: "CX", icon: "✈️" },
 ];
 
-const ALLIANCES: { id: AirlineAlliance; label: string; members: string }[] = [
+// Exported so ChatPanel can turn a chat-driven update's raw ids back into
+// friendly labels for its confirmation banner.
+export const ALLIANCES: { id: AirlineAlliance; label: string; members: string }[] = [
   { id: "star_alliance", label: "Star Alliance", members: "United, Lufthansa, Singapore, ANA + more" },
   { id: "oneworld",      label: "Oneworld",      members: "American, British Airways, Cathay, Qantas + more" },
   { id: "skyteam",       label: "SkyTeam",       members: "Delta, Air France, KLM, Korean Air + more" },
 ];
 
 const CABINS = ["economy", "premium_economy", "business", "first"] as const;
-const CABIN_LABELS: Record<string, string> = {
+export const CABIN_LABELS: Record<string, string> = {
   economy: "Economy", premium_economy: "Premium Economy",
   business: "Business", first: "First Class",
 };
@@ -95,6 +97,20 @@ export function AirlinesStep() {
   const [selectedAlliances, setSelectedAlliances] = useState<AirlineAlliance[]>(existing?.alliances ?? []);
   const [preferNonstop,     setPreferNonstop    ] = useState(existing?.preferNonstop ?? true);
   const [cabins,            setCabins           ] = useState<string[]>(existing?.cabinClasses ?? []);
+
+  // This step keeps its own draft state and only writes back to the store on
+  // Continue — so a chat-driven edit while sitting on this step wouldn't
+  // otherwise be visible until navigating away and back. Re-sync whenever
+  // the underlying preference changes from outside this component.
+  useEffect(() => {
+    if (!existing) return;
+    setLowestFare(existing.prioritizeLowestFare ?? false);
+    setSelectedAirlines(existing.airlines);
+    setSelectedAlliances(existing.alliances);
+    setPreferNonstop(existing.preferNonstop);
+    setCabins(existing.cabinClasses ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing]);
 
   function toggleAirline(name: string) {
     setSelectedAirlines((prev) =>

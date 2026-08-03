@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { VibeTag } from "@/types/trip";
 
-const VIBES: { id: VibeTag; label: string; icon: string; sublabel: string }[] = [
+// Exported so ChatPanel can turn a chat-driven update's raw vibe ids back
+// into friendly labels for its confirmation banner.
+export const VIBES: { id: VibeTag; label: string; icon: string; sublabel: string }[] = [
   { id: "romantic",             label: "Romantic",            icon: "💑",  sublabel: "Couple-focused, slow-paced, indulgent" },
   { id: "nightlife",            label: "Nightlife",           icon: "🎉",  sublabel: "Bars, clubs, late nights" },
   { id: "beaches",              label: "Beaches",             icon: "🏖️",  sublabel: "Sun, sand, and sea" },
@@ -24,6 +26,21 @@ export function VibeStep() {
   const [selected, setSelected] = useState<VibeTag[]>(trip.preferences.vibes);
   const [otherOpen,  setOtherOpen ] = useState(false);
   const [otherValue, setOtherValue] = useState("");
+
+  // This step keeps its own draft state and only writes back to the store on
+  // Continue — so a chat-driven edit while sitting on this step wouldn't
+  // otherwise be visible until navigating away and back. Re-sync whenever
+  // the underlying preference changes from outside this component.
+  useEffect(() => {
+    const known = trip.preferences.vibes.filter((v) => VIBES.some((x) => x.id === v));
+    const custom = trip.preferences.vibes.find((v) => !VIBES.some((x) => x.id === v));
+    setSelected(known);
+    if (custom) {
+      setOtherOpen(true);
+      setOtherValue(custom);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.preferences.vibes]);
 
   function toggle(id: VibeTag) {
     setSelected((prev) =>
