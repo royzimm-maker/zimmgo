@@ -7,6 +7,7 @@ import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
 import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
+import { BeliConnect } from "@/components/planning/BeliConnect";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityCategory } from "@/types/trip";
@@ -135,6 +136,8 @@ export function ActivitiesStep() {
           {totalSelected} activit{totalSelected === 1 ? "y" : "ies"} selected
         </p>
       )}
+
+      <BeliConnect />
     </StepShell>
   );
 }

@@ -35,7 +35,7 @@ const HOTEL_TIER: Record<number, string> = {
 };
 
 export function LodgingStep() {
-  const { trip, setLodging, setSelectedHotel, setReviewSourcePref, setBeliPref } = useTripStore();
+  const { trip, setLodging, setSelectedHotel, setReviewSourcePref } = useTripStore();
   const existing = trip.preferences.lodging;
   const [mode, setMode] = useState<"prompt" | "manual">(() => (existing ? "manual" : "prompt"));
   const { picking, pickSummary, run: runSmartPick } = useSmartPick();
@@ -57,10 +57,6 @@ export function LodgingStep() {
   const existingReviewPref = trip.preferences.reviewSourcePref;
   const [reviewMode,   setReviewMode  ] = useState<"single" | "cross_reference">(existingReviewPref?.mode ?? "cross_reference");
   const [reviewSource, setReviewSource] = useState<ReviewSource | null>(existingReviewPref?.source ?? null);
-
-  const existingBeliPref = trip.preferences.beliPref;
-  const [beliUsername, setBeliUsername] = useState(existingBeliPref?.username ?? "");
-  const [beliConnected, setBeliConnected] = useState(existingBeliPref?.connected ?? false);
 
   const [hotels,          setHotels         ] = useState<HotelOption[]>([]);
   const [hotelsLoading,   setHotelsLoading  ] = useState(false);
@@ -151,8 +147,6 @@ export function LodgingStep() {
         ? { mode: "single", source: reviewSource }
         : { mode: "cross_reference" }
     );
-
-    setBeliPref({ connected: beliConnected, username: beliConnected ? beliUsername.trim() : undefined });
 
     const picked = displayHotels.find((h) => h.id === selectedHotelId) ?? null;
     setSelectedHotel(picked);
@@ -370,48 +364,6 @@ export function LodgingStep() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Beli — optional, weights restaurant picks toward the user's own rankings */}
-        <div className="border-t border-slate-100 pt-5">
-          <p className="mb-1 text-sm font-medium text-slate-700">Restaurant discovery</p>
-          <p className="mb-2.5 text-xs text-slate-400">
-            Connect your Beli account and ZiGy will lean on your own rankings and bookmarks when picking restaurants — not just star ratings.
-          </p>
-          {beliConnected ? (
-            <div className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2">
-              <Check size={14} className="text-brand-600 shrink-0" />
-              <p className="text-xs text-brand-700 flex-1">
-                Connected as <span className="font-semibold">@{beliUsername}</span>
-              </p>
-              <button
-                type="button"
-                onClick={() => setBeliConnected(false)}
-                className="text-xs text-slate-400 hover:text-slate-600 font-medium"
-              >
-                Disconnect
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                value={beliUsername}
-                onChange={(e) => setBeliUsername(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && beliUsername.trim() && setBeliConnected(true)}
-                placeholder="Your Beli username (optional)"
-                className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-              />
-              <button
-                type="button"
-                onClick={() => setBeliConnected(true)}
-                disabled={!beliUsername.trim()}
-                className="rounded-lg bg-brand-600 text-white px-3 py-1.5 text-xs font-semibold hover:bg-brand-700 disabled:opacity-40 transition-colors"
-              >
-                Connect
-              </button>
-            </div>
-          )}
         </div>
 
         {/* AirBnB note — shown instead of hotel cards */}
