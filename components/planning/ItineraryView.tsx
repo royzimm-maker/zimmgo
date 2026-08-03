@@ -113,7 +113,7 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
         >
           <FlightPairList
             flights={itinerary.flights}
-            depAirport={preferences.destination?.departureAirport ?? ""}
+            arrivalAirport={preferences.destination?.arrivalAirport ?? ""}
             selectedFlightId={trip.preferences.selectedFlight?.id}
             onSelect={(f) => setSelectedFlight(trip.preferences.selectedFlight?.id === f.id ? null : f)}
           />
@@ -444,16 +444,16 @@ function StatCard({ label, value, icon }: { label: string; value: string; icon: 
 
 export function FlightPairList({
   flights,
-  depAirport,
+  arrivalAirport,
   selectedFlightId,
   onSelect,
 }: {
   flights: FlightOption[];
-  depAirport: string;
+  arrivalAirport: string;
   selectedFlightId?: string;
   onSelect: (f: FlightOption) => void;
 }) {
-  const pairs = pairFlights(flights, depAirport);
+  const pairs = pairFlights(flights, arrivalAirport);
 
   return (
     <div className="flex flex-col gap-3">

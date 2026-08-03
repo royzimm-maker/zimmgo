@@ -32,14 +32,21 @@ export function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-/** Pair outbound and return flights so callers can display a roundtrip price. */
+/**
+ * Pair outbound and return flights so callers can display a roundtrip price.
+ * Keyed off the destination's arrival airport (a reliable IATA code set by the
+ * AI during destination inference) rather than the user's departure input,
+ * which is often free text like "Seattle" — extractIataCode's fallback would
+ * mangle that into a 3-letter code that never matches a real airport, leaving
+ * every flight (both directions) treated as its own unpaired "outbound" leg.
+ */
 export function pairFlights(
   flights: FlightOption[],
-  depAirport: string
+  arrivalAirport: string
 ): { outbound: FlightOption; ret: FlightOption | null }[] {
-  const depCode = extractIataCode(depAirport);
+  const arrivalCode = extractIataCode(arrivalAirport);
   const isOutbound = (f: FlightOption) =>
-    depAirport ? (f.origin ?? "").toUpperCase().includes(depCode) : true;
+    arrivalAirport ? (f.destination ?? "").toUpperCase().includes(arrivalCode) : true;
   const outbound = flights.filter(isOutbound);
   const returns  = flights.filter((f) => !isOutbound(f));
 

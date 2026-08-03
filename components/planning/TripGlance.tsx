@@ -21,8 +21,8 @@ export function TripGlance({ itinerary, preferences }: Props) {
   const firstDay = days[0];
   const lastDay  = days[days.length - 1];
 
-  const depAirport = preferences.destination?.departureAirport ?? "";
-  const pairs = pairFlights(flights, depAirport);
+  const arrivalAirport = preferences.destination?.arrivalAirport ?? "";
+  const pairs = pairFlights(flights, arrivalAirport);
 
   return (
     <div className="rounded-xl border border-brand-200 bg-white overflow-hidden">

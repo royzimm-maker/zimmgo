@@ -153,7 +153,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
           itinerary.flights.length > 0 ? (
             <FlightPairList
               flights={itinerary.flights}
-              depAirport={preferences.destination?.departureAirport ?? ""}
+              arrivalAirport={preferences.destination?.arrivalAirport ?? ""}
               selectedFlightId={preferences.selectedFlight?.id}
               onSelect={(f) => setSelectedFlight(preferences.selectedFlight?.id === f.id ? null : f)}
             />
