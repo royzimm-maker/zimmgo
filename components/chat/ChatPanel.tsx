@@ -1,9 +1,29 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles, User } from "lucide-react";
+import { Send, Sparkles, User, CheckCircle2 } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
 import { cn } from "@/lib/utils";
+import type { LodgingType } from "@/types/trip";
+
+interface LodgingUpdatePayload {
+  types?: LodgingType[];
+  minStars?: 3 | 4 | 5;
+  amenities?: string[];
+  otherAmenity?: string;
+}
+
+// Deterministic client-side summary, rather than trusting the model to
+// produce a consistently-shaped label — the tool's own "reply" field is
+// free-text conversation, this is a compact chip naming exactly what changed.
+function summarizeLodgingUpdate(u: LodgingUpdatePayload): string {
+  const parts: string[] = [];
+  if (u.types?.length) parts.push(`Type → ${u.types.join(", ")}`);
+  if (u.minStars) parts.push(`${u.minStars}★ minimum`);
+  if (u.amenities?.length) parts.push(`Amenities → ${u.amenities.join(", ")}`);
+  if (u.otherAmenity) parts.push(`+ ${u.otherAmenity}`);
+  return parts.length ? `Updated lodging: ${parts.join(" · ")}` : "Updated lodging preferences";
+}
 
 const STARTER_PROMPTS = [
   "What's the best time of year to visit?",
@@ -16,7 +36,7 @@ const STARTER_PROMPTS = [
 ];
 
 export function ChatPanel() {
-  const { trip, chatMessages, addMessage, addWanderlogItem } = useTripStore();
+  const { trip, chatMessages, addMessage, addWanderlogItem, setLodging } = useTripStore();
   const [input,   setInput  ] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -54,6 +74,7 @@ export function ChatPanel() {
           history: chatMessages,
           preferences: trip.preferences,
           itineraryContext,
+          stepContext: trip.currentStep,
         }),
       });
 
@@ -70,7 +91,23 @@ export function ChatPanel() {
         }
       }
 
-      addMessage({ role: "assistant", content: data.reply, stepContext: trip.currentStep });
+      let preferenceUpdateSummary: string | undefined;
+      if (data.lodgingUpdate) {
+        const update: LodgingUpdatePayload = data.lodgingUpdate;
+        const existing = trip.preferences.lodging;
+        const amenities = update.amenities ?? existing?.amenities ?? [];
+        const mergedAmenities = update.otherAmenity && !amenities.includes(update.otherAmenity)
+          ? [...amenities, update.otherAmenity]
+          : amenities;
+        setLodging({
+          types: update.types ?? existing?.types ?? [],
+          minStars: update.minStars ?? existing?.minStars ?? 4,
+          amenities: mergedAmenities,
+        });
+        preferenceUpdateSummary = summarizeLodgingUpdate(update);
+      }
+
+      addMessage({ role: "assistant", content: data.reply, stepContext: trip.currentStep, preferenceUpdateSummary });
     } catch {
       addMessage({
         role: "assistant",
@@ -183,18 +220,26 @@ export function ChatPanel() {
             </div>
 
             {/* Bubble */}
-            <div
-              className={cn(
-                "max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed",
-                msg.role === "user"
-                  ? "bg-brand-600 text-white rounded-tr-sm"
-                  : "bg-slate-100 text-slate-700 rounded-tl-sm"
+            <div className="flex max-w-[85%] flex-col gap-1.5">
+              <div
+                className={cn(
+                  "rounded-xl px-3 py-2 text-sm leading-relaxed",
+                  msg.role === "user"
+                    ? "bg-brand-600 text-white rounded-tr-sm"
+                    : "bg-slate-100 text-slate-700 rounded-tl-sm"
+                )}
+              >
+                {msg.role === "assistant"
+                  ? <div className="prose-chat" dangerouslySetInnerHTML={{ __html: markdownToHtml(msg.content) }} />
+                  : msg.content
+                }
+              </div>
+              {msg.preferenceUpdateSummary && (
+                <div className="flex items-center gap-1.5 rounded-lg border border-sage-200 bg-sage-50 px-2.5 py-1.5 text-[11px] font-medium text-sage-700">
+                  <CheckCircle2 size={12} className="shrink-0" />
+                  {msg.preferenceUpdateSummary}
+                </div>
               )}
-            >
-              {msg.role === "assistant"
-                ? <div className="prose-chat" dangerouslySetInnerHTML={{ __html: markdownToHtml(msg.content) }} />
-                : msg.content
-              }
             </div>
           </div>
         ))}

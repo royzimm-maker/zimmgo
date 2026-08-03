@@ -52,6 +52,20 @@ export function LodgingStep() {
   const [otherAmenity,   setOtherAmenity  ] = useState("");
   const [amenityOpen,    setAmenityOpen   ] = useState(false);
 
+  // This step keeps its own draft state and only writes back to the store on
+  // Continue — so a chat-driven edit (ZiGy applying "find me resorts instead"
+  // while the user is sitting on this step) wouldn't otherwise be visible
+  // until they navigated away and back. `existing` only changes here when
+  // something outside this component calls setLodging, so re-sync the draft
+  // whenever it does.
+  useEffect(() => {
+    if (!existing) return;
+    setTypes(existing.types);
+    setMinStars(existing.minStars);
+    setAmenities(existing.amenities);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing]);
+
   const existingReviewPref = trip.preferences.reviewSourcePref;
   const [reviewMode,   setReviewMode  ] = useState<"single" | "cross_reference">(existingReviewPref?.mode ?? "cross_reference");
   const [reviewSource, setReviewSource] = useState<ReviewSource | null>(existingReviewPref?.source ?? null);

@@ -48,6 +48,9 @@ export function VibeStep() {
       continueDisabled={!hasSelection}
       subtitle="What's the feel of this trip? Pick as many as apply."
     >
+      <p className="mb-3 text-xs text-slate-400">
+        2–4 tends to work best — picking almost everything won't narrow things down much.
+      </p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {VIBES.map((v) => (
           <SelectChip

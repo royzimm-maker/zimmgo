@@ -124,7 +124,8 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
 // Prompt for the conversational advisor chat
 export function buildChatSystemPrompt(
   preferences: TripPreferences,
-  itineraryContext?: { activities: string[]; restaurants: string[] }
+  itineraryContext?: { activities: string[]; restaurants: string[] },
+  stepContext?: string
 ): string {
   const contextLines: string[] = [];
 
@@ -152,6 +153,13 @@ export function buildChatSystemPrompt(
   if (preferences.dailyFoodBudgetPerPerson) {
     contextLines.push(`Food budget: $${preferences.dailyFoodBudgetPerPerson}/person/day`);
   }
+  if (preferences.lodging) {
+    const l = preferences.lodging;
+    contextLines.push(
+      `Lodging: ${l.types.join(" or ") || "not yet chosen"} (min ${l.minStars}★)` +
+      (l.amenities.length ? `, amenities: ${l.amenities.join(", ")}` : "")
+    );
+  }
 
   const context = contextLines.length
     ? `\n\nCurrent trip context:\n${contextLines.map((l) => `- ${l}`).join("\n")}`
@@ -164,13 +172,17 @@ export function buildChatSystemPrompt(
       ].map((l) => `- ${l}`).join("\n")}`
     : "";
 
+  const lodgingEditNote = stepContext === "lodging"
+    ? `\n\nThe traveller is currently on the Lodging step. If they ask to change their accommodation type, star rating, or amenities (e.g. "find me resorts instead", "add a pool", "I want something more remote"), call the update_lodging_preferences tool instead of just replying in text — don't just describe the change, apply it.`
+    : "";
+
   return `You are an AI travel advisor helping plan a trip. Answer questions, offer suggestions, and help the user refine their preferences.${context}${itineraryNote}
 
 Keep responses concise and specific. If asked about something outside the trip (e.g. unrelated topics), gently redirect to trip planning.
 
 If the user asks you to save, remember, bookmark, or add something to their Wanderlog, call the add_to_wanderlog tool instead of just replying in text — match against the itinerary items above by name when the user is clearly referring to one of them, source "custom" otherwise.${
     itineraryContext ? "" : " There's no itinerary yet, though — if asked to save something now, tell the user to generate their itinerary first rather than calling the tool."
-  }`;
+  }${lodgingEditNote}`;
 }
 
 // "Let ZiGy choose" — pick the single best hotel for one city

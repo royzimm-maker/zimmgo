@@ -308,6 +308,10 @@ export interface ChatMessage {
   content: string;
   createdAt: string;
   stepContext?: StepId;
+  // Short label shown as a confirmation chip when this message applied a
+  // preference change directly (e.g. "Updated lodging: Type → Resort"),
+  // distinct from the message's own prose reply.
+  preferenceUpdateSummary?: string;
 }
 
 // ─── API response shapes ───────────────────────────────────────────────────────

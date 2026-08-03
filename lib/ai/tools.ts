@@ -170,6 +170,41 @@ export const ADD_TO_WANDERLOG_TOOL: Anthropic.Tool = {
   },
 };
 
+// Chat tool — lets the advisor apply a lodging preference change directly
+// instead of just talking about it (e.g. "find me resorts instead", "I want
+// something more remote"). Not forced: most Lodging-step messages are plain
+// questions. Array fields are full-replacement, not additive — the model has
+// the traveller's current lodging preferences in its context and is
+// instructed to carry forward anything it isn't changing.
+export const UPDATE_LODGING_PREFERENCES_TOOL: Anthropic.Tool = {
+  name: "update_lodging_preferences",
+  description:
+    "Update the traveller's lodging preferences when they explicitly ask to change accommodation type, star rating, or amenities (e.g. \"find me resorts instead of boutique\", \"add a pool\", \"I want something more remote\"). Only call this for a clear change request, not general questions about lodging.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      types: {
+        type: "array",
+        items: { type: "string", enum: ["hotel", "airbnb", "boutique", "resort"] },
+        description: "The traveller's full desired list of accommodation types. Omit entirely if not changing.",
+      },
+      min_stars: { type: "number", enum: [3, 4, 5], description: "Omit if not changing." },
+      amenities: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "The traveller's full desired list of must-have amenities, drawn from: Free breakfast, Pool, Gym, Concierge, Airport transfer, Rooftop bar, Spa, City centre location, Kitchen / kitchenette, High walkability. Carry forward their existing selections unless they're clearly replacing them. Omit if not changing.",
+      },
+      other_amenity: {
+        type: "string",
+        description: "A single free-text preference that doesn't fit the fixed amenity list above (e.g. \"remote location\", \"walking distance to the beach\"). Omit if none.",
+      },
+      reply: { type: "string", description: "A short, friendly confirmation message naming exactly what changed." },
+    },
+    required: ["reply"],
+  },
+};
+
 // Forced-tool-call schema for "let ZiGy choose" — used both for picking a single
 // hotel and for arranging a city's activities/restaurants across its days.
 export const SMART_PICK_TOOL: Anthropic.Tool = {
