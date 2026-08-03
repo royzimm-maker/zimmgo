@@ -5,6 +5,7 @@
 import { v4 as uuid } from "uuid";
 import type { HotelOption } from "@/types/trip";
 import { randomInt } from "@/lib/utils";
+import { resolvePool } from "@/lib/api/poolLookup";
 
 interface HotelSearchParams {
   destination: string;
@@ -86,14 +87,7 @@ const HOTEL_ALIASES: Record<string, string> = {
 };
 
 function findHotelBase(destination: string): (Partial<HotelOption> & { hotelType?: HotelType })[] {
-  const lower = (destination ?? "").toLowerCase();
-  const direct = Object.keys(HOTEL_DB).find((k) => lower.includes(k));
-  if (direct) return HOTEL_DB[direct];
-  const alias = Object.entries(HOTEL_ALIASES).find(([a]) => lower.includes(a));
-  // Defensive fallback (see the same pattern in activities.ts/restaurants.ts,
-  // added after a missing pool crashed generation for an entire alias target):
-  // never return undefined even if an alias points to a pool key with no content.
-  return HOTEL_DB[alias?.[1] ?? "default"] ?? HOTEL_DB.default;
+  return resolvePool(destination, HOTEL_DB, HOTEL_ALIASES);
 }
 
 

@@ -5,6 +5,7 @@ import { v4 as uuid } from "uuid";
 import type { RestaurantOption, RestaurantTier } from "@/types/trip";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
 import { fuzzyCityMatch } from "@/lib/utils";
+import { resolvePool } from "@/lib/api/poolLookup";
 
 interface RestaurantSearchParams {
   destination: string;
@@ -467,14 +468,7 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
 };
 
 function findRestaurantBase(destination: string): RestaurantSeed[] {
-  const lower = (destination ?? "").toLowerCase();
-  const direct = Object.keys(RESTAURANT_DB).find((k) => lower.includes(k));
-  if (direct) return RESTAURANT_DB[direct];
-  const alias = Object.entries(DESTINATION_ALIASES).find(([a]) => lower.includes(a));
-  // Same defensive fallback as activities.ts's findActivityBase: DESTINATION_ALIASES
-  // is shared, so a future alias target without matching content here shouldn't
-  // crash every caller — fall back to "default" instead of undefined.
-  return RESTAURANT_DB[alias?.[1] ?? "default"] ?? RESTAURANT_DB.default;
+  return resolvePool(destination, RESTAURANT_DB, DESTINATION_ALIASES);
 }
 
 export async function searchRestaurants(params: RestaurantSearchParams): Promise<RestaurantOption[]> {

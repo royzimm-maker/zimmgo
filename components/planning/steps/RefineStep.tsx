@@ -312,8 +312,18 @@ export function RefineStep() {
     return info.kind === "activity" ? info.activity?.location : info.restaurant?.location;
   }
 
+  // Resolving a card's city does fuzzy string matching against every trip city,
+  // so precompute it once per card here rather than re-running it on every
+  // getCardCity() call in cityStats/visibleBank/the drag-compatible check.
+  const cardCityMap = useMemo<Record<string, string | undefined>>(() => {
+    const m: Record<string, string | undefined> = {};
+    allCards.forEach((c) => { m[c.cardId] = resolveCardCity(getCardLocation(c.cardId), cities); });
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allCards, cities]);
+
   function getCardCity(cardId: string): string | undefined {
-    return resolveCardCity(getCardLocation(cardId), cities);
+    return cardCityMap[cardId];
   }
 
   function handleDragStart({ active }: DragStartEvent) {

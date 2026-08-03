@@ -4,6 +4,7 @@
 
 import { v4 as uuid } from "uuid";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
+import { resolvePool } from "@/lib/api/poolLookup";
 import type { ActivityOption } from "@/types/trip";
 
 interface ActivitySearchParams {
@@ -85,15 +86,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
 };
 
 function findActivityBase(destination: string): Partial<ActivityOption>[] {
-  const lower = (destination ?? "").toLowerCase();
-  const direct = Object.keys(ACTIVITY_POOLS).find((k) => lower.includes(k));
-  if (direct) return ACTIVITY_POOLS[direct];
-  const alias = Object.entries(DESTINATION_ALIASES).find(([a]) => lower.includes(a));
-  // DESTINATION_ALIASES is shared with restaurants.ts and may map to a pool key
-  // this file doesn't (yet) have its own content for — fall back to "default"
-  // rather than crashing every caller downstream (searchActivities.filter, etc.)
-  // the way an undefined pool did for every Spain/Greece/Portugal/UK trip.
-  return ACTIVITY_POOLS[alias?.[1] ?? "default"] ?? ACTIVITY_POOLS.default;
+  return resolvePool(destination, ACTIVITY_POOLS, DESTINATION_ALIASES);
 }
 
 export async function searchActivities(params: ActivitySearchParams): Promise<ActivityOption[]> {
