@@ -175,6 +175,9 @@ export function buildChatSystemPrompt(
   const lodgingEditNote = stepContext === "lodging"
     ? `\n\nThe traveller is currently on the Lodging step. If they ask to change their accommodation type, star rating, or amenities (e.g. "find me resorts instead", "add a pool", "I want something more remote"), call the update_lodging_preferences tool instead of just replying in text — don't just describe the change, apply it.`
     : "";
+  const activitiesEditNote = stepContext === "activities"
+    ? `\n\nThe traveller is currently on the Activities step. If they ask to change what kinds of experiences they want (e.g. "add hiking", "swap food tours for adventure sports", "I don't want anything cultural"), call the update_activity_preferences tool instead of just replying in text — don't just describe the change, apply it.`
+    : "";
 
   return `You are an AI travel advisor helping plan a trip. Answer questions, offer suggestions, and help the user refine their preferences.${context}${itineraryNote}
 
@@ -182,7 +185,7 @@ Keep responses concise and specific. If asked about something outside the trip (
 
 If the user asks you to save, remember, bookmark, or add something to their Wanderlog, call the add_to_wanderlog tool instead of just replying in text — match against the itinerary items above by name when the user is clearly referring to one of them, source "custom" otherwise.${
     itineraryContext ? "" : " There's no itinerary yet, though — if asked to save something now, tell the user to generate their itinerary first rather than calling the tool."
-  }${lodgingEditNote}`;
+  }${lodgingEditNote}${activitiesEditNote}`;
 }
 
 // "Let ZiGy choose" — pick the single best hotel for one city

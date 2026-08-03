@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, DEFAULT_MODEL } from "@/lib/ai/client";
 import { buildChatSystemPrompt } from "@/lib/ai/prompts";
-import { ADD_TO_WANDERLOG_TOOL, UPDATE_LODGING_PREFERENCES_TOOL } from "@/lib/ai/tools";
+import { ADD_TO_WANDERLOG_TOOL, UPDATE_LODGING_PREFERENCES_TOOL, UPDATE_ACTIVITY_PREFERENCES_TOOL } from "@/lib/ai/tools";
 import type { TripPreferences, ChatMessage, StepId, LodgingType } from "@/types/trip";
 
 interface ChatRequest {
@@ -26,6 +26,11 @@ interface LodgingUpdateToolInput {
   reply: string;
 }
 
+interface ActivityUpdateToolInput {
+  activities: string[];
+  reply: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { message, history, preferences, itineraryContext, stepContext }: ChatRequest = await request.json();
@@ -46,11 +51,14 @@ export async function POST(request: NextRequest) {
       { role: "user" as const, content: message },
     ];
 
-    // Only exposed on the Lodging step — a lodging preference edit tool call
-    // wouldn't make sense (and could confuse the model) anywhere else.
-    const tools = stepContext === "lodging"
-      ? [ADD_TO_WANDERLOG_TOOL, UPDATE_LODGING_PREFERENCES_TOOL]
-      : [ADD_TO_WANDERLOG_TOOL];
+    // Each preference-edit tool is only exposed on its own step — offering it
+    // elsewhere wouldn't make sense (and could confuse the model into calling
+    // it out of context).
+    const tools = [
+      ADD_TO_WANDERLOG_TOOL,
+      ...(stepContext === "lodging" ? [UPDATE_LODGING_PREFERENCES_TOOL] : []),
+      ...(stepContext === "activities" ? [UPDATE_ACTIVITY_PREFERENCES_TOOL] : []),
+    ];
 
     const response = await client.messages.create({
       model: DEFAULT_MODEL,
@@ -78,6 +86,12 @@ export async function POST(request: NextRequest) {
           otherAmenity: input.other_amenity,
         },
       });
+    }
+
+    const activityUse = response.content.find((b) => b.type === "tool_use" && b.name === "update_activity_preferences");
+    if (activityUse && activityUse.type === "tool_use") {
+      const input = activityUse.input as ActivityUpdateToolInput;
+      return NextResponse.json({ reply: input.reply, activityUpdate: input.activities });
     }
 
     const text = response.content

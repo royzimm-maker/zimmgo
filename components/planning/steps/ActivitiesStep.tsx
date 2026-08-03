@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
@@ -12,7 +12,9 @@ import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityCategory } from "@/types/trip";
 
-const GENERAL: { id: ActivityCategory; label: string; icon: string; sublabel: string }[] = [
+// Exported so ChatPanel can turn a chat-driven update's raw category ids
+// back into friendly labels for its confirmation banner.
+export const GENERAL: { id: ActivityCategory; label: string; icon: string; sublabel: string }[] = [
   { id: "guided_walking_tour", label: "Guided Walking Tour", icon: "🚶", sublabel: "Expert-led neighbourhood & history walks" },
   { id: "guided_food_tour",    label: "Guided Food Tour",    icon: "🍽️", sublabel: "Curated culinary walks with a local expert" },
   { id: "hiking",              label: "Hiking",              icon: "🥾", sublabel: "Trails, peaks, national parks" },
@@ -42,6 +44,24 @@ export function ActivitiesStep() {
   );
   const [otherOpen,  setOtherOpen ] = useState(false);
   const [otherValue, setOtherValue] = useState("");
+
+  // This step keeps its own draft state and only writes back to the store on
+  // Continue — so a chat-driven edit (ZiGy applying "add hiking, drop
+  // cultural" while the user is sitting on this step) wouldn't otherwise be
+  // visible until they navigated away and back. Re-sync whenever the
+  // underlying preference changes from outside this component.
+  useEffect(() => {
+    const known = trip.preferences.activities.filter((a): a is ActivityCategory =>
+      GENERAL.some((g) => g.id === a)
+    );
+    const custom = trip.preferences.activities.find((a) => !GENERAL.some((g) => g.id === a));
+    setSelectedGeneral(known);
+    if (custom) {
+      setOtherOpen(true);
+      setOtherValue(custom);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.preferences.activities]);
 
   function toggleGeneral(id: ActivityCategory) {
     setSelectedGeneral((prev) =>

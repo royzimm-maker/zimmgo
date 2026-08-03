@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles, User, CheckCircle2 } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
 import { cn } from "@/lib/utils";
+import { GENERAL as ACTIVITY_CATEGORIES } from "@/components/planning/steps/ActivitiesStep";
 import type { LodgingType } from "@/types/trip";
 
 interface LodgingUpdatePayload {
@@ -25,6 +26,21 @@ function summarizeLodgingUpdate(u: LodgingUpdatePayload): string {
   return parts.length ? `Updated lodging: ${parts.join(" · ")}` : "Updated lodging preferences";
 }
 
+function activityLabel(id: string): string {
+  return ACTIVITY_CATEGORIES.find((c) => c.id === id)?.label ?? id;
+}
+
+// Diff-based, for the same reason as summarizeLodgingUpdate above — a
+// consistent label the UI controls, not something left to model prose.
+function summarizeActivityUpdate(oldList: string[], newList: string[]): string {
+  const added = newList.filter((a) => !oldList.includes(a)).map(activityLabel);
+  const removed = oldList.filter((a) => !newList.includes(a)).map(activityLabel);
+  const parts: string[] = [];
+  if (added.length) parts.push(`+ ${added.join(", ")}`);
+  if (removed.length) parts.push(`− ${removed.join(", ")}`);
+  return parts.length ? `Updated activities: ${parts.join(" · ")}` : "Updated activities";
+}
+
 const STARTER_PROMPTS = [
   "What's the best time of year to visit?",
   "What should I pack for this trip?",
@@ -36,7 +52,7 @@ const STARTER_PROMPTS = [
 ];
 
 export function ChatPanel() {
-  const { trip, chatMessages, addMessage, addWanderlogItem, setLodging } = useTripStore();
+  const { trip, chatMessages, addMessage, addWanderlogItem, setLodging, setActivities } = useTripStore();
   const [input,   setInput  ] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -105,6 +121,11 @@ export function ChatPanel() {
           amenities: mergedAmenities,
         });
         preferenceUpdateSummary = summarizeLodgingUpdate(update);
+      }
+      if (Array.isArray(data.activityUpdate)) {
+        const newActivities: string[] = data.activityUpdate;
+        preferenceUpdateSummary = summarizeActivityUpdate(trip.preferences.activities, newActivities);
+        setActivities(newActivities);
       }
 
       addMessage({ role: "assistant", content: data.reply, stepContext: trip.currentStep, preferenceUpdateSummary });

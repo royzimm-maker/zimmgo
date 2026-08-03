@@ -205,6 +205,31 @@ export const UPDATE_LODGING_PREFERENCES_TOOL: Anthropic.Tool = {
   },
 };
 
+// Chat tool — lets the advisor apply an activity preference change directly
+// instead of just talking about it (e.g. "add hiking", "swap food tours for
+// adventure sports", "drop anything cultural"). Not forced: most Activities-
+// step messages are plain questions. Full-replacement, not additive — the
+// model has the traveller's current activity preferences in its context and
+// is instructed to carry forward anything it isn't changing.
+export const UPDATE_ACTIVITY_PREFERENCES_TOOL: Anthropic.Tool = {
+  name: "update_activity_preferences",
+  description:
+    "Update the traveller's activity preferences when they explicitly ask to change what kinds of experiences they want (e.g. \"add hiking\", \"swap food tours for adventure sports\", \"I don't want anything cultural\"). Only call this for a clear change request, not general questions about activities.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      activities: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "The traveller's full desired list of activities — category ids from: guided_walking_tour, guided_food_tour, hiking, skiing, sailing, food, diving, cycling, cultural, photography, wellness, adventure, plus free text for anything that doesn't fit those (e.g. \"Surfing\", \"Bird watching\"). Carry forward their existing selections unless they're clearly replacing them.",
+      },
+      reply: { type: "string", description: "A short, friendly confirmation message naming exactly what changed." },
+    },
+    required: ["activities", "reply"],
+  },
+};
+
 // Forced-tool-call schema for "let ZiGy choose" — used both for picking a single
 // hotel and for arranging a city's activities/restaurants across its days.
 export const SMART_PICK_TOOL: Anthropic.Tool = {
