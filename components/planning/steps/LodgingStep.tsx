@@ -378,7 +378,7 @@ export function LodgingStep() {
         )}
 
         {/* Hotel picker */}
-        {!airbnbOnly && (hotelsLoading || hotels.length > 0) && (
+        {!airbnbOnly && hasType && (
           <div className="border-t border-slate-100 pt-5">
             <p className="mb-1 text-sm font-medium text-slate-700">Choose your stay</p>
             <p className="mb-3 text-xs text-slate-400">
@@ -390,6 +390,13 @@ export function LodgingStep() {
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="h-48 rounded-xl bg-slate-100 animate-pulse" />
                 ))}
+              </div>
+            ) : hotels.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
+                <p className="text-sm text-slate-500">No hotels matched this combination.</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Try a lower minimum star rating, a different accommodation type, or a higher nightly budget.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
