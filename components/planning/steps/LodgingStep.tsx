@@ -107,17 +107,76 @@ export function LodgingStep() {
     if (types.length > 0 && !onlyAirbnb) fetchHotels(minStars);
   }, [types.join(","), otherTypeOpen]);
 
+  // Write every change straight to the store instead of only on Continue —
+  // otherwise a manual pick made here is invisible to chat (which only reads
+  // the store) and gets silently clobbered the moment chat applies its own
+  // update, since that overwrites the store and this step's own sync-from-
+  // store effect above then overwrites the local draft to match.
+  function assembleLodging(overrides: Partial<{
+    types: LodgingType[]; minStars: LodgingStarRating; amenities: string[];
+    otherTypeOpen: boolean; otherTypeValue: string; amenityOpen: boolean; otherAmenity: string;
+  }> = {}): LodgingPreference {
+    const t   = overrides.types ?? types;
+    const oto = overrides.otherTypeOpen ?? otherTypeOpen;
+    const otv = overrides.otherTypeValue ?? otherTypeValue;
+    const a   = overrides.amenities ?? amenities;
+    const ao  = overrides.amenityOpen ?? amenityOpen;
+    const oa  = overrides.otherAmenity ?? otherAmenity;
+    return {
+      types: oto && otv.trim() ? [...t, otv.trim() as LodgingType] : t,
+      minStars: overrides.minStars ?? minStars,
+      amenities: ao && oa.trim() ? [...a, oa.trim()] : a,
+    };
+  }
+  function syncLodging(overrides?: Parameters<typeof assembleLodging>[0]) {
+    setLodging(assembleLodging(overrides));
+  }
+
   function handleStarsChange(s: LodgingStarRating) {
     setMinStars(s);
     fetchHotels(s);
+    syncLodging({ minStars: s });
   }
 
   function toggleType(t: LodgingType) {
-    setTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+    setTypes((prev) => {
+      const next = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
+      syncLodging({ types: next });
+      return next;
+    });
   }
 
   function toggleAmenity(a: string) {
-    setAmenities((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
+    setAmenities((prev) => {
+      const next = prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a];
+      syncLodging({ amenities: next });
+      return next;
+    });
+  }
+
+  function handleOtherTypeChange(v: string) {
+    setOtherTypeValue(v);
+    syncLodging({ otherTypeValue: v });
+  }
+  function handleOtherTypeToggle() {
+    setOtherTypeOpen((prev) => {
+      const next = !prev;
+      syncLodging({ otherTypeOpen: next });
+      return next;
+    });
+  }
+  function handleOtherAmenityChange(v: string) {
+    setOtherAmenity(v);
+    syncLodging({ otherAmenity: v });
+  }
+  function handleAmenityOpen() {
+    setAmenityOpen(true);
+    syncLodging({ amenityOpen: true });
+  }
+  function handleAmenityClear() {
+    setOtherAmenity("");
+    setAmenityOpen(false);
+    syncLodging({ otherAmenity: "", amenityOpen: false });
   }
 
   async function handleZigyPick() {
@@ -141,10 +200,13 @@ export function LodgingStep() {
       .map((p) => stripPrefix(p.id, "amenity:"))
       .filter((a): a is string => a !== null && AMENITIES.includes(a));
 
+    const nextTypes = pickedTypes.length ? pickedTypes : types;
+    const nextStars = pickedStarsValue ? (Number(pickedStarsValue) as LodgingStarRating) : minStars;
     if (pickedTypes.length) setTypes(pickedTypes);
-    if (pickedStarsValue) setMinStars(Number(pickedStarsValue) as LodgingStarRating);
+    if (pickedStarsValue) setMinStars(nextStars);
     setAmenities(pickedAmenities);
     setMode("manual");
+    syncLodging({ types: nextTypes, minStars: nextStars, amenities: pickedAmenities });
   }
 
   function handleContinue() {
@@ -242,8 +304,8 @@ export function LodgingStep() {
             <OtherInput
               selected={otherTypeOpen}
               value={otherTypeValue}
-              onChange={setOtherTypeValue}
-              onToggle={() => setOtherTypeOpen((v) => !v)}
+              onChange={handleOtherTypeChange}
+              onToggle={handleOtherTypeToggle}
               placeholder="e.g. Glamping, Ryokan, Hostel…"
             />
           </div>
@@ -297,7 +359,7 @@ export function LodgingStep() {
             {!amenityOpen ? (
               <button
                 type="button"
-                onClick={() => setAmenityOpen(true)}
+                onClick={handleAmenityOpen}
                 className="rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs font-medium text-slate-400 hover:border-brand-400 hover:text-brand-600 transition-all"
               >
                 + Other
@@ -308,17 +370,17 @@ export function LodgingStep() {
                   autoFocus
                   type="text"
                   value={otherAmenity}
-                  onChange={(e) => setOtherAmenity(e.target.value)}
+                  onChange={(e) => handleOtherAmenityChange(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && otherAmenity.trim()) setAmenityOpen(false);
-                    if (e.key === "Escape") { setOtherAmenity(""); setAmenityOpen(false); }
+                    if (e.key === "Enter" && otherAmenity.trim()) { setAmenityOpen(false); syncLodging({ amenityOpen: false }); }
+                    if (e.key === "Escape") handleAmenityClear();
                   }}
                   placeholder="e.g. EV charging…"
                   className="rounded-full border border-brand-400 px-3 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400 w-36"
                 />
                 <button
                   type="button"
-                  onClick={() => { setOtherAmenity(""); setAmenityOpen(false); }}
+                  onClick={handleAmenityClear}
                   className="text-xs text-slate-400 hover:text-slate-600"
                 >✕</button>
               </div>

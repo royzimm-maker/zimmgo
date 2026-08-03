@@ -112,18 +112,63 @@ export function AirlinesStep() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existing]);
 
+  // Write every change straight to the store instead of only on Continue —
+  // otherwise a manual pick made here is invisible to chat (which only reads
+  // the store) and gets silently clobbered the moment chat applies its own
+  // update, since that overwrites the store and this step's own sync-from-
+  // store effect above then overwrites the local draft to match.
+  function assembleAirlines(overrides: Partial<{
+    lowestFare: boolean; airlines: string[]; alliances: AirlineAlliance[];
+    preferNonstop: boolean; cabins: string[];
+  }> = {}): AirlinePreference {
+    const lf = overrides.lowestFare ?? lowestFare;
+    const al = overrides.airlines ?? selectedAirlines;
+    const an = overrides.alliances ?? selectedAlliances;
+    const ns = overrides.preferNonstop ?? preferNonstop;
+    const cb = overrides.cabins ?? cabins;
+    const firstCabin = (cb[0] ?? "economy") as AirlinePreference["cabinClass"];
+    return lf
+      ? { airlines: [], alliances: [], preferNonstop: false, cabinClass: "economy", cabinClasses: [], prioritizeLowestFare: true }
+      : { airlines: al, alliances: an, preferNonstop: ns, cabinClass: firstCabin, cabinClasses: cb, prioritizeLowestFare: false };
+  }
+  function syncAirlines(overrides?: Parameters<typeof assembleAirlines>[0]) {
+    setAirlines(assembleAirlines(overrides));
+  }
+
   function toggleAirline(name: string) {
-    setSelectedAirlines((prev) =>
-      prev.includes(name) ? prev.filter((a) => a !== name) : [...prev, name]
-    );
+    setSelectedAirlines((prev) => {
+      const next = prev.includes(name) ? prev.filter((a) => a !== name) : [...prev, name];
+      syncAirlines({ airlines: next });
+      return next;
+    });
   }
   function toggleAlliance(id: AirlineAlliance) {
-    setSelectedAlliances((prev) =>
-      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
-    );
+    setSelectedAlliances((prev) => {
+      const next = prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id];
+      syncAirlines({ alliances: next });
+      return next;
+    });
   }
   function toggleCabin(c: string) {
-    setCabins((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
+    setCabins((prev) => {
+      const next = prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c];
+      syncAirlines({ cabins: next });
+      return next;
+    });
+  }
+  function toggleLowestFare() {
+    setLowestFare((prev) => {
+      const next = !prev;
+      syncAirlines({ lowestFare: next });
+      return next;
+    });
+  }
+  function togglePreferNonstop() {
+    setPreferNonstop((prev) => {
+      const next = !prev;
+      syncAirlines({ preferNonstop: next });
+      return next;
+    });
   }
 
   function handleContinue() {
@@ -136,12 +181,7 @@ export function AirlinesStep() {
         returnAirport:    undefined,
       });
     }
-
-    const firstCabin = (cabins[0] ?? "economy") as AirlinePreference["cabinClass"];
-    const pref: AirlinePreference = lowestFare
-      ? { airlines: [], alliances: [], preferNonstop: false, cabinClass: "economy", cabinClasses: [], prioritizeLowestFare: true }
-      : { airlines: selectedAirlines, alliances: selectedAlliances, preferNonstop, cabinClass: firstCabin, cabinClasses: cabins, prioritizeLowestFare: false };
-    setAirlines(pref);
+    setAirlines(assembleAirlines());
   }
 
   return (
@@ -278,7 +318,7 @@ export function AirlinesStep() {
         {/* ── Lowest fares override ── */}
         <button
           type="button"
-          onClick={() => setLowestFare((v) => !v)}
+          onClick={toggleLowestFare}
           className={cn(
             "flex items-center gap-4 rounded-xl border-2 px-4 py-4 text-left transition-all",
             lowestFare
@@ -374,7 +414,7 @@ export function AirlinesStep() {
               <p className="mb-2 text-sm font-medium text-slate-700">Routing</p>
               <button
                 type="button"
-                onClick={() => setPreferNonstop(!preferNonstop)}
+                onClick={togglePreferNonstop}
                 className={cn(
                   "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all w-full",
                   preferNonstop

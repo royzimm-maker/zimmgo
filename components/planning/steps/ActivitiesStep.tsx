@@ -63,10 +63,41 @@ export function ActivitiesStep() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.preferences.activities]);
 
+  // Write every change straight to the store instead of only on Continue —
+  // otherwise a manual pick made here is invisible to chat (which only reads
+  // the store) and gets silently clobbered the moment chat applies its own
+  // update, since that overwrites the store and this step's own sync-from-
+  // store effect above then overwrites the local draft to match.
+  function assembleActivities(overrides: Partial<{
+    general: ActivityCategory[]; otherOpen: boolean; otherValue: string;
+  }> = {}): string[] {
+    const g  = overrides.general ?? selectedGeneral;
+    const oo = overrides.otherOpen ?? otherOpen;
+    const ov = overrides.otherValue ?? otherValue;
+    return [...g, ...(oo && ov.trim() ? [ov.trim()] : [])];
+  }
+  function syncActivities(overrides?: Parameters<typeof assembleActivities>[0]) {
+    setActivities(assembleActivities(overrides));
+  }
+
   function toggleGeneral(id: ActivityCategory) {
-    setSelectedGeneral((prev) =>
-      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
-    );
+    setSelectedGeneral((prev) => {
+      const next = prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id];
+      syncActivities({ general: next });
+      return next;
+    });
+  }
+
+  function handleOtherChange(v: string) {
+    setOtherValue(v);
+    syncActivities({ otherValue: v });
+  }
+  function handleOtherToggle() {
+    setOtherOpen((prev) => {
+      const next = !prev;
+      syncActivities({ otherOpen: next });
+      return next;
+    });
   }
 
   async function handleZigyPick() {
@@ -80,14 +111,11 @@ export function ActivitiesStep() {
       .filter((id): id is ActivityCategory => GENERAL.some((g) => g.id === id));
     setSelectedGeneral(picked);
     setMode("manual");
+    syncActivities({ general: picked });
   }
 
   function handleContinue() {
-    const all: string[] = [
-      ...selectedGeneral,
-      ...(otherOpen && otherValue.trim() ? [otherValue.trim()] : []),
-    ];
-    setActivities(all);
+    setActivities(assembleActivities());
   }
 
   const totalSelected =
@@ -145,8 +173,8 @@ export function ActivitiesStep() {
         <OtherInput
           selected={otherOpen}
           value={otherValue}
-          onChange={setOtherValue}
-          onToggle={() => setOtherOpen((v) => !v)}
+          onChange={handleOtherChange}
+          onToggle={handleOtherToggle}
           placeholder="e.g. Surfing, Bird watching…"
         />
       </div>

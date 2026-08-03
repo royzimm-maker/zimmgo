@@ -42,18 +42,45 @@ export function VibeStep() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.preferences.vibes]);
 
+  // Write every change straight to the store instead of only on Continue —
+  // otherwise a manual pick made here is invisible to chat (which only reads
+  // the store) and gets silently clobbered the moment chat applies its own
+  // update, since that overwrites the store and this step's own sync-from-
+  // store effect above then overwrites the local draft to match.
+  function assembleVibes(overrides: Partial<{
+    selected: VibeTag[]; otherOpen: boolean; otherValue: string;
+  }> = {}): VibeTag[] {
+    const s  = overrides.selected ?? selected;
+    const oo = overrides.otherOpen ?? otherOpen;
+    const ov = overrides.otherValue ?? otherValue;
+    return oo && ov.trim() ? [...s, ov.trim() as VibeTag] : s;
+  }
+  function syncVibes(overrides?: Parameters<typeof assembleVibes>[0]) {
+    setVibes(assembleVibes(overrides));
+  }
+
   function toggle(id: VibeTag) {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
-    );
+    setSelected((prev) => {
+      const next = prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id];
+      syncVibes({ selected: next });
+      return next;
+    });
+  }
+
+  function handleOtherChange(v: string) {
+    setOtherValue(v);
+    syncVibes({ otherValue: v });
+  }
+  function handleOtherToggle() {
+    setOtherOpen((prev) => {
+      const next = !prev;
+      syncVibes({ otherOpen: next });
+      return next;
+    });
   }
 
   function handleContinue() {
-    const all = [...selected];
-    if (otherOpen && otherValue.trim()) {
-      all.push(otherValue.trim() as VibeTag);
-    }
-    setVibes(all);
+    setVibes(assembleVibes());
   }
 
   const hasSelection = selected.length > 0 || (otherOpen && !!otherValue.trim());
@@ -82,8 +109,8 @@ export function VibeStep() {
         <OtherInput
           selected={otherOpen}
           value={otherValue}
-          onChange={setOtherValue}
-          onToggle={() => setOtherOpen((v) => !v)}
+          onChange={handleOtherChange}
+          onToggle={handleOtherToggle}
           placeholder="e.g. Pet-friendly, Accessible travel…"
         />
       </div>
