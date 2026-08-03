@@ -318,14 +318,18 @@ export interface ApiResponse<T> {
 }
 
 // ─── Progress calculation helper ───────────────────────────────────────────────
+// Vibe and Activities sit before Lodging (rather than right after Budget) so
+// ZiGy's smart-picks for Lodging — and Activities' own pick — can actually use
+// the traveller's vibe preference; each smart-pick prompt only reads whatever
+// preferences are already in the store, so ordering directly drives accuracy.
 export const ORDERED_STEPS: StepId[] = [
   "destination",
   "dates",
   "airlines",
   "budget",
-  "lodging",
-  "activities",
   "vibe",
+  "activities",
+  "lodging",
   "transportation",
   "itinerary",
   "refine",

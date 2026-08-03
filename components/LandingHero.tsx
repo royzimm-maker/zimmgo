@@ -20,9 +20,9 @@ const STEPS = [
   { icon: "📅", label: "Dates" },
   { icon: "✈️", label: "Flights" },
   { icon: "💰", label: "Budget" },
-  { icon: "🏨", label: "Lodging" },
-  { icon: "🎯", label: "Activities" },
   { icon: "✨", label: "Vibe" },
+  { icon: "🎯", label: "Activities" },
+  { icon: "🏨", label: "Lodging" },
   { icon: "🚗", label: "Transport" },
   { icon: "🗺️", label: "Itinerary" },
 ];
