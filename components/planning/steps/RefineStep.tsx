@@ -173,6 +173,18 @@ function locationsMatch(a?: string, b?: string): boolean {
     (firstWord(na) === firstWord(nb) && firstWord(na).length > 0);
 }
 
+// Activities/restaurants are tagged by the AI with specific town/region names
+// (e.g. "Vik and South Coast Iceland") that often share no word with the
+// trip's coarse city labels (e.g. "the Ring Road") used for day.location —
+// locationsMatch alone would leave those cards unbucketable in every city tab,
+// stuck in the bank with no day they can ever be dropped on. Resolve each card
+// to one of the trip's known cities, falling back to the last one (the
+// touring/loop leg in road-trip style itineraries) so nothing is orphaned.
+function resolveCardCity(location: string | undefined, cities: string[]): string | undefined {
+  if (!location || cities.length === 0) return undefined;
+  return cities.find((c) => locationsMatch(location, c)) ?? cities[cities.length - 1];
+}
+
 // ─── DroppableContainer ───────────────────────────────────────────────────────
 
 function DroppableContainer({
@@ -300,6 +312,10 @@ export function RefineStep() {
     return info.kind === "activity" ? info.activity?.location : info.restaurant?.location;
   }
 
+  function getCardCity(cardId: string): string | undefined {
+    return resolveCardCity(getCardLocation(cardId), cities);
+  }
+
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(active.id as string);
   }
@@ -317,8 +333,8 @@ export function RefineStep() {
     if (destId !== "bank") {
       const destDayNum = parseInt(destId.replace("day-", ""), 10);
       const destDay = days.find((d) => d.dayNumber === destDayNum);
-      const cardLoc = getCardLocation(cardId);
-      if (destDay?.location && cardLoc && !locationsMatch(cardLoc, destDay.location)) return;
+      const cardCity = getCardCity(cardId);
+      if (destDay?.location && cardCity && cardCity !== destDay.location) return;
     }
 
     // Remove from source
@@ -357,7 +373,7 @@ export function RefineStep() {
     const cityDays = days.filter((d) => !d.location || locationsMatch(d.location, city));
     const cityBankIds = bank.filter((id) => {
       const loc = getCardLocation(id);
-      return !loc || locationsMatch(loc, city);
+      return !loc || getCardCity(id) === city;
     });
     if (cityBankIds.length === 0) return;
 
@@ -485,12 +501,12 @@ export function RefineStep() {
   const visibleBank = effectiveCity
     ? bank.filter((cardId) => {
         const loc = getCardLocation(cardId);
-        return !loc || locationsMatch(loc, effectiveCity);
+        return !loc || getCardCity(cardId) === effectiveCity;
       })
     : bank;
   const cityStats = cities.map((city) => {
-    const total = allCards.filter((c) => locationsMatch(getCardLocation(c.cardId), city)).length;
-    const unplaced = bank.filter((id) => locationsMatch(getCardLocation(id), city)).length;
+    const total = allCards.filter((c) => getCardCity(c.cardId) === city).length;
+    const unplaced = bank.filter((id) => getCardCity(id) === city).length;
     return { city, total, placed: total - unplaced };
   });
 
@@ -658,7 +674,7 @@ export function RefineStep() {
                     <DroppableContainer
                       id={`day-${day.dayNumber}`}
                       isEmpty={cards.length === 0}
-                      compatible={!activeId || !day.location || locationsMatch(getCardLocation(activeId), day.location)}
+                      compatible={!activeId || !day.location || getCardCity(activeId) === day.location}
                     >
                       {cards.map((cardId) => {
                         const info = cardMap[cardId];
