@@ -14,6 +14,7 @@ interface HotelSearchParams {
   types?: string[];
   max_price_per_night?: number;
   amenities?: string[];
+  limit?: number;
 }
 
 // Hotel type tags used to filter by accommodation preference
@@ -134,8 +135,12 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
     .filter(matchesType)
     // Highest-rated first — callers that only want a handful (e.g. the AI's
     // own itinerary-generation search) slice afterward; the Lodging step's
-    // "load more" shows the rest of this same rating-ordered list.
+    // "load more" shows the rest of this same rating-ordered list. Capped at
+    // `limit` (well above what any caller currently shows) so a real
+    // production API — potentially returning hundreds of results — doesn't
+    // get fully constructed here just to be discarded downstream.
     .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+    .slice(0, params.limit ?? 12)
     .map((h) => {
       const [lo, hi] = priceBand[h.stars ?? 5] ?? [60, 900];
       const GENERIC = new Set(["city centre", "prime location", "old town", "central district"]);

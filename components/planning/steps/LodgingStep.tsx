@@ -11,7 +11,7 @@ import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
-import { BUDGET_MAX } from "@/types/trip";
+import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import { REVIEW_SOURCES, applyReviewSourcePref } from "@/lib/data/reviewSources";
 import type { HotelOption, LodgingPreference, LodgingStarRating, LodgingType, ReviewSource } from "@/types/trip";
 
@@ -42,13 +42,7 @@ export function LodgingStep() {
   // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
   const destination = trip.preferences.destination?.cities?.[0]
     ?? trip.preferences.destination?.displayName ?? "";
-  // Highest ceiling across every selected tier (or the custom range's max, if set)
-  // so hotel search doesn't filter out options within any tier the user picked.
-  const budgetMax = trip.preferences.customBudgetRange
-    ? trip.preferences.customBudgetRange.max
-    : trip.preferences.budgetRanges?.length
-    ? Math.max(...trip.preferences.budgetRanges.map((r) => BUDGET_MAX[r]))
-    : 400;
+  const budgetMax = resolveBudget(trip.preferences)?.max ?? DEFAULT_BUDGET_MAX;
 
   const [types,          setTypes         ] = useState<LodgingType[]>(existing?.types ?? []);
   const [otherTypeOpen,  setOtherTypeOpen ] = useState(false);
@@ -159,16 +153,19 @@ export function LodgingStep() {
   }
 
   // Live preview of the rating source the user is currently choosing, so the hotel
-  // cards below reflect it immediately instead of only after generation.
+  // cards below reflect it immediately instead of only after generation. Only
+  // the currently-visible slice is shaped — visibleHotelCount only ever grows
+  // (via "show more"), so a hotel visible now stays visible, and there's no
+  // point jittering ratings for hotels nobody's scrolled to yet.
   const displayHotels = useMemo(
     () =>
       applyReviewSourcePref(
-        hotels,
+        hotels.slice(0, visibleHotelCount),
         reviewMode === "single" && reviewSource
           ? { mode: "single", source: reviewSource }
           : { mode: "cross_reference" }
       ),
-    [hotels, reviewMode, reviewSource]
+    [hotels, visibleHotelCount, reviewMode, reviewSource]
   );
 
   const hasType = types.length > 0 || (otherTypeOpen && !!otherTypeValue.trim());
@@ -396,7 +393,7 @@ export function LodgingStep() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {displayHotels.slice(0, visibleHotelCount).map((h) => {
+                {displayHotels.map((h) => {
                   const selected = selectedHotelId === h.id;
                   const tierLabel = HOTEL_TIER[h.stars] ?? HOTEL_TIER[4];
                   return (
@@ -458,13 +455,13 @@ export function LodgingStep() {
               </div>
             )}
 
-            {!hotelsLoading && displayHotels.length > visibleHotelCount && (
+            {!hotelsLoading && hotels.length > visibleHotelCount && (
               <button
                 type="button"
                 onClick={() => setVisibleHotelCount((c) => c + 3)}
                 className="mt-3 w-full rounded-lg border border-dashed border-slate-300 px-4 py-2 text-xs font-medium text-slate-500 hover:border-brand-400 hover:text-brand-600 transition-colors"
               >
-                Show more options ({displayHotels.length - visibleHotelCount} more)
+                Show more options ({hotels.length - visibleHotelCount} more)
               </button>
             )}
           </div>

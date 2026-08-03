@@ -5,6 +5,7 @@ import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, MapPin, Spa
 import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
+import { useExpandablePreview } from "@/lib/hooks/useExpandablePreview";
 import { fetchSmartPick } from "@/lib/api/smartPick";
 import { fuzzyCityMatch } from "@/lib/utils";
 import {
@@ -42,8 +43,6 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
 
   const [stageIdx, setStageIdx] = useState(0);
   const [cityIdx, setCityIdx] = useState(0);
-  const [expandedRestaurantCities, setExpandedRestaurantCities] = useState<Set<string>>(new Set());
-  const [expandedActivityCities, setExpandedActivityCities] = useState<Set<string>>(new Set());
   const [pickingHotel, setPickingHotel] = useState(false);
   const [hotelPickReasons, setHotelPickReasons] = useState<Record<string, string>>({});
   const stage = STAGES[stageIdx];
@@ -109,11 +108,12 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
       .sort((a, b) => b.rating - a.rating),
     [itinerary.restaurants, currentCity]
   );
-  const restaurantsExpanded = expandedRestaurantCities.has(currentCity);
-  const visibleRestaurants = restaurantsExpanded
-    ? restaurantsForCity
-    : restaurantsForCity.slice(0, RESTAURANT_PREVIEW_COUNT);
-  const hasMoreRestaurants = restaurantsForCity.length > RESTAURANT_PREVIEW_COUNT;
+  const {
+    visible: visibleRestaurants,
+    hasMore: hasMoreRestaurants,
+    expanded: restaurantsExpanded,
+    expand: expandRestaurants,
+  } = useExpandablePreview(restaurantsForCity, RESTAURANT_PREVIEW_COUNT, currentCity);
 
   const activitiesForCity = useMemo(
     () => itinerary.activities
@@ -121,11 +121,12 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
       .sort((a, b) => b.rating - a.rating),
     [itinerary.activities, currentCity]
   );
-  const activitiesExpanded = expandedActivityCities.has(currentCity);
-  const visibleActivities = activitiesExpanded
-    ? activitiesForCity
-    : activitiesForCity.slice(0, ACTIVITY_PREVIEW_COUNT);
-  const hasMoreActivities = activitiesForCity.length > ACTIVITY_PREVIEW_COUNT;
+  const {
+    visible: visibleActivities,
+    hasMore: hasMoreActivities,
+    expanded: activitiesExpanded,
+    expand: expandActivities,
+  } = useExpandablePreview(activitiesForCity, ACTIVITY_PREVIEW_COUNT, currentCity);
 
   const sectionTitle = stage.perCity ? `${stage.label} — ${currentCity}` : stage.label;
   const sectionSubtitle = stage.id === "flights"
@@ -224,7 +225,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
               {hasMoreRestaurants && !restaurantsExpanded && (
                 <button
                   type="button"
-                  onClick={() => setExpandedRestaurantCities((prev) => new Set(prev).add(currentCity))}
+                  onClick={expandRestaurants}
                   className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
                 >
                   <Sparkles size={14} />
@@ -253,7 +254,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
               {hasMoreActivities && !activitiesExpanded && (
                 <button
                   type="button"
-                  onClick={() => setExpandedActivityCities((prev) => new Set(prev).add(currentCity))}
+                  onClick={expandActivities}
                   className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
                 >
                   <Sparkles size={14} />

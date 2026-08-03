@@ -363,3 +363,29 @@ export const BUDGET_MAX: Record<BudgetRange, number> = {
   "750_1000": 700,
   "1000_plus": 1500,
 };
+
+// Default nightly ceiling used when the user hasn't picked a lodging budget yet
+// (e.g. hotel search running before the Budget step completes).
+export const DEFAULT_BUDGET_MAX = 300;
+
+// Single source of truth for "given what the user picked, what's the effective
+// $/night ceiling and how should it be described" — a user can select multiple
+// lodging tiers or set a custom min–max range instead of a single tier, so
+// every caller (hotel search, AI prompts, the Lodging step's own preview) needs
+// the same precedence: custom range wins, else the highest ceiling across every
+// selected tier, else the default.
+export function resolveBudget(preferences: {
+  customBudgetRange?: { min: number; max: number };
+  budgetRanges?: BudgetRange[];
+}): { label: string; max: number } | null {
+  if (preferences.customBudgetRange) {
+    const { min, max } = preferences.customBudgetRange;
+    return { label: `$${min}–$${max} / room / night`, max };
+  }
+  if (preferences.budgetRanges?.length) {
+    const label = preferences.budgetRanges.map((r) => BUDGET_LABELS[r]).join(" or ");
+    const max = Math.max(...preferences.budgetRanges.map((r) => BUDGET_MAX[r]));
+    return { label, max };
+  }
+  return null;
+}

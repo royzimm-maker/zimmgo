@@ -1,21 +1,5 @@
 import type { TripPreferences, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
-import { BUDGET_LABELS, BUDGET_MAX } from "@/types/trip";
-
-// Shared across prompts — a user can pick multiple lodging tiers or a custom
-// $/night range instead of a single tier, so every prompt that mentions budget
-// needs the same "what did they actually pick" logic.
-function budgetDescription(preferences: TripPreferences): { label: string; max: number } | null {
-  if (preferences.customBudgetRange) {
-    const { min, max } = preferences.customBudgetRange;
-    return { label: `$${min}–$${max} / room / night`, max };
-  }
-  if (preferences.budgetRanges?.length) {
-    const label = preferences.budgetRanges.map((r) => BUDGET_LABELS[r]).join(" or ");
-    const max = Math.max(...preferences.budgetRanges.map((r) => BUDGET_MAX[r]));
-    return { label, max };
-  }
-  return null;
-}
+import { resolveBudget } from "@/types/trip";
 
 // Builds the user-facing prompt for itinerary generation from the stored preferences
 export function buildItineraryPrompt(preferences: TripPreferences): string {
@@ -57,7 +41,7 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     parts.push(`Group: ${t} traveller${t !== 1 ? "s" : ""}, ${r} room${r !== 1 ? "s" : ""} per night.`);
   }
 
-  const budget = budgetDescription(preferences);
+  const budget = resolveBudget(preferences);
   if (budget) {
     parts.push(`Lodging budget: ${budget.label} (max $${budget.max} per room per night).`);
   }
@@ -153,7 +137,7 @@ export function buildChatSystemPrompt(
     const r = preferences.rooms ?? 1;
     contextLines.push(`Group: ${t} traveller${t !== 1 ? "s" : ""}, ${r} room${r !== 1 ? "s" : ""}`);
   }
-  const chatBudget = budgetDescription(preferences);
+  const chatBudget = resolveBudget(preferences);
   if (chatBudget) {
     contextLines.push(`Lodging budget: ${chatBudget.label}`);
   }
@@ -188,7 +172,7 @@ export function buildHotelPickPrompt(
   hotels: HotelOption[]
 ): string {
   const vibeStr = preferences.vibes.length ? ` The trip's vibe: ${preferences.vibes.join(", ")}.` : "";
-  const hotelBudget = budgetDescription(preferences);
+  const hotelBudget = resolveBudget(preferences);
   const budgetStr = hotelBudget ? ` Lodging budget tier: ${hotelBudget.label}.` : "";
   const list = hotels.map((h) =>
     `- id="${h.id}" | ${h.name} | ${h.stars}★ | $${h.pricePerNight}/night | ${h.location} | ${h.highlights.join(", ")}`
@@ -231,7 +215,7 @@ export function buildPreferencePickPrompt(
 ): string {
   const dest = preferences.destination?.displayName ?? "the destination";
   const list = candidates.map((c) => `- id="${c.id}" ${c.label}`).join("\n");
-  const prefBudget = budgetDescription(preferences);
+  const prefBudget = resolveBudget(preferences);
   const budgetStr = prefBudget ? ` Lodging budget tier: ${prefBudget.label}.` : "";
   const vibeStr = kind !== "vibes" && preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
 

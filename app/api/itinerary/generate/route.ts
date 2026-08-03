@@ -12,7 +12,7 @@ import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoo
 import { applyReviewSourcePref } from "@/lib/data/reviewSources";
 import { applyBeliPreference } from "@/lib/data/beli";
 import { groupByLocation } from "@/lib/utils";
-import { BUDGET_LABELS, BUDGET_MAX } from "@/types/trip";
+import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
 // Keyed by name + location — cities that share a mock content pool (e.g. Rome and
@@ -28,13 +28,11 @@ function dedup<T extends { name?: string; location?: string }>(arr: T[]): T[] {
   });
 }
 
-// Highest ceiling across every lodging tier the user selected (or the custom
-// range's max, if set) — a hotel search capped to the lowest tier would filter
-// out options within any of the other tiers the user also said they'd consider.
+// A hotel search capped to the lowest tier would filter out options within any
+// of the other tiers the user also said they'd consider — resolveBudget already
+// picks the highest ceiling across everything they selected.
 function maxNightlyBudget(preferences: TripPreferences): number {
-  if (preferences.customBudgetRange) return preferences.customBudgetRange.max;
-  if (preferences.budgetRanges?.length) return Math.max(...preferences.budgetRanges.map((r) => BUDGET_MAX[r]));
-  return 300;
+  return resolveBudget(preferences)?.max ?? DEFAULT_BUDGET_MAX;
 }
 
 // Tool dispatcher — maps tool_name → actual function call
@@ -252,11 +250,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     `- Hand-picked restaurants and neighbourhood discoveries\n` +
     `- Logical day-by-day sequencing to minimise travel time`;
 
-  const budgetLabel = preferences.customBudgetRange
-    ? `$${preferences.customBudgetRange.min}–$${preferences.customBudgetRange.max}`
-    : preferences.budgetRanges?.length
-    ? preferences.budgetRanges.map((r) => BUDGET_LABELS[r]).join(" or ")
-    : "chosen";
+  const budgetLabel = resolveBudget(preferences)?.label ?? "chosen";
   const whyFallback =
     `- Activities near each other are grouped on the same day\n` +
     `- Lodging matches your ${budgetLabel} budget tier\n` +
