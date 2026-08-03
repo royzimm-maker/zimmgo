@@ -64,6 +64,7 @@ export function LodgingStep() {
 
   const [hotels,          setHotels         ] = useState<HotelOption[]>([]);
   const [hotelsLoading,   setHotelsLoading  ] = useState(false);
+  const [visibleHotelCount, setVisibleHotelCount] = useState(3);
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(
     trip.preferences.selectedHotel?.id ?? null
   );
@@ -84,6 +85,7 @@ export function LodgingStep() {
       });
       const data = await res.json() as HotelOption[];
       setHotels(Array.isArray(data) ? data : []);
+      setVisibleHotelCount(3);
     } catch {
       setHotels([]);
     } finally {
@@ -387,14 +389,14 @@ export function LodgingStep() {
             </p>
 
             {hotelsLoading ? (
-              <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-20 rounded-xl bg-slate-100 animate-pulse" />
+                  <div key={i} className="h-48 rounded-xl bg-slate-100 animate-pulse" />
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
-                {displayHotels.map((h) => {
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {displayHotels.slice(0, visibleHotelCount).map((h) => {
                   const selected = selectedHotelId === h.id;
                   const tierLabel = HOTEL_TIER[h.stars] ?? HOTEL_TIER[4];
                   return (
@@ -405,28 +407,27 @@ export function LodgingStep() {
                       onClick={() => setSelectedHotelId((prev) => prev === h.id ? null : h.id)}
                       onKeyDown={(e) => e.key === "Enter" && setSelectedHotelId((prev) => prev === h.id ? null : h.id)}
                       className={cn(
-                        "rounded-xl border p-3 cursor-pointer transition-all duration-150",
+                        "flex flex-col rounded-xl border p-3 cursor-pointer transition-all duration-150",
                         selected
                           ? "border-brand-500 ring-2 ring-brand-200 bg-brand-50/40"
                           : "border-slate-200 hover:border-slate-300 bg-white"
                       )}
                     >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={cn("font-semibold text-sm", selected ? "text-brand-700" : "text-slate-800")}>
-                              {h.name}
-                            </span>
-                            <div className="flex">
-                              {Array.from({ length: h.stars }).map((_, i) => (
-                                <Star key={i} size={9} className="fill-amber-400 text-amber-400" />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-[11px] text-slate-500 mt-0.5 italic">{tierLabel}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">{h.location}</p>
-                        </div>
-                        <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: h.stars }).map((_, i) => (
+                          <Star key={i} size={10} className="fill-amber-400 text-amber-400" />
+                        ))}
+                      </div>
+                      <span className={cn("mt-1 font-semibold text-sm leading-tight", selected ? "text-brand-700" : "text-slate-800")}>
+                        {h.name}
+                      </span>
+                      <p className="text-[11px] text-slate-500 mt-0.5 italic">{tierLabel}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{h.location}</p>
+
+                      <div className="flex-1" />
+
+                      <div className="mt-3 flex items-end justify-between gap-2 pt-2 border-t border-slate-100">
+                        <div>
                           <p className="font-bold text-slate-900 text-sm">
                             {formatCurrency(h.pricePerNight)}<span className="font-normal text-xs text-slate-400">/night</span>
                           </p>
@@ -434,27 +435,37 @@ export function LodgingStep() {
                           {h.ratingSource && (
                             <p className="text-[9px] text-slate-400">{h.ratingSource}</p>
                           )}
-                          {selected ? (
-                            <span className="flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                              <Check size={9} /> Your pick
-                            </span>
-                          ) : (
-                            <a
-                              href={h.bookingUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-0.5 text-[11px] text-brand-500 hover:underline"
-                            >
-                              View <ExternalLink size={9} />
-                            </a>
-                          )}
                         </div>
+                        {selected ? (
+                          <span className="flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white shrink-0">
+                            <Check size={9} /> Your pick
+                          </span>
+                        ) : (
+                          <a
+                            href={h.bookingUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="shrink-0 flex items-center gap-0.5 text-[11px] text-brand-500 hover:underline"
+                          >
+                            View <ExternalLink size={9} />
+                          </a>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
+            )}
+
+            {!hotelsLoading && displayHotels.length > visibleHotelCount && (
+              <button
+                type="button"
+                onClick={() => setVisibleHotelCount((c) => c + 3)}
+                className="mt-3 w-full rounded-lg border border-dashed border-slate-300 px-4 py-2 text-xs font-medium text-slate-500 hover:border-brand-400 hover:text-brand-600 transition-colors"
+              >
+                Show more options ({displayHotels.length - visibleHotelCount} more)
+              </button>
             )}
           </div>
         )}

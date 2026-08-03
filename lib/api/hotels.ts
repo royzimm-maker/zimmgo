@@ -132,7 +132,10 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
       return lo <= maxPrice;
     })
     .filter(matchesType)
-    .slice(0, 3)
+    // Highest-rated first — callers that only want a handful (e.g. the AI's
+    // own itinerary-generation search) slice afterward; the Lodging step's
+    // "load more" shows the rest of this same rating-ordered list.
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
     .map((h) => {
       const [lo, hi] = priceBand[h.stars ?? 5] ?? [60, 900];
       const GENERIC = new Set(["city centre", "prime location", "old town", "central district"]);

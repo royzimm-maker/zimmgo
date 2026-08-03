@@ -20,6 +20,7 @@ interface Props {
 type Stage = "flights" | "hotels" | "restaurants" | "activities";
 
 const RESTAURANT_PREVIEW_COUNT = 3;
+const ACTIVITY_PREVIEW_COUNT = 4;
 
 const STAGES: { id: Stage; label: string; icon: React.ReactNode; perCity: boolean }[] = [
   { id: "flights",     label: "Flights",     icon: <Plane size={16} />,           perCity: false },
@@ -42,6 +43,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
   const [stageIdx, setStageIdx] = useState(0);
   const [cityIdx, setCityIdx] = useState(0);
   const [expandedRestaurantCities, setExpandedRestaurantCities] = useState<Set<string>>(new Set());
+  const [expandedActivityCities, setExpandedActivityCities] = useState<Set<string>>(new Set());
   const [pickingHotel, setPickingHotel] = useState(false);
   const [hotelPickReasons, setHotelPickReasons] = useState<Record<string, string>>({});
   const stage = STAGES[stageIdx];
@@ -100,8 +102,11 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
       setPickingHotel(false);
     }
   }
+  // Highest-rated first, so capping to the preview count always surfaces the best options.
   const restaurantsForCity = useMemo(
-    () => (itinerary.restaurants ?? []).filter((r) => fuzzyCityMatch(r.location, currentCity)),
+    () => (itinerary.restaurants ?? [])
+      .filter((r) => fuzzyCityMatch(r.location, currentCity))
+      .sort((a, b) => b.rating - a.rating),
     [itinerary.restaurants, currentCity]
   );
   const restaurantsExpanded = expandedRestaurantCities.has(currentCity);
@@ -109,10 +114,18 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
     ? restaurantsForCity
     : restaurantsForCity.slice(0, RESTAURANT_PREVIEW_COUNT);
   const hasMoreRestaurants = restaurantsForCity.length > RESTAURANT_PREVIEW_COUNT;
+
   const activitiesForCity = useMemo(
-    () => itinerary.activities.filter((a) => fuzzyCityMatch(a.location, currentCity)),
+    () => itinerary.activities
+      .filter((a) => fuzzyCityMatch(a.location, currentCity))
+      .sort((a, b) => b.rating - a.rating),
     [itinerary.activities, currentCity]
   );
+  const activitiesExpanded = expandedActivityCities.has(currentCity);
+  const visibleActivities = activitiesExpanded
+    ? activitiesForCity
+    : activitiesForCity.slice(0, ACTIVITY_PREVIEW_COUNT);
+  const hasMoreActivities = activitiesForCity.length > ACTIVITY_PREVIEW_COUNT;
 
   const sectionTitle = stage.perCity ? `${stage.label} — ${currentCity}` : stage.label;
   const sectionSubtitle = stage.id === "flights"
@@ -226,15 +239,27 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
 
         {stage.id === "activities" && (
           activitiesForCity.length > 0 ? (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {activitiesForCity.map((a) => (
-                <ActivityCard
-                  key={a.id}
-                  activity={a}
-                  saved={wanderlogLabels.has(a.name)}
-                  onSave={() => handleSaveToWanderlog(a.name, "activity", a.location)}
-                />
-              ))}
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {visibleActivities.map((a) => (
+                  <ActivityCard
+                    key={a.id}
+                    activity={a}
+                    saved={wanderlogLabels.has(a.name)}
+                    onSave={() => handleSaveToWanderlog(a.name, "activity", a.location)}
+                  />
+                ))}
+              </div>
+              {hasMoreActivities && !activitiesExpanded && (
+                <button
+                  type="button"
+                  onClick={() => setExpandedActivityCities((prev) => new Set(prev).add(currentCity))}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
+                >
+                  <Sparkles size={14} />
+                  Show more activities in {currentCity}
+                </button>
+              )}
             </div>
           ) : (
             <EmptyState label={`activities for ${currentCity}`} />

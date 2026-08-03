@@ -658,77 +658,71 @@ export function RestaurantCard({
 
   return (
     <Card padding="none" className="overflow-hidden">
-      {r.imageUrl && (
-        <div className="relative w-full h-32 bg-slate-100">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={r.imageUrl} alt={r.name} className="w-full h-full object-cover" />
-          <span className="absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide shadow-sm" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>
-            {emoji} {r.playfulCategory}
-          </span>
-          <span className="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white/80 font-medium tracking-wide">
-            Illustrative
-          </span>
-        </div>
-      )}
-      <div className="p-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-semibold text-slate-800 text-sm">{r.name}</p>
-              <span className={`text-xs font-bold ${priceColor}`}>{r.priceRange}</span>
-              {r.isBeliPick && <Badge variant="success">Beli pick</Badge>}
-            </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">{r.cuisine} · {r.location}</p>
-            <p className="text-xs text-slate-600 leading-relaxed mt-1.5">{r.description}</p>
-            {r.beliNote && (
-              <p className="mt-1.5 text-[11px] text-brand-600 bg-brand-50 rounded px-2 py-1 leading-snug">
-                📍 {r.beliNote}
-              </p>
-            )}
-            {r.mustOrder && (
-              <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 rounded px-2 py-1 leading-snug">
-                🍴 Must order: {r.mustOrder}
-              </p>
-            )}
+      <div className="p-3 flex gap-3">
+        {r.imageUrl && (
+          <div className="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={r.imageUrl} alt={r.name} className="w-full h-full object-cover" />
           </div>
-          <div className="text-right shrink-0 ml-2 flex flex-col items-end gap-1.5">
-            {onSave && (
-              <button
-                type="button"
-                onClick={onSave}
-                disabled={saved}
-                title={saved ? "Saved to Wanderlog" : "Save to Wanderlog"}
-                className={`transition-colors ${saved ? "text-brand-500" : "text-slate-300 hover:text-brand-500"}`}
-              >
-                <BookMarked size={15} className={saved ? "fill-brand-100" : undefined} />
-              </button>
-            )}
-            <div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="font-semibold text-slate-800 text-sm truncate">{r.name}</p>
+                <span className={`text-xs font-bold shrink-0 ${priceColor}`}>{r.priceRange}</span>
+                {r.isBeliPick && <Badge variant="success">Beli pick</Badge>}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">{emoji} {r.cuisine} · {r.location}</p>
+              <p className="text-xs text-slate-600 mt-1 line-clamp-1">{r.description}</p>
+            </div>
+            <div className="text-right shrink-0 flex flex-col items-end gap-1">
+              {onSave && (
+                <button
+                  type="button"
+                  onClick={onSave}
+                  disabled={saved}
+                  title={saved ? "Saved to Wanderlog" : "Save to Wanderlog"}
+                  className={`transition-colors ${saved ? "text-brand-500" : "text-slate-300 hover:text-brand-500"}`}
+                >
+                  <BookMarked size={14} className={saved ? "fill-brand-100" : undefined} />
+                </button>
+              )}
               <p className="text-xs font-medium text-sage-700">{r.rating}/10</p>
-              <p className="text-[10px] text-slate-400">{r.reviewCount.toLocaleString()} reviews</p>
-              {r.ratingSource && <p className="text-[9px] text-slate-400 mt-0.5">{r.ratingSource}</p>}
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-slate-100">
-          {r.menuUrl && (
-            <a href={r.menuUrl} target="_blank" rel="noreferrer"
+
+          {r.mustOrder && (
+            <p className="mt-1.5 text-[11px] text-amber-700 bg-amber-50 rounded px-2 py-1 leading-snug truncate">
+              🍴 {r.mustOrder}
+            </p>
+          )}
+          {r.beliNote && (
+            <p className="mt-1 text-[11px] text-brand-600 bg-brand-50 rounded px-2 py-1 leading-snug">
+              📍 {r.beliNote}
+            </p>
+          )}
+
+          <div className="flex items-center gap-3 mt-2">
+            {r.menuUrl && (
+              <a href={r.menuUrl} target="_blank" rel="noreferrer"
+                className="flex items-center gap-0.5 text-[11px] text-slate-500 hover:text-slate-700 hover:underline">
+                Menu <ExternalLink size={9} />
+              </a>
+            )}
+            <a
+              href={`https://www.google.com/maps/search/${encodeURIComponent(r.name + " " + r.location)}`}
+              target="_blank" rel="noreferrer"
               className="flex items-center gap-0.5 text-[11px] text-slate-500 hover:text-slate-700 hover:underline">
-              Menu <ExternalLink size={9} />
+              Map <ExternalLink size={9} />
             </a>
-          )}
-          <a
-            href={`https://www.google.com/maps/search/${encodeURIComponent(r.name + " " + r.location)}`}
-            target="_blank" rel="noreferrer"
-            className="flex items-center gap-0.5 text-[11px] text-slate-500 hover:text-slate-700 hover:underline">
-            Map <ExternalLink size={9} />
-          </a>
-          {r.bookingUrl && (
-            <a href={r.bookingUrl} target="_blank" rel="noreferrer"
-              className="flex items-center gap-0.5 text-[11px] text-brand-500 font-medium hover:underline ml-auto">
-              {r.tier === "fine_dining" || r.tier === "upscale" ? "Reserve" : "Find it"} <ExternalLink size={9} />
-            </a>
-          )}
+            {r.bookingUrl && (
+              <a href={r.bookingUrl} target="_blank" rel="noreferrer"
+                className="flex items-center gap-0.5 text-[11px] text-brand-500 font-medium hover:underline ml-auto">
+                {r.tier === "fine_dining" || r.tier === "upscale" ? "Reserve" : "Find it"} <ExternalLink size={9} />
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </Card>
