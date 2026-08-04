@@ -31,6 +31,30 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
     { name: "Hotel Arco del Lauro",     stars: 3, hotelType: "guesthouse", location: "Trastevere, Rome",         rating: 8.6, ratingSource: "Booking.com",    reviewCount: 4200, highlights: ["Charming guesthouse", "Walking distance to everything", "Great value"] },
     { name: "Hotel Navona",             stars: 3, hotelType: "hotel",    location: "Piazza Navona, Rome",        rating: 8.2, ratingSource: "TripAdvisor",    reviewCount: 5600, highlights: ["Unbeatable location", "Simple and clean", "Budget-friendly"] },
   ],
+  venice: [
+    { name: "The Gritti Palace",        stars: 5, hotelType: "hotel",    location: "Grand Canal, Venice",     rating: 9.6, ratingSource: "Google Reviews", reviewCount: 1800, highlights: ["Grand Canal views", "Doge's Palace nearby", "Legendary service"] },
+    { name: "Ca' Sagredo Hotel",        stars: 5, hotelType: "boutique", location: "Rialto, Venice",          rating: 9.3, ratingSource: "TripAdvisor",    reviewCount: 950,  highlights: ["Frescoed ceilings", "Steps from Rialto Market", "Historic palazzo"] },
+    { name: "Hotel Ai Reali",           stars: 4, hotelType: "hotel",    location: "Cannaregio, Venice",      rating: 9.0, ratingSource: "Booking.com",    reviewCount: 2100, highlights: ["Quiet canal-side setting", "Rooftop spa", "Away from the crowds"] },
+    { name: "Novecento Boutique Hotel", stars: 4, hotelType: "boutique", location: "San Marco, Venice",       rating: 8.9, ratingSource: "Google Reviews", reviewCount: 1300, highlights: ["Moroccan-Venetian design", "Walk to St. Mark's", "Charming courtyard"] },
+    { name: "Hotel Flora",              stars: 3, hotelType: "guesthouse", location: "San Marco, Venice",     rating: 8.6, ratingSource: "TripAdvisor",    reviewCount: 2600, highlights: ["Secret garden", "Family-run since the 1960s", "Central location"] },
+    { name: "Hotel Antiche Figure",     stars: 3, hotelType: "hotel",    location: "Santa Croce, Venice",     rating: 8.1, ratingSource: "Booking.com",    reviewCount: 3100, highlights: ["Steps from the train station", "Canal views", "Budget-friendly"] },
+  ],
+  naples: [
+    { name: "Grand Hotel Vesuvio",      stars: 5, hotelType: "hotel",    location: "Via Partenope, Naples",   rating: 9.4, ratingSource: "Google Reviews", reviewCount: 1900, highlights: ["Bay of Naples views", "Rooftop restaurant", "Historic since 1882"] },
+    { name: "Romeo Hotel",              stars: 5, hotelType: "boutique", location: "Municipio, Naples",       rating: 9.2, ratingSource: "TripAdvisor",    reviewCount: 1100, highlights: ["Design-forward interiors", "Rooftop pool over the port", "Sushi bar"] },
+    { name: "Hotel Piazza Bellini",     stars: 4, hotelType: "boutique", location: "Centro Storico, Naples",  rating: 8.9, ratingSource: "Booking.com",    reviewCount: 1600, highlights: ["Contemporary art collection", "Steps from Cappella Sansevero", "Historic centre"] },
+    { name: "Hotel Mediterraneo",       stars: 4, hotelType: "hotel",    location: "Santa Lucia, Naples",     rating: 8.7, ratingSource: "Google Reviews", reviewCount: 2400, highlights: ["Harbour views", "Rooftop terrace", "Central location"] },
+    { name: "Belle Arti Resort",        stars: 3, hotelType: "guesthouse", location: "Centro Storico, Naples", rating: 8.5, ratingSource: "TripAdvisor",   reviewCount: 900,  highlights: ["Boutique feel", "Near the archaeological museum", "Great value"] },
+    { name: "Hotel Il Convento",        stars: 3, hotelType: "hotel",    location: "Quartieri Spagnoli, Naples", rating: 8.0, ratingSource: "Booking.com", reviewCount: 1800, highlights: ["Character-filled former convent", "Walkable to everything", "Budget-friendly"] },
+  ],
+  milan: [
+    { name: "Bulgari Hotel Milano",     stars: 5, hotelType: "hotel",    location: "Brera, Milan",            rating: 9.5, ratingSource: "Google Reviews", reviewCount: 1400, highlights: ["Private garden oasis", "Steps from La Scala", "Iconic spa"] },
+    { name: "Room Mate Giulia",         stars: 5, hotelType: "boutique", location: "Duomo, Milan",            rating: 9.1, ratingSource: "TripAdvisor",    reviewCount: 1700, highlights: ["Design hotel facing the Duomo", "Rooftop terrace", "Playful modern interiors"] },
+    { name: "Hotel Viu Milan",          stars: 4, hotelType: "boutique", location: "Isola, Milan",            rating: 9.0, ratingSource: "Booking.com",    reviewCount: 1200, highlights: ["Rooftop infinity pool", "Trendy Isola neighbourhood", "Design-forward rooms"] },
+    { name: "NH Collection Milano President", stars: 4, hotelType: "hotel", location: "Porta Romana, Milan",  rating: 8.6, ratingSource: "Google Reviews", reviewCount: 2500, highlights: ["Business-friendly", "Fashion district access", "Reliable comfort"] },
+    { name: "Maison Borella",           stars: 3, hotelType: "guesthouse", location: "Navigli, Milan",        rating: 8.7, ratingSource: "TripAdvisor",    reviewCount: 1000, highlights: ["Canal-side charm", "Navigli nightlife nearby", "Boutique feel"] },
+    { name: "Hotel Berna",              stars: 3, hotelType: "hotel",    location: "Stazione Centrale, Milan", rating: 7.9, ratingSource: "Booking.com",   reviewCount: 3200, highlights: ["Steps from Central Station", "Clean and simple", "Budget-friendly"] },
+  ],
   amalfi: [
     { name: "Hotel Santa Caterina",     stars: 5, hotelType: "hotel",    location: "Amalfi town",                rating: 9.6, ratingSource: "Google Reviews", reviewCount: 1450, highlights: ["Clifftop with sea elevator", "Saltwater pool", "Lemon grove gardens"] },
     { name: "Le Sirenuse",              stars: 5, hotelType: "boutique", location: "Positano",                   rating: 9.5, ratingSource: "TripAdvisor",    reviewCount: 1820, highlights: ["Iconic Positano views", "Pool terrace", "La Sponda restaurant"] },
@@ -78,12 +102,18 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
   ],
 };
 
+// Venice, Naples, and Milan are no longer listed here — they're now direct
+// HOTEL_DB keys, and resolvePool checks pool keys before consulting this
+// alias map, so an explicit entry pointing them at "rome" would be dead
+// code (and misleading to a future reader) rather than doing anything.
+// Sicily, Bologna, Tuscany, and generic "italy" still fall back to Rome's
+// pool — same mismatch as before, just not yet given their own content.
 const HOTEL_ALIASES: Record<string, string> = {
   "positano": "amalfi", "ravello": "amalfi", "praiano": "amalfi", "sorrento": "amalfi",
   "cortina":  "dolomit","bolzano": "dolomit","merano":  "dolomit","alta badia": "dolomit",
   "val gardena": "dolomit","ortisei": "dolomit","corvara": "dolomit",
-  "florence": "rome",   "tuscany": "rome",   "venice": "rome",    "naples": "rome",
-  "milan":    "rome",   "sicily":  "rome",   "bologna": "rome",   "italy": "rome",
+  "florence": "rome",   "tuscany": "rome",
+  "sicily":  "rome",    "bologna": "rome",   "italy": "rome",
 };
 
 function findHotelBase(destination: string): (Partial<HotelOption> & { hotelType?: HotelType })[] {
