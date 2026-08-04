@@ -31,6 +31,14 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
     { name: "Hotel Arco del Lauro",     stars: 3, hotelType: "guesthouse", location: "Trastevere, Rome",         rating: 8.6, ratingSource: "Booking.com",    reviewCount: 4200, highlights: ["Charming guesthouse", "Walking distance to everything", "Great value"] },
     { name: "Hotel Navona",             stars: 3, hotelType: "hotel",    location: "Piazza Navona, Rome",        rating: 8.2, ratingSource: "TripAdvisor",    reviewCount: 5600, highlights: ["Unbeatable location", "Simple and clean", "Budget-friendly"] },
   ],
+  florence: [
+    { name: "Four Seasons Hotel Firenze", stars: 5, hotelType: "resort",   location: "Piazza SS. Annunziata, Florence", rating: 9.5, ratingSource: "Google Reviews", reviewCount: 1600, highlights: ["15th-century palazzo", "Largest private garden in Florence", "Michelin dining"] },
+    { name: "Portrait Firenze",         stars: 5, hotelType: "boutique", location: "Lungarno, Florence",       rating: 9.4, ratingSource: "TripAdvisor",    reviewCount: 780,  highlights: ["Arno river views", "Ferragamo family design", "Rooftop restaurant"] },
+    { name: "Hotel Brunelleschi",       stars: 4, hotelType: "hotel",    location: "Piazza Santa Elisabetta, Florence", rating: 8.9, ratingSource: "Booking.com", reviewCount: 2100, highlights: ["Built around a Byzantine tower", "Steps from the Duomo", "On-site museum"] },
+    { name: "Hotel L'Orologio",         stars: 4, hotelType: "boutique", location: "Santa Maria Novella, Florence", rating: 8.8, ratingSource: "Google Reviews", reviewCount: 1400, highlights: ["Watch-themed design", "Near Santa Maria Novella station", "Rooftop terrace"] },
+    { name: "Hotel Scoti",              stars: 3, hotelType: "guesthouse", location: "Via de' Tornabuoni, Florence", rating: 8.6, ratingSource: "TripAdvisor", reviewCount: 1200, highlights: ["Frescoed breakfast room", "On the main shopping street", "Family-run for decades"] },
+    { name: "Hotel Dalí",               stars: 3, hotelType: "hotel",    location: "Santa Croce, Florence",    rating: 8.0, ratingSource: "Booking.com",    reviewCount: 1900, highlights: ["Free parking", "Quiet courtyard", "Budget-friendly"] },
+  ],
   venice: [
     { name: "The Gritti Palace",        stars: 5, hotelType: "hotel",    location: "Grand Canal, Venice",     rating: 9.6, ratingSource: "Google Reviews", reviewCount: 1800, highlights: ["Grand Canal views", "Doge's Palace nearby", "Legendary service"] },
     { name: "Ca' Sagredo Hotel",        stars: 5, hotelType: "boutique", location: "Rialto, Venice",          rating: 9.3, ratingSource: "TripAdvisor",    reviewCount: 950,  highlights: ["Frescoed ceilings", "Steps from Rialto Market", "Historic palazzo"] },
@@ -102,17 +110,18 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
   ],
 };
 
-// Venice, Naples, and Milan are no longer listed here — they're now direct
-// HOTEL_DB keys, and resolvePool checks pool keys before consulting this
-// alias map, so an explicit entry pointing them at "rome" would be dead
-// code (and misleading to a future reader) rather than doing anything.
-// Sicily, Bologna, Tuscany, and generic "italy" still fall back to Rome's
-// pool — same mismatch as before, just not yet given their own content.
+// Florence, Venice, Naples, and Milan are no longer listed here — they're
+// now direct HOTEL_DB keys, and resolvePool checks pool keys before
+// consulting this alias map, so an explicit entry pointing them at "rome"
+// would be dead code (and misleading to a future reader) rather than doing
+// anything. Sicily, Bologna, Tuscany, and generic "italy" still fall back
+// to Rome's pool — same mismatch as before, just not yet given their own
+// content.
 const HOTEL_ALIASES: Record<string, string> = {
   "positano": "amalfi", "ravello": "amalfi", "praiano": "amalfi", "sorrento": "amalfi",
   "cortina":  "dolomit","bolzano": "dolomit","merano":  "dolomit","alta badia": "dolomit",
   "val gardena": "dolomit","ortisei": "dolomit","corvara": "dolomit",
-  "florence": "rome",   "tuscany": "rome",
+  "tuscany": "rome",
   "sicily":  "rome",    "bologna": "rome",   "italy": "rome",
 };
 

@@ -49,6 +49,24 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Chianti countryside wine day trip", category: "food",         duration: "Full day", price: 135, rating: 9.4, reviewCount: 3100, isLocalFavorite: false, description: "Rolling vineyards south of the city, tasting Chianti Classico at a family-run estate most tour buses skip." },
     { name: "Oltrarno artisan workshop walk",    category: "guided_walking_tour", duration: "2.5h", price: 55, rating: 9.3, reviewCount: 1700, isLocalFavorite: true, description: "Cross the Arno to the leather and goldsmith workshops where Florentines actually shop — a different city from the Duomo crowds." },
   ],
+  venice: [
+    { name: "Doge's Palace & St. Mark's Basilica skip-the-line tour", category: "cultural", duration: "3h", price: 85, rating: 9.5, reviewCount: 12000, isLocalFavorite: false, description: "Reserved entry to the Doge's private chambers and the Basilica's golden mosaics before the day-trip crowds arrive." },
+    { name: "Venetian mask-making workshop",  category: "cultural",     duration: "2h",   price: 60,  rating: 9.2, reviewCount: 2100,  isLocalFavorite: true,  description: "A third-generation mascherari studio in Cannaregio — paint your own Carnevale mask to take home." },
+    { name: "Grand Canal sunset gondola ride", category: "sailing",     duration: "1h",   price: 90,  rating: 9.6, reviewCount: 8400,  isLocalFavorite: true,  description: "Skip the San Marco touts and book a private gondolier through a local guide — the Rialto at golden hour is unmissable." },
+    { name: "Burano & Murano islands boat tour", category: "sailing",   duration: "5h",   price: 75,  rating: 9.3, reviewCount: 5200,  isLocalFavorite: false, description: "Lace-making Burano's candy-coloured houses and Murano's glass furnaces, away from the San Marco crowds." },
+  ],
+  naples: [
+    { name: "Pompeii ruins guided tour",      category: "cultural",     duration: "4h",   price: 70,  rating: 9.6, reviewCount: 9800,  isLocalFavorite: false, description: "Walk the frozen streets of Pompeii with an archaeologist guide who brings 79 AD back into focus." },
+    { name: "Naples pizza-making class",      category: "guided_food_tour", duration: "2.5h", price: 55, rating: 9.4, reviewCount: 3100, isLocalFavorite: true, description: "Learn true Neapolitan dough technique from a family that's been making pizza since the 1950s." },
+    { name: "Napoli Sotterranea underground tour", category: "cultural", duration: "2h",  price: 35,  rating: 9.2, reviewCount: 4200,  isLocalFavorite: true,  description: "Descend into the Greco-Roman aqueducts and WWII bomb shelters beneath the chaotic streets above." },
+    { name: "Capri boat day trip",            category: "sailing",      duration: "Full day", price: 120, rating: 9.5, reviewCount: 6100, isLocalFavorite: false, description: "Blue Grotto, the Faraglioni rocks, and a swim stop off Capri's cliffs — the classic Bay of Naples excursion." },
+  ],
+  milan: [
+    { name: "Last Supper reserved viewing",   category: "cultural",     duration: "1h",   price: 45,  rating: 9.3, reviewCount: 11000, isLocalFavorite: false, description: "Timed 15-minute entry to see da Vinci's mural in Santa Maria delle Grazie — book months ahead, it always sells out." },
+    { name: "Milan fashion district shopping walk", category: "guided_walking_tour", duration: "2h", price: 40, rating: 8.8, reviewCount: 1800, isLocalFavorite: true, description: "The Quadrilatero della Moda with a stylist guide who knows which showrooms let walk-ins browse." },
+    { name: "Duomo rooftop terraces",         category: "cultural",     duration: "1.5h", price: 35,  rating: 9.4, reviewCount: 8700,  isLocalFavorite: false, description: "Walk among the cathedral's marble spires with the Alps visible on a clear day." },
+    { name: "Aperitivo crawl in Navigli",     category: "food",         duration: "3h",   price: 50,  rating: 9.1, reviewCount: 2600,  isLocalFavorite: true,  description: "Milan invented the aperitivo — hop between canal-side bars for spritz and the free buffet that comes with it." },
+  ],
   amalfi: [
     { name: "Amalfi Coast boat trip",         category: "sailing",      duration: "6h",   price: 140, rating: 9.7, reviewCount: 4800, isLocalFavorite: true,  description: "Private boat along the clifftop towns — Ravello, Positano, Praiano — with swimming stops in hidden coves." },
     { name: "Limoncello-making class",        category: "food",         duration: "2h",   price: 65,  rating: 9.2, reviewCount: 2100, isLocalFavorite: true,  description: "A local family shares their terrace lemon grove and century-old recipe. You leave with a bottle." },
