@@ -7,9 +7,9 @@ export const metadata = {
 
 export default function PlanPage() {
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden print:h-auto print:overflow-visible">
       {/* Beta notice */}
-      <div className="shrink-0 bg-amber-50 border-b border-amber-200 px-4 py-1.5 text-center">
+      <div className="shrink-0 bg-amber-50 border-b border-amber-200 px-4 py-1.5 text-center print:hidden">
         <p className="text-xs text-amber-700">
           <span className="inline-flex items-center gap-1 font-semibold">
             <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Beta</span>
@@ -19,7 +19,7 @@ export default function PlanPage() {
       </div>
 
       {/* Top nav */}
-      <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-3">
+      <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-3 print:hidden">
         <div className="flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
             <span className="text-xl font-bold text-brand-600 tracking-tight">ZimmGo</span>
@@ -30,7 +30,7 @@ export default function PlanPage() {
       </header>
 
       {/* Main planning area — fills remaining viewport */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden print:overflow-visible">
         <PlanningFlow />
       </div>
     </div>

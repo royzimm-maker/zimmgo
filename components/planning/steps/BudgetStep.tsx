@@ -66,10 +66,10 @@ function Stepper({
   );
 }
 
-const SPLURGE_AMOUNTS = [
-  { value: 100, label: "$100/person" },
-  { value: 200, label: "$200/person" },
-  { value: 400, label: "$400+/person" },
+const SPLURGE_RANGES: { min: number; max?: number; label: string }[] = [
+  { min: 100, max: 150, label: "$100–150/person" },
+  { min: 200, max: 300, label: "$200–300/person" },
+  { min: 400,           label: "$400+/person" },
 ];
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -85,10 +85,25 @@ export function BudgetStep() {
   const [customMax,    setCustomMax    ] = useState(prefs.customBudgetRange ? String(prefs.customBudgetRange.max) : "");
   const [foodPreset,   setFoodPreset  ] = useState<number | "custom" | null>(prefs.dailyFoodBudgetPerPerson ?? null);
   const [customFood,   setCustomFood  ] = useState("");
-  const [wantsSplurge, setWantsSplurge] = useState(Boolean(prefs.splurge));
-  const [splurgeCount, setSplurgeCount] = useState(prefs.splurge?.count ?? 2);
-  const [splurgeAmount,setSplurgeAmount] = useState<number | null>(prefs.splurge?.budgetPerPerson ?? 200);
-  const [errors,       setErrors      ] = useState<{ night?: string; food?: string }>({});
+  const [wantsSplurge,  setWantsSplurge ] = useState(Boolean(prefs.splurge));
+  const [splurgeCount,  setSplurgeCount ] = useState(prefs.splurge?.count ?? 2);
+  const existingSplurgeMatchesPreset = SPLURGE_RANGES.some(
+    (r) => r.min === prefs.splurge?.budgetPerPerson && r.max === prefs.splurge?.budgetPerPersonMax
+  );
+  const [splurgeRange,  setSplurgeRange ] = useState<{ min: number; max?: number } | null>(
+    prefs.splurge && existingSplurgeMatchesPreset
+      ? { min: prefs.splurge.budgetPerPerson, max: prefs.splurge.budgetPerPersonMax }
+      : SPLURGE_RANGES[1]
+  );
+  const [useCustomSplurge, setUseCustomSplurge] = useState(Boolean(prefs.splurge) && !existingSplurgeMatchesPreset);
+  const [customSplurgeMin, setCustomSplurgeMin] = useState(
+    prefs.splurge && !existingSplurgeMatchesPreset ? String(prefs.splurge.budgetPerPerson) : ""
+  );
+  const [customSplurgeMax, setCustomSplurgeMax] = useState(
+    prefs.splurge?.budgetPerPersonMax && !existingSplurgeMatchesPreset ? String(prefs.splurge.budgetPerPersonMax) : ""
+  );
+  const [splurgeNotes,  setSplurgeNotes ] = useState(prefs.splurge?.notes ?? "");
+  const [errors, setErrors] = useState<{ night?: string; food?: string; splurge?: string }>({});
 
   function toggleTier(id: BudgetRange) {
     setLodgingTiers((prev) => prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]);
@@ -96,7 +111,7 @@ export function BudgetStep() {
   }
 
   function handleContinue() {
-    const errs: { night?: string; food?: string } = {};
+    const errs: { night?: string; food?: string; splurge?: string } = {};
 
     let customRange: { min: number; max: number } | undefined;
     if (useCustomRange) {
@@ -118,6 +133,22 @@ export function BudgetStep() {
       resolvedFood = foodPreset;
     }
 
+    let resolvedSplurgeRange: { min: number; max?: number } | undefined;
+    if (wantsSplurge) {
+      if (useCustomSplurge) {
+        const min = parseInt(customSplurgeMin.replace(/[^0-9]/g, ""), 10);
+        const maxRaw = customSplurgeMax.trim();
+        const max = maxRaw ? parseInt(maxRaw.replace(/[^0-9]/g, ""), 10) : undefined;
+        if (!min || min < 10 || (max !== undefined && (!max || max <= min))) {
+          errs.splurge = "Please enter a valid amount (min $10, and a max greater than the min if you set one).";
+        } else {
+          resolvedSplurgeRange = { min, max };
+        }
+      } else {
+        resolvedSplurgeRange = splurgeRange ?? SPLURGE_RANGES[1];
+      }
+    }
+
     if (Object.keys(errs).length) { setErrors(errs); return false; }
 
     setBudget(lodgingTiers);
@@ -126,7 +157,14 @@ export function BudgetStep() {
       rooms,
       dailyFoodBudgetPerPerson: resolvedFood,
       customBudgetRange: customRange,
-      splurge: wantsSplurge ? { count: splurgeCount, budgetPerPerson: splurgeAmount ?? 200 } : undefined,
+      splurge: wantsSplurge && resolvedSplurgeRange
+        ? {
+            count: splurgeCount,
+            budgetPerPerson: resolvedSplurgeRange.min,
+            budgetPerPersonMax: resolvedSplurgeRange.max,
+            notes: splurgeNotes.trim() || undefined,
+          }
+        : undefined,
     });
   }
 
@@ -340,22 +378,72 @@ export function BudgetStep() {
               <div>
                 <p className="mb-2 text-sm font-medium text-slate-700">Budget per person, for those</p>
                 <div className="flex gap-2">
-                  {SPLURGE_AMOUNTS.map((sa) => (
+                  {SPLURGE_RANGES.map((r) => (
                     <button
-                      key={sa.value}
+                      key={r.label}
                       type="button"
-                      onClick={() => setSplurgeAmount(sa.value)}
+                      onClick={() => { setUseCustomSplurge(false); setSplurgeRange(r); setErrors((e) => ({ ...e, splurge: undefined })); }}
                       className={cn(
                         "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
-                        splurgeAmount === sa.value
+                        !useCustomSplurge && splurgeRange?.min === r.min && splurgeRange?.max === r.max
                           ? "border-brand-500 bg-brand-50 text-brand-700"
                           : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                       )}
                     >
-                      {sa.label}
+                      {r.label}
                     </button>
                   ))}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => { setUseCustomSplurge((v) => !v); setErrors((e) => ({ ...e, splurge: undefined })); }}
+                  className={cn(
+                    "mt-2 w-full rounded-lg border px-3 py-2 text-left text-xs transition-all",
+                    useCustomSplurge
+                      ? "border-brand-500 bg-brand-50 text-brand-700"
+                      : "border-dashed border-slate-300 text-slate-400 hover:border-brand-400 hover:text-brand-600"
+                  )}
+                >
+                  ✏️ {useCustomSplurge ? "Custom:" : "Enter a custom amount"}
+                </button>
+                {useCustomSplurge && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-slate-500 text-sm">$</span>
+                    <input
+                      autoFocus
+                      type="number"
+                      min="10"
+                      value={customSplurgeMin}
+                      onChange={(e) => { setCustomSplurgeMin(e.target.value); setErrors((er) => ({ ...er, splurge: undefined })); }}
+                      placeholder="e.g. 150"
+                      className="w-24 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                    <span className="text-slate-400 text-xs">to (optional)</span>
+                    <input
+                      type="number"
+                      min="10"
+                      value={customSplurgeMax}
+                      onChange={(e) => { setCustomSplurgeMax(e.target.value); setErrors((er) => ({ ...er, splurge: undefined })); }}
+                      placeholder="e.g. 250"
+                      className="w-24 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                    <span className="text-slate-400 text-xs">per person</span>
+                  </div>
+                )}
+                {errors.splurge && <p className="mt-1 text-xs text-red-500">{errors.splurge}</p>}
+              </div>
+
+              <div>
+                <p className="mb-1 text-sm font-medium text-slate-700">
+                  Anything special we should know? <span className="font-normal text-slate-400">(optional)</span>
+                </p>
+                <textarea
+                  value={splurgeNotes}
+                  onChange={(e) => setSplurgeNotes(e.target.value)}
+                  rows={2}
+                  placeholder={`e.g. "We're celebrating our anniversary and want something special and romantic" or "It's a birthday — something fun and lively"`}
+                  className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
               </div>
             </div>
           )}
@@ -375,9 +463,17 @@ export function BudgetStep() {
             {typeof foodPreset === "number" && (
               <p>🍽️ Food: ${foodPreset}/person/day</p>
             )}
-            {wantsSplurge && (
-              <p>🥂 Splurge: {splurgeCount} outing{splurgeCount !== 1 ? "s" : ""} at ${splurgeAmount}/person</p>
-            )}
+            {wantsSplurge && (() => {
+              const min = useCustomSplurge ? customSplurgeMin : splurgeRange?.min;
+              const max = useCustomSplurge ? customSplurgeMax : splurgeRange?.max;
+              if (!min) return null;
+              return (
+                <p>
+                  🥂 Splurge: {splurgeCount} outing{splurgeCount !== 1 ? "s" : ""} at ${min}{max ? `–${max}` : "+"}/person
+                  {splurgeNotes.trim() && ` — "${splurgeNotes.trim()}"`}
+                </p>
+              );
+            })()}
           </div>
         )}
       </div>

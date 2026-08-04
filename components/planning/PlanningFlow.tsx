@@ -38,15 +38,15 @@ export function PlanningFlow() {
   const latestItinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
   return (
-    <div className="flex h-full gap-0">
+    <div className="flex h-full gap-0 print:block print:h-auto">
       {/* ── Left sidebar: progress ── */}
-      <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 flex-col border-r border-slate-200 bg-slate-50 p-5">
+      <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 flex-col border-r border-slate-200 bg-slate-50 p-5 print:hidden">
         <ProgressBar />
       </aside>
 
       {/* ── Main content ── */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      <main className="flex-1 overflow-y-auto print:overflow-visible">
+        <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 print:max-w-none">
           <ErrorBoundary>
             <StepComponent />
           </ErrorBoundary>
@@ -58,7 +58,7 @@ export function PlanningFlow() {
         className={`
           fixed inset-y-0 right-0 z-40 w-80 transform bg-white shadow-xl border-l border-slate-200
           transition-transform duration-300 ease-in-out lg:relative lg:inset-auto lg:z-auto
-          lg:w-80 xl:w-96 lg:shadow-none lg:flex lg:flex-col
+          lg:w-80 xl:w-96 lg:shadow-none lg:flex lg:flex-col print:hidden
           ${sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
         `}
       >
@@ -89,7 +89,7 @@ export function PlanningFlow() {
       <button
         type="button"
         onClick={() => setSidebarOpen(true)}
-        className="fixed bottom-6 right-6 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg hover:bg-brand-700 transition-colors lg:hidden"
+        className="fixed bottom-6 right-6 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg hover:bg-brand-700 transition-colors lg:hidden print:hidden"
       >
         <MessageSquare size={20} />
       </button>

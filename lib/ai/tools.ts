@@ -25,6 +25,11 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
           description: "Optional list of preferred airline names",
         },
         nonstop_only: { type: "boolean" },
+        lowest_fare_mode: {
+          type: "boolean",
+          description:
+            "Set true when the traveller wants the cheapest fares over airline/cabin preference — searches all carriers in economy and sorts by price. Combine with nonstop_only if they also want nonstop.",
+        },
       },
       required: ["origin", "destination", "departure_date"],
     },

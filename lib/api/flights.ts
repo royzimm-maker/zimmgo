@@ -89,7 +89,9 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
     departureTime: `${params.departure_date}T${randomInt(6, 14).toString().padStart(2, "0")}:${["00","15","30","45"][idx % 4]}:00`,
     arrivalTime: `${params.departure_date}T${randomInt(14, 23).toString().padStart(2, "0")}:${["00","30"][idx % 2]}:00`,
     duration: `${randomInt(9, 17)}h ${randomInt(0, 59)}m`,
-    stops: params.nonstop_only && !lowestFare ? 0 : (idx === 0 ? 0 : randomInt(0, 1)),
+    // Nonstop preference applies regardless of lowest-fare mode — the two
+    // are independent filters, not mutually exclusive.
+    stops: params.nonstop_only ? 0 : (idx === 0 ? 0 : randomInt(0, 1)),
     price: Math.round((basePrice + idx * randomInt(80, 250)) * effectiveMult),
     currency: "USD",
     cabinClass: effectiveCabin,

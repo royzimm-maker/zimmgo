@@ -127,8 +127,12 @@ export function AirlinesStep() {
     const ns = overrides.preferNonstop ?? preferNonstop;
     const cb = overrides.cabins ?? cabins;
     const firstCabin = (cb[0] ?? "economy") as AirlinePreference["cabinClass"];
+    // Lowest-fare mode still zeroes out airline/alliance/cabin picks — those
+    // are genuinely incompatible with "search all carriers in economy" — but
+    // nonstop is an independent routing preference, not an airline/cabin
+    // preference, so it stays whatever the user set even in this mode.
     return lf
-      ? { airlines: [], alliances: [], preferNonstop: false, cabinClass: "economy", cabinClasses: [], prioritizeLowestFare: true }
+      ? { airlines: [], alliances: [], preferNonstop: ns, cabinClass: "economy", cabinClasses: [], prioritizeLowestFare: true }
       : { airlines: al, alliances: an, preferNonstop: ns, cabinClass: firstCabin, cabinClasses: cb, prioritizeLowestFare: false };
   }
   function syncAirlines(overrides?: Parameters<typeof assembleAirlines>[0]) {
@@ -327,7 +331,7 @@ export function AirlinesStep() {
               Find me the lowest fares
             </p>
             <p className={cn("text-xs mt-0.5", lowestFare ? "text-sage-700 font-medium" : "text-slate-500")}>
-              Searches all airlines in economy — overrides any airline or cabin preferences below
+              Searches all airlines in economy — overrides airline and cabin preferences below (your nonstop preference still applies)
             </p>
           </div>
           {lowestFare && (
@@ -337,7 +341,8 @@ export function AirlinesStep() {
           )}
         </button>
 
-        {/* ── Airline / alliance / cabin — dimmed when lowest-fare is active ── */}
+        {/* ── Airline / alliance / cabin — dimmed when lowest-fare is active,
+            since that mode searches all carriers in economy regardless ── */}
         <div className={cn("flex flex-col gap-6 transition-opacity", lowestFare && "opacity-40 pointer-events-none select-none")}>
           {/* Airlines */}
           <div>
@@ -372,50 +377,51 @@ export function AirlinesStep() {
             </div>
           </div>
 
-          {/* Cabin & nonstop */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="mb-2 text-sm font-medium text-slate-700">
-                Cabin class <span className="text-slate-400 font-normal">(pick all you want to compare)</span>
-              </p>
-              <div className="flex flex-col gap-1.5">
-                {CABINS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => toggleCabin(c)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium text-left transition-all",
-                      cabins.includes(c)
-                        ? "border-brand-500 bg-brand-50 text-brand-700"
-                        : "border-slate-200 text-slate-600 hover:border-slate-300"
-                    )}
-                  >
-                    <Plane size={12} />
-                    {CABIN_LABELS[c]}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-[10px] text-slate-400">
-                Prices are estimates — verify directly with airlines before booking.
-              </p>
+          {/* Cabin class */}
+          <div>
+            <p className="mb-2 text-sm font-medium text-slate-700">
+              Cabin class <span className="text-slate-400 font-normal">(pick all you want to compare)</span>
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {CABINS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => toggleCabin(c)}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium text-left transition-all",
+                    cabins.includes(c)
+                      ? "border-brand-500 bg-brand-50 text-brand-700"
+                      : "border-slate-200 text-slate-600 hover:border-slate-300"
+                  )}
+                >
+                  <Plane size={12} />
+                  {CABIN_LABELS[c]}
+                </button>
+              ))}
             </div>
-            <div>
-              <p className="mb-2 text-sm font-medium text-slate-700">Routing</p>
-              <button
-                type="button"
-                onClick={togglePreferNonstop}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all w-full",
-                  preferNonstop
-                    ? "border-brand-500 bg-brand-50 text-brand-700"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300"
-                )}
-              >
-                ✈️ Prefer nonstop
-              </button>
-            </div>
+            <p className="mt-2 text-[10px] text-slate-400">
+              Prices are estimates — verify directly with airlines before booking.
+            </p>
           </div>
+        </div>
+
+        {/* ── Routing — a nonstop preference is independent of airline/cabin
+            choice, so it stays enabled even in lowest-fare mode ── */}
+        <div>
+          <p className="mb-2 text-sm font-medium text-slate-700">Routing</p>
+          <button
+            type="button"
+            onClick={togglePreferNonstop}
+            className={cn(
+              "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all w-full sm:w-auto",
+              preferNonstop
+                ? "border-brand-500 bg-brand-50 text-brand-700"
+                : "border-slate-200 text-slate-600 hover:border-slate-300"
+            )}
+          >
+            ✈️ Prefer nonstop
+          </button>
         </div>
       </div>
     </StepShell>

@@ -259,20 +259,38 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
     });
   }
 
-  return base
-    .filter((h) => (h.stars ?? 5) >= minStars)
-    .filter((h) => {
-      const [lo] = priceBand[h.stars ?? 5] ?? [60, 900];
-      return lo <= maxPrice;
-    })
-    .filter(matchesType)
-    // Highest-rated first — callers that only want a handful (e.g. the AI's
-    // own itinerary-generation search) slice afterward; the Lodging step's
-    // "load more" shows the rest of this same rating-ordered list. Capped at
-    // `limit` (well above what any caller currently shows) so a real
-    // production API — potentially returning hundreds of results — doesn't
-    // get fully constructed here just to be discarded downstream.
-    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+  const passStars = (h: Partial<HotelOption> & { hotelType?: HotelType }) => (h.stars ?? 5) >= minStars;
+  const passPrice = (h: Partial<HotelOption> & { hotelType?: HotelType }) => {
+    const [lo] = priceBand[h.stars ?? 5] ?? [60, 900];
+    return lo <= maxPrice;
+  };
+
+  // Mock inventory per city/star-tier is small enough that a narrow filter
+  // (e.g. "boutique" + 4★ minimum) can leave only 1 real match — too few to
+  // fill the standard 3-card comparison. Backfill with the next-best
+  // matches, relaxing type then price then stars, so there's always
+  // something to show; strict matches are always ranked first, and within
+  // each relaxation tier results are still rating-sorted.
+  const tiers = [
+    base.filter((h) => passStars(h) && passPrice(h) && matchesType(h)),
+    base.filter((h) => passStars(h) && passPrice(h)),
+    base.filter((h) => passStars(h)),
+    base,
+  ];
+  const seen = new Set<string>();
+  const ranked: (Partial<HotelOption> & { hotelType?: HotelType })[] = [];
+  for (const tier of tiers) {
+    for (const h of [...tier].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))) {
+      if (seen.has(h.name!)) continue;
+      seen.add(h.name!);
+      ranked.push(h);
+    }
+  }
+
+  return ranked
+    // Capped at `limit` (well above what any caller currently shows) so a
+    // real production API — potentially returning hundreds of results —
+    // doesn't get fully constructed here just to be discarded downstream.
     .slice(0, params.limit ?? 12)
     .map((h) => {
       const [lo, hi] = priceBand[h.stars ?? 5] ?? [60, 900];

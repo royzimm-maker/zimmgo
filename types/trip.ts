@@ -109,8 +109,10 @@ export interface BeliPreference {
 // flat daily food budget (e.g. "$70/person/day normally, but 2 splurge dinners
 // at $200/person").
 export interface SplurgePreference {
-  count: number;           // how many splurge outings over the whole trip
-  budgetPerPerson: number; // $ per person for those occasions
+  count: number;                 // how many splurge outings over the whole trip
+  budgetPerPerson: number;       // $ per person for those occasions — the minimum, when a range is set
+  budgetPerPersonMax?: number;   // optional upper bound, when the user picked/entered a range
+  notes?: string;                // optional occasion context, e.g. "anniversary — want something romantic"
 }
 
 export interface AirlinePreference {

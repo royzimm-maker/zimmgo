@@ -58,9 +58,14 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     parts.push(`Food budget: $${preferences.dailyFoodBudgetPerPerson} per person per day.`);
   }
   if (preferences.splurge) {
+    const s = preferences.splurge;
+    const amount = s.budgetPerPersonMax
+      ? `$${s.budgetPerPerson}–${s.budgetPerPersonMax}`
+      : `around $${s.budgetPerPerson}`;
     parts.push(
-      `The traveller wants ${preferences.splurge.count} special-occasion splurge meal${preferences.splurge.count !== 1 ? "s" : ""} ` +
-      `over the trip at around $${preferences.splurge.budgetPerPerson} per person, on top of the regular daily food budget.`
+      `The traveller wants ${s.count} special-occasion splurge meal${s.count !== 1 ? "s" : ""} ` +
+      `over the trip at ${amount} per person, on top of the regular daily food budget.` +
+      (s.notes ? ` Context for these splurge meals: ${s.notes}. Pick restaurants and phrase suggestions to fit this occasion.` : "")
     );
   }
 
@@ -85,7 +90,11 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
   if (preferences.airlinePrefs) {
     const a = preferences.airlinePrefs;
     if (a.prioritizeLowestFare) {
-      parts.push(`Flight preferences: lowest available fares — ignore airline/alliance preferences, prioritise economy class and cheapest options.`);
+      parts.push(
+        `Flight preferences: lowest available fares — ignore airline/alliance preferences, prioritise economy class and cheapest options. ` +
+        `Call search_flights with lowest_fare_mode: true.` +
+        (a.preferNonstop ? ` They also want nonstop — also pass nonstop_only: true.` : "")
+      );
     } else {
       const airlineStr = [
         a.airlines.length ? `preferred airlines: ${a.airlines.join(", ")}` : null,
@@ -164,7 +173,7 @@ export function buildChatSystemPrompt(
     const a = preferences.airlinePrefs;
     contextLines.push(
       a.prioritizeLowestFare
-        ? "Flight preferences: lowest fares, any airline"
+        ? `Flight preferences: lowest fares, any airline; ${a.preferNonstop ? "nonstop preferred" : "connections OK"}`
         : `Flight preferences: ${a.airlines.length ? `airlines: ${a.airlines.join(", ")}` : "no airline preference"}` +
           (a.alliances.length ? `; alliances: ${a.alliances.join(", ")}` : "") +
           `; ${a.preferNonstop ? "nonstop preferred" : "connections OK"}` +

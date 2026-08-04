@@ -601,6 +601,9 @@ export function RefineStep() {
             <Sparkles size={14} />
             {arranging ? "ZiGy is arranging…" : `Let ZiGy arrange ${effectiveCity}`}
           </button>
+          <p className="text-[10px] text-slate-400 mt-1.5 text-center">
+            ZiGy decides based on your inputs so far and everything we know about your destinations.
+          </p>
           {arrangeSummaries[effectiveCity] && (
             <p className="text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2 mt-2">
               <Sparkles size={11} className="inline mr-1" />

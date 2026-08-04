@@ -8,10 +8,16 @@ interface Props {
   zigyLabel?: string;
   zigyLoadingLabel?: string;
   zigyDescription: string;
+  // Short note on what ZiGy bases the pick on, shown under zigyDescription —
+  // defaults to the same phrasing used everywhere else this pattern appears.
+  zigyReassurance?: string;
   onManual: () => void;
   onZigy: () => void;
   loading: boolean;
 }
+
+const DEFAULT_REASSURANCE =
+  "ZiGy decides based on your inputs so far and everything we know about your destinations.";
 
 export function ChooseModePrompt({
   manualLabel,
@@ -19,6 +25,7 @@ export function ChooseModePrompt({
   zigyLabel = "Let ZiGy choose for me",
   zigyLoadingLabel = "ZiGy is choosing…",
   zigyDescription,
+  zigyReassurance = DEFAULT_REASSURANCE,
   onManual,
   onZigy,
   loading,
@@ -45,6 +52,7 @@ export function ChooseModePrompt({
           {loading ? zigyLoadingLabel : zigyLabel}
         </p>
         <p className="text-xs text-slate-500 mt-1">{zigyDescription}</p>
+        {zigyReassurance && <p className="text-[10px] text-slate-400 mt-1.5">{zigyReassurance}</p>}
       </button>
     </div>
   );

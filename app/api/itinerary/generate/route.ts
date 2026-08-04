@@ -455,7 +455,12 @@ function buildMeals(
   return [
     { type: "breakfast", suggestion: named(brunchR, dayIndex, breakfastFallbacks[dayIndex % breakfastFallbacks.length]) },
     { type: "lunch",     suggestion: named(lunchR,  dayIndex, lunchFallbacks[dayIndex % lunchFallbacks.length]) },
-    { type: "dinner",    suggestion: isSplurgeDay ? `🥂 Splurge night — ${dinnerSuggestion}` : dinnerSuggestion },
+    {
+      type: "dinner",
+      suggestion: isSplurgeDay
+        ? `🥂 Splurge night${splurge?.notes ? ` (${splurge.notes})` : ""} — ${dinnerSuggestion}`
+        : dinnerSuggestion,
+    },
   ];
 }
 

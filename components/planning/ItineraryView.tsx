@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, BookMarked } from "lucide-react";
+import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, BookMarked, Calendar, List } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate, pairFlights, groupByLocation } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { PackingList } from "@/components/planning/PackingList";
 import { PreTripTasks } from "@/components/planning/PreTripTasks";
 import { Wanderlog } from "@/components/planning/Wanderlog";
 import { LocalDiscovery } from "@/components/planning/LocalDiscovery";
+import { ItineraryCalendarView } from "@/components/planning/ItineraryCalendarView";
 import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
 interface Props {
@@ -26,6 +27,7 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
   const { trip, setSelectedHotel, setSelectedFlight } = useTripStore();
   const [expandedDay, setExpandedDay] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(
     trip.preferences.selectedHotel?.id ?? null
   );
@@ -43,6 +45,13 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
 
   function handlePrint() {
     window.print();
+  }
+
+  function handlePrintCalendar() {
+    setShowCalendar(true);
+    // Print has to wait a paint cycle so the calendar grid is in the DOM
+    // (and the rest of the page has picked up print:hidden) before printing.
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
   }
 
   async function handleCopy() {
@@ -75,6 +84,11 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Everything above Day-by-Day is hidden when printing the calendar —
+          it's a lot of page for a "print the calendar" request. Uses
+          `contents` outside calendar-print mode so it doesn't affect the
+          normal on-screen flex layout/spacing at all. */}
+      <div className={showCalendar ? "flex flex-col gap-6 print:hidden" : "contents"}>
       {/* Trip at a Glance */}
       <TripGlance itinerary={itinerary} preferences={preferences} />
 
@@ -174,33 +188,73 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
         </Section>
       )}
 
-      {/* Day-by-day */}
+      </div>
+
+      {/* Day-by-day — always visible, in either list or printable-calendar form */}
       <Section title="Day-by-Day Itinerary" icon={<MapPin size={16} />}>
-        <div className="flex flex-col gap-2">
-          {itinerary.days.map((day, idx) => {
-            const pickedCardIds = itinerary.finalizedPlan?.dayCards[day.dayNumber] ?? [];
-            const picks = pickedCardIds
-              .map((id) => cardNameMap[id])
-              .filter((p): p is { name: string; kind: "activity" | "restaurant" } => Boolean(p));
-            const dayHotel = preferences.selectedHotel
-              ?? itinerary.hotels.find((h) =>
-                  day.location && h.location && day.location.toLowerCase().includes(h.location.toLowerCase().split(",")[0].trim())
-                )
-              ?? itinerary.hotels[0];
-            return (
-              <DayCard
-                key={day.dayNumber}
-                day={day}
-                expanded={expandedDay === idx}
-                onToggle={() => setExpandedDay(expandedDay === idx ? -1 : idx)}
-                picks={picks}
-                hotel={dayHotel}
-              />
-            );
-          })}
+        <div className="mb-3 flex items-center gap-2 print:hidden">
+          <div className="flex rounded-lg border border-slate-200 p-0.5">
+            <button
+              type="button"
+              onClick={() => setShowCalendar(false)}
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                !showCalendar ? "bg-brand-600 text-white" : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <List size={12} /> List
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCalendar(true)}
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                showCalendar ? "bg-brand-600 text-white" : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <Calendar size={12} /> Calendar
+            </button>
+          </div>
+          {showCalendar && (
+            <button
+              type="button"
+              onClick={handlePrintCalendar}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              <Printer size={12} />
+              Print calendar
+            </button>
+          )}
         </div>
+
+        {showCalendar ? (
+          <ItineraryCalendarView days={itinerary.days} />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {itinerary.days.map((day, idx) => {
+              const pickedCardIds = itinerary.finalizedPlan?.dayCards[day.dayNumber] ?? [];
+              const picks = pickedCardIds
+                .map((id) => cardNameMap[id])
+                .filter((p): p is { name: string; kind: "activity" | "restaurant" } => Boolean(p));
+              const dayHotel = preferences.selectedHotel
+                ?? itinerary.hotels.find((h) =>
+                    day.location && h.location && day.location.toLowerCase().includes(h.location.toLowerCase().split(",")[0].trim())
+                  )
+                ?? itinerary.hotels[0];
+              return (
+                <DayCard
+                  key={day.dayNumber}
+                  day={day}
+                  expanded={expandedDay === idx}
+                  onToggle={() => setExpandedDay(expandedDay === idx ? -1 : idx)}
+                  picks={picks}
+                  hotel={dayHotel}
+                />
+              );
+            })}
+          </div>
+        )}
       </Section>
 
+      <div className={showCalendar ? "flex flex-col gap-6 print:hidden" : "contents"}>
       {/* Activities — grouped by location */}
       {!hideSelectionSections && itinerary.activities.length > 0 && (
         <Section
@@ -262,6 +316,7 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
           {copied ? <CheckIcon size={13} className="text-sage-600" /> : <Copy size={13} />}
           {copied ? "Copied!" : "Copy itinerary"}
         </button>
+      </div>
       </div>
     </div>
   );
