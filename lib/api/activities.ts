@@ -73,6 +73,30 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Sentiero degli Dei hike",        category: "hiking",       duration: "5h",   price: 45,  rating: 9.8, reviewCount: 3300, isLocalFavorite: true,  description: "The 'Path of the Gods' — arguably the most scenic coastal walk in Europe. Staggering views at every step." },
     { name: "Ravello Villa & Garden tour",    category: "cultural",     duration: "3h",   price: 55,  rating: 9.1, reviewCount: 1900, isLocalFavorite: false, description: "The clifftop gardens of Villa Rufolo and Villa Cimbrone. Wagner composed here. You'll understand why." },
   ],
+  sicily: [
+    { name: "Valley of the Temples sunset tour", category: "cultural", duration: "3h", price: 65, rating: 9.5, reviewCount: 5200, isLocalFavorite: false, description: "Agrigento's Doric temples glow gold at sunset — a UNESCO site with a fraction of Rome's crowds." },
+    { name: "Mount Etna guided hike & wine tasting", category: "adventure", duration: "6h", price: 95, rating: 9.6, reviewCount: 3800, isLocalFavorite: true, description: "Trek the black lava trails of Europe's most active volcano, then taste wine grown in its mineral-rich soil." },
+    { name: "Palermo street food market tour", category: "guided_food_tour", duration: "3h", price: 55, rating: 9.4, reviewCount: 4100, isLocalFavorite: true, description: "Ballarò and Vucciria markets — arancini, panelle, and the famous (not for the faint-hearted) pani ca meusa." },
+    { name: "Taormina & Isola Bella boat trip", category: "sailing", duration: "4h", price: 80, rating: 9.3, reviewCount: 2600, isLocalFavorite: false, description: "Sail beneath Taormina's clifftop theatre to the turquoise coves of Isola Bella nature reserve." },
+  ],
+  bologna: [
+    { name: "Bologna food & market walking tour", category: "guided_food_tour", duration: "3h", price: 70, rating: 9.5, reviewCount: 3400, isLocalFavorite: true, description: "Quadrilatero market stalls, a mortadella tasting, and the parmesan and balsamic history that built this city's food fame." },
+    { name: "Fresh pasta-making class with a sfoglina", category: "guided_food_tour", duration: "3h", price: 75, rating: 9.6, reviewCount: 2100, isLocalFavorite: true, description: "Learn tagliatelle and tortellini from an actual Bolognese grandmother in her home kitchen." },
+    { name: "Ferrari Museum & balsamic vinegar day trip", category: "cultural", duration: "Full day", price: 110, rating: 9.2, reviewCount: 1800, isLocalFavorite: false, description: "Maranello's Ferrari collection paired with a traditional acetaia tasting 25-year balsamic straight from the barrel." },
+    { name: "Le Due Torri & portico rooftop climb", category: "cultural", duration: "1.5h", price: 25, rating: 8.9, reviewCount: 4100, isLocalFavorite: false, description: "Climb the leaning Asinelli Tower for the best rooftop view in Emilia-Romagna, then walk the world's longest portico." },
+  ],
+  tuscany: [
+    { name: "Siena Palio history walk & Duomo",   category: "cultural", duration: "3h", price: 55, rating: 9.3, reviewCount: 2400, isLocalFavorite: false, description: "Walk the Campo where the Palio horse race runs twice a year, then step inside Siena's black-and-white striped Duomo." },
+    { name: "San Gimignano towers & Vernaccia tasting", category: "food", duration: "4h", price: 70, rating: 9.2, reviewCount: 1900, isLocalFavorite: true, description: "The 'Medieval Manhattan' of 14 surviving stone towers, paired with a tasting of the region's crisp white wine." },
+    { name: "Val d'Orcia countryside driving tour", category: "photography", duration: "Full day", price: 130, rating: 9.7, reviewCount: 1600, isLocalFavorite: false, description: "Chauffeured through the cypress-lined hills of Pienza, Montalcino, and Montepulciano — the postcard Tuscany." },
+    { name: "Brunello di Montalcino vineyard tasting", category: "food", duration: "5h", price: 110, rating: 9.5, reviewCount: 2100, isLocalFavorite: true, description: "A family-run Montalcino estate walks you through Brunello's strict aging rules, ending in a proper sit-down tasting." },
+  ],
+  cinque: [
+    { name: "Sentiero Azzurro hike through all five villages", category: "hiking", duration: "Full day", price: 45, rating: 9.7, reviewCount: 4800, isLocalFavorite: true, description: "The classic blue trail linking Monterosso to Riomaggiore along the cliffs — buy the Cinque Terre Card for trail access." },
+    { name: "Vernazza harbour swim & pesto-making class", category: "guided_food_tour", duration: "3h", price: 65, rating: 9.4, reviewCount: 2100, isLocalFavorite: true, description: "Swim in Vernazza's tiny harbour, then learn real Ligurian pesto from a local — mortar and pestle, no shortcuts." },
+    { name: "Cinque Terre coastal boat tour", category: "sailing", duration: "4h", price: 85, rating: 9.6, reviewCount: 3600, isLocalFavorite: false, description: "See all five villages from the water — the only angle that shows why they're called the 'five lands'." },
+    { name: "Manarola sunset photography walk", category: "photography", duration: "2h", price: 40, rating: 9.5, reviewCount: 1400, isLocalFavorite: false, description: "The most photographed village in Liguria at golden hour, with a guide who knows the quiet vantage points." },
+  ],
   dolomit: [
     { name: "Via Ferrata Piccolo Lagazuoi",   category: "adventure",    duration: "6h",   price: 95,  rating: 9.6, reviewCount: 2700, isLocalFavorite: true,  description: "The most dramatic via ferrata in the Alps — through WWI tunnels and along sheer limestone walls." },
     { name: "Alta Via 1 guided day hike",     category: "hiking",       duration: "Full day", price: 110, rating: 9.7, reviewCount: 1800, isLocalFavorite: true, description: "The high route above the tree line — marmots, ibex, and views that justify every switchback." },

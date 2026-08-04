@@ -71,6 +71,38 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
     { name: "Hotel Buca di Bacco",      stars: 3, hotelType: "hotel",    location: "Positano",                   rating: 8.4, ratingSource: "Booking.com",    reviewCount: 3400, highlights: ["Right on the beach", "Terrace restaurant", "Lively atmosphere"] },
     { name: "Albergo A'Scalinatella",   stars: 3, hotelType: "guesthouse", location: "Ravello",                  rating: 8.7, ratingSource: "TripAdvisor",    reviewCount: 1900, highlights: ["Quiet Ravello hilltop", "Garden with views", "Family-run charm"] },
   ],
+  sicily: [
+    { name: "Villa Igiea",              stars: 5, hotelType: "hotel",    location: "Acquasanta, Palermo",      rating: 9.4, ratingSource: "Google Reviews", reviewCount: 1100, highlights: ["Belle Époque waterfront palace", "Rocco Forte spa", "Private harbour"] },
+    { name: "San Domenico Palace",      stars: 5, hotelType: "hotel",    location: "Taormina",                  rating: 9.6, ratingSource: "TripAdvisor",    reviewCount: 890,  highlights: ["Former 14th-century monastery", "Etna and sea views", "White Lotus filming location"] },
+    { name: "Hotel Villa Athena",       stars: 4, hotelType: "boutique", location: "Agrigento",                 rating: 9.2, ratingSource: "Booking.com",    reviewCount: 1600, highlights: ["Views of the Valley of the Temples", "Infinity pool facing the ruins", "Quiet countryside setting"] },
+    { name: "Ortea Palace Hotel",       stars: 4, hotelType: "hotel",    location: "Ortigia, Syracuse",         rating: 8.9, ratingSource: "Google Reviews", reviewCount: 1400, highlights: ["Baroque old-town setting", "Rooftop restaurant", "Steps from the Duomo"] },
+    { name: "Palazzo Failla",           stars: 3, hotelType: "guesthouse", location: "Modica",                  rating: 8.7, ratingSource: "TripAdvisor",    reviewCount: 780,  highlights: ["Baroque townhouse", "Home to a Michelin-starred kitchen", "Quiet hill-town charm"] },
+    { name: "Hotel Moderno",            stars: 3, hotelType: "hotel",    location: "Taormina",                  rating: 8.0, ratingSource: "Booking.com",    reviewCount: 2100, highlights: ["Central old-town location", "Terrace views", "Budget-friendly"] },
+  ],
+  bologna: [
+    { name: "Grand Hotel Majestic già Baglioni", stars: 5, hotelType: "hotel", location: "Via Indipendenza, Bologna", rating: 9.3, ratingSource: "Google Reviews", reviewCount: 1300, highlights: ["18th-century palace", "Frescoed ceilings", "Central location"] },
+    { name: "I Portici Hotel",          stars: 5, hotelType: "boutique", location: "Via Indipendenza, Bologna", rating: 9.1, ratingSource: "TripAdvisor",    reviewCount: 980,  highlights: ["Former 1920s theatre", "Michelin-starred restaurant on-site", "Art Nouveau design"] },
+    { name: "Art Hotel Novecento",      stars: 4, hotelType: "boutique", location: "Via del Riscatto, Bologna", rating: 8.9, ratingSource: "Booking.com",    reviewCount: 1500, highlights: ["1930s design throughout", "Steps from Piazza Maggiore", "Quiet side street"] },
+    { name: "Hotel Corona d'Oro",       stars: 4, hotelType: "hotel",    location: "Via Oberdan, Bologna",      rating: 8.7, ratingSource: "Google Reviews", reviewCount: 2000, highlights: ["14th-century building", "Glass-roofed courtyard", "Central old town"] },
+    { name: "Hotel Metropolitan",       stars: 3, hotelType: "hotel",    location: "Via dell'Orso, Bologna",    rating: 8.3, ratingSource: "TripAdvisor",    reviewCount: 1600, highlights: ["Small rooftop terrace", "Central location", "Good value"] },
+    { name: "Combo Bologna",            stars: 3, hotelType: "guesthouse", location: "Via de' Carbonesi, Bologna", rating: 8.0, ratingSource: "Booking.com", reviewCount: 2200, highlights: ["Design hostel-hotel hybrid", "Social atmosphere", "Budget-friendly"] },
+  ],
+  tuscany: [
+    { name: "Castello di Casole",       stars: 5, hotelType: "resort",   location: "Casole d'Elsa, Tuscany",    rating: 9.5, ratingSource: "Google Reviews", reviewCount: 780,  highlights: ["10th-century castle estate", "Working farm and vineyard", "Panoramic countryside views"] },
+    { name: "Borgo Santo Pietro",       stars: 5, hotelType: "boutique", location: "Chiusdino, Tuscany",        rating: 9.6, ratingSource: "TripAdvisor",    reviewCount: 620,  highlights: ["Two Michelin-starred restaurant on-site", "13th-century manor", "Extensive gardens"] },
+    { name: "Hotel Athena",             stars: 4, hotelType: "hotel",    location: "San Gimignano, Tuscany",    rating: 8.9, ratingSource: "Booking.com",    reviewCount: 1900, highlights: ["Views of the medieval towers", "Just outside the old walls", "Easy parking"] },
+    { name: "Palazzo Ravizza",          stars: 4, hotelType: "boutique", location: "Siena, Tuscany",            rating: 9.0, ratingSource: "Google Reviews", reviewCount: 1400, highlights: ["Renaissance palazzo", "Garden terrace", "Steps from the Duomo"] },
+    { name: "Podere Val d'Orcia",       stars: 3, hotelType: "guesthouse", location: "Val d'Orcia, Tuscany",    rating: 8.8, ratingSource: "TripAdvisor",    reviewCount: 640,  highlights: ["Working farmhouse stay", "Home-cooked breakfast", "Cypress-lined views"] },
+    { name: "Hotel Villa San Lucchese", stars: 3, hotelType: "hotel",    location: "Poggibonsi, Tuscany",       rating: 8.1, ratingSource: "Booking.com",    reviewCount: 1100, highlights: ["Convenient Chianti base", "Pool and gardens", "Budget-friendly"] },
+  ],
+  cinque: [
+    { name: "Hotel Porto Roca",         stars: 4, hotelType: "hotel",    location: "Monterosso al Mare, Cinque Terre", rating: 9.2, ratingSource: "Google Reviews", reviewCount: 1100, highlights: ["Clifftop with sea views", "Private beach access", "Terrace restaurant"] },
+    { name: "La Mala",                  stars: 4, hotelType: "boutique", location: "Manarola, Cinque Terre",    rating: 9.4, ratingSource: "TripAdvisor",    reviewCount: 620,  highlights: ["Adults-only clifftop suites", "Panoramic terrace", "No cars — boat or trail access only"] },
+    { name: "Locanda Ca' dei Duxi",     stars: 3, hotelType: "guesthouse", location: "Riomaggiore, Cinque Terre", rating: 9.0, ratingSource: "Booking.com",  reviewCount: 1400, highlights: ["Village-centre location", "Home-style breakfast", "Family-run"] },
+    { name: "Hotel Gianni Franzi",      stars: 3, hotelType: "hotel",    location: "Vernazza, Cinque Terre",    rating: 8.7, ratingSource: "Google Reviews", reviewCount: 1800, highlights: ["Harbour-front rooms", "Castle-view terrace restaurant", "Central Vernazza"] },
+    { name: "Albergo Marina Piccola",   stars: 3, hotelType: "hotel",    location: "Manarola, Cinque Terre",    rating: 8.5, ratingSource: "TripAdvisor",    reviewCount: 1200, highlights: ["Seafront terrace", "Simple comfortable rooms", "Steps from the harbour"] },
+    { name: "Ostello Corniglia",        stars: 3, hotelType: "guesthouse", location: "Corniglia, Cinque Terre", rating: 8.0, ratingSource: "Booking.com",    reviewCount: 700,  highlights: ["Hilltop village, fewer crowds", "Terrace views over the vineyards", "Budget-friendly"] },
+  ],
   dolomit: [
     { name: "Rosa Alpina",              stars: 5, hotelType: "boutique", location: "San Cassiano, Alta Badia",   rating: 9.7, ratingSource: "Google Reviews", reviewCount: 890,  highlights: ["St. Hubertus 3★ Michelin", "Ski-in/ski-out", "Legendary spa"] },
     { name: "Cristallo Resort & Spa",   stars: 5, hotelType: "resort",   location: "Cortina d'Ampezzo",          rating: 9.3, ratingSource: "TripAdvisor",    reviewCount: 1540, highlights: ["Palace hotel since 1901", "Panoramic Dolomite views", "Full spa"] },
@@ -110,19 +142,18 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
   ],
 };
 
-// Florence, Venice, Naples, and Milan are no longer listed here — they're
-// now direct HOTEL_DB keys, and resolvePool checks pool keys before
-// consulting this alias map, so an explicit entry pointing them at "rome"
-// would be dead code (and misleading to a future reader) rather than doing
-// anything. Sicily, Bologna, Tuscany, and generic "italy" still fall back
-// to Rome's pool — same mismatch as before, just not yet given their own
-// content.
+// Florence, Venice, Naples, Milan, Sicily, Bologna, Tuscany, and Cinque
+// Terre are no longer listed here — they're now direct HOTEL_DB keys, and
+// resolvePool checks pool keys before consulting this alias map, so an
+// explicit entry pointing them at "rome" would be dead code (and
+// misleading to a future reader) rather than doing anything. Generic
+// "italy" (no specific city given) still falls back to Rome's pool —
+// a reasonable default, not a mismatch.
 const HOTEL_ALIASES: Record<string, string> = {
   "positano": "amalfi", "ravello": "amalfi", "praiano": "amalfi", "sorrento": "amalfi",
   "cortina":  "dolomit","bolzano": "dolomit","merano":  "dolomit","alta badia": "dolomit",
   "val gardena": "dolomit","ortisei": "dolomit","corvara": "dolomit",
-  "tuscany": "rome",
-  "sicily":  "rome",    "bologna": "rome",   "italy": "rome",
+  "italy": "rome",
 };
 
 function findHotelBase(destination: string): (Partial<HotelOption> & { hotelType?: HotelType })[] {
