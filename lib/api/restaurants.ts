@@ -274,6 +274,25 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
     { name: "Roscioli",           cuisine: "Deli & Wine Bar",  tier: "upscale",  rating: 9.2, reviewCount: 6100, location: "Campo de' Fiori, Rome", description: "Part deli, part restaurant, entirely essential — carbonara that regularly tops 'best in Rome' lists.", mustOrder: "Carbonara and the cheese board" },
     { name: "Trapizzino Testaccio", cuisine: "Roman Street Food", tier: "street_food", rating: 8.9, reviewCount: 7800, location: "Testaccio, Rome", description: "The inventor of the trapizzino — pizza dough pocket stuffed with slow-braised fillings.", mustOrder: "Chicken cacciatore trapizzino" },
   ],
+  madrid: [
+    { name: "DiverXO",            cuisine: "Avant-Garde Spanish", tier: "fine_dining", rating: 9.7, reviewCount: 890,  location: "Chamartín, Madrid", description: "Dabiz Muñoz's three-Michelin-star circus of a tasting menu — the most talked-about table in Spain.", mustOrder: "The full tasting menu, whatever's on it" },
+    { name: "Casa Lucio",         cuisine: "Traditional Madrid",  tier: "upscale",     rating: 9.2, reviewCount: 6800, location: "La Latina, Madrid", description: "The huevos rotos place — a Madrid institution where kings and everyone else have eaten the same broken-egg dish for decades.", mustOrder: "Huevos rotos con jamón" },
+    { name: "Mercado de San Miguel", cuisine: "Food Hall",        tier: "street_food", rating: 8.7, reviewCount: 21000, location: "Centro, Madrid",    description: "A glass-walled Belle Époque market turned upscale tapas bazaar off Plaza Mayor — touristy but genuinely good.", mustOrder: "Iberian ham and a glass of cava" },
+    { name: "Casa Revuelta",      cuisine: "Tapas Bar",           tier: "casual",      rating: 9.1, reviewCount: 3400, location: "Centro, Madrid",    description: "A no-frills bar near Plaza Mayor serving the city's best bacalao (salt cod) tapas since 1957.", mustOrder: "Soldaditos de Pavía (battered cod)" },
+    { name: "Botín",              cuisine: "Historic Spanish",    tier: "upscale",     rating: 9.0, reviewCount: 8900, location: "Centro, Madrid",    description: "The world's oldest continuously operating restaurant (1725, Guinness-certified) — wood-fired roast suckling pig.", mustOrder: "Cochinillo asado (roast suckling pig)" },
+    { name: "Chocolatería San Ginés", cuisine: "Café & Chocolate", tier: "brunch",     rating: 8.9, reviewCount: 12000, location: "Centro, Madrid",   description: "Open since 1894, and open very late — churros con chocolate is the correct way to end a Madrid night out.", mustOrder: "Churros con chocolate" },
+  ],
+  seville: [
+    { name: "Abantal",            cuisine: "Modern Andalusian",   tier: "fine_dining", rating: 9.3, reviewCount: 720,  location: "Centro, Seville",  description: "One Michelin star reinterpreting Andalusian classics with real technique, in an understated dining room.", mustOrder: "Tasting menu with the cold tomato soups" },
+    { name: "El Rinconcillo",     cuisine: "Historic Tapas Bar",  tier: "casual",      rating: 9.1, reviewCount: 5600, location: "Santa Catalina, Seville", description: "Seville's oldest bar, open since 1670 — chalk-on-wood bar tabs and classic tapas exactly as they've always been.", mustOrder: "Espinacas con garbanzos" },
+    { name: "Bar Las Teresas",    cuisine: "Traditional Tapas",   tier: "casual",      rating: 9.0, reviewCount: 4100, location: "Santa Cruz, Seville", description: "A tiled, ham-leg-hung classic in the old Jewish quarter — cold sherry and simple tapas done right.", mustOrder: "Jamón ibérico and a glass of fino sherry" },
+    { name: "Mercado de Triana",  cuisine: "Food Market",         tier: "street_food", rating: 8.8, reviewCount: 3200, location: "Triana, Seville",   description: "A riverside market built on the site of a former Inquisition castle — now stalls of seafood, tapas, and produce.", mustOrder: "Fried fish cone (pescaíto frito)" },
+    { name: "Vineria San Telmo", cuisine: "Modern Andalusian",   tier: "upscale",     rating: 9.2, reviewCount: 2800, location: "Santa Cruz, Seville", description: "Argentinian-Andalusian fusion in a cosy dining room — inventive tapas that go beyond the classics.", mustOrder: "Foie gras with caramelised apple" },
+    { name: "Confitería La Campana", cuisine: "Bakery & Café",    tier: "brunch",      rating: 8.7, reviewCount: 4600, location: "Centro, Seville",   description: "Seville's most famous pastelería since 1885 — the meeting spot for coffee and pastries before a day of sightseeing.", mustOrder: "Yema (candied egg yolk pastry) and coffee" },
+  ],
+  // "spain" is already pure Barcelona content, and the "barcelona": "spain"
+  // alias correctly routes Barcelona searches here — no separate "barcelona"
+  // key needed. Kept as the fallback for a bare "Spain" search too.
   spain: [
     {
       name: "Disfrutar",

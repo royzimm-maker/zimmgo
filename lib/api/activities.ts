@@ -103,6 +103,21 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Sunrise photography at Tre Cime",category: "photography",  duration: "4h",   price: 75,  rating: 9.8, reviewCount: 4600, isLocalFavorite: false, description: "The Tre Cime di Lavaredo at golden hour is one of the great mountain photographs. A guide gets you there at the right moment." },
     { name: "Dolomites e-bike tour",          category: "cycling",      duration: "5h",   price: 120, rating: 9.3, reviewCount: 3100, isLocalFavorite: true,  description: "Pedal through alpine meadows and traditional Ladin villages with a local guide, letting the motor help on the climbs." },
   ],
+  madrid: [
+    { name: "Prado Museum skip-the-line guided tour", category: "cultural", duration: "3h", price: 75, rating: 9.5, reviewCount: 8200, isLocalFavorite: false, description: "Velázquez, Goya, and Bosch with an art historian guide who cuts through the crowds and the audio-guide clichés." },
+    { name: "Retiro Park & Royal Palace walking tour", category: "guided_walking_tour", duration: "3h", price: 45, rating: 9.0, reviewCount: 3400, isLocalFavorite: false, description: "Madrid's green lung and the largest working royal palace in Europe, paired in one manageable afternoon." },
+    { name: "Tapas crawl in La Latina",           category: "guided_food_tour", duration: "3h", price: 65, rating: 9.4, reviewCount: 4600, isLocalFavorite: true, description: "Cava Baja's tapas bars the way madrileños actually do it — standing room, jamón, and vermouth on tap." },
+    { name: "Mercado de San Miguel food hall visit", category: "food", duration: "2h", price: 30, rating: 8.8, reviewCount: 9800, isLocalFavorite: false, description: "A glass-walled 1916 market hall turned upscale tapas bazaar — touristy but genuinely excellent, right off Plaza Mayor." },
+  ],
+  seville: [
+    { name: "Real Alcázar & Santa Cruz quarter tour", category: "cultural", duration: "3h", price: 65, rating: 9.5, reviewCount: 5600, isLocalFavorite: false, description: "The oldest royal palace still in use in Europe — Mudéjar architecture that inspired parts of Game of Thrones' Dorne." },
+    { name: "Flamenco show in Triana",            category: "cultural", duration: "1.5h", price: 40, rating: 9.3, reviewCount: 4200, isLocalFavorite: true, description: "Flamenco's actual birthplace neighbourhood, across the river from the tourist zone — raw and unpolished in the best way." },
+    { name: "Seville Cathedral & Giralda tower climb", category: "cultural", duration: "2h", price: 35, rating: 9.2, reviewCount: 6100, isLocalFavorite: false, description: "The world's largest Gothic cathedral, with a ramp (not stairs) to the top of the Giralda for panoramic city views." },
+    { name: "Tapas crawl through Santa Cruz & Alfalfa", category: "guided_food_tour", duration: "3h", price: 55, rating: 9.4, reviewCount: 3100, isLocalFavorite: true, description: "Hop between family-run bars for salmorejo, croquetas, and sherry the way sevillanos have for generations." },
+  ],
+  // Kept as a fallback for a bare "Spain" search — already pure Barcelona
+  // content, and the "barcelona": "spain" alias correctly routes Barcelona
+  // searches here. Madrid and Seville above now get their own pools.
   spain: [
     { name: "Sagrada Família & Park Güell guided tour", category: "cultural", duration: "4h", price: 95, rating: 9.5, reviewCount: 12000, isLocalFavorite: false, description: "Skip-the-line access to Gaudí's masterpieces with an architecture-focused guide who makes the modernist movement click." },
     { name: "Tapas & vermouth crawl in El Born",  category: "food",     duration: "3h",  price: 75,  rating: 9.4, reviewCount: 3400, isLocalFavorite: true,  description: "Hop between four family-run bodegas most tourists walk straight past, pairing vermut on tap with proper jamón." },

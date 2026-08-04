@@ -133,6 +133,24 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
     { name: "Pestana Vintage Porto",    stars: 4, hotelType: "hotel",    location: "Ribeira, Porto",           rating: 8.9, ratingSource: "Booking.com",    reviewCount: 2100, highlights: ["UNESCO riverside setting", "Historic townhouses", "River views"] },
     { name: "Guest House Douro",        stars: 3, hotelType: "guesthouse", location: "Ribeira, Porto",         rating: 8.5, ratingSource: "Google Reviews", reviewCount: 900,  highlights: ["River-view rooms", "Family-run", "Central Ribeira location"] },
   ],
+  barcelona: [
+    { name: "Hotel Arts Barcelona",     stars: 5, hotelType: "resort",   location: "Port Olímpic, Barcelona",  rating: 9.4, ratingSource: "Google Reviews", reviewCount: 2400, highlights: ["Beachfront skyscraper", "Michelin dining", "Rooftop pool"] },
+    { name: "Hotel Neri",               stars: 4, hotelType: "boutique", location: "Gothic Quarter, Barcelona", rating: 9.2, ratingSource: "Booking.com",   reviewCount: 780,  highlights: ["14th-century palace", "Gothic Quarter setting", "Intimate scale"] },
+    { name: "Casa Bonay",               stars: 4, hotelType: "boutique", location: "Eixample, Barcelona",      rating: 9.1, ratingSource: "TripAdvisor",    reviewCount: 1200, highlights: ["Design-led rooms", "Rooftop bar", "Central Eixample location"] },
+    { name: "Hostal Grau",              stars: 3, hotelType: "guesthouse", location: "El Raval, Barcelona",    rating: 8.5, ratingSource: "Google Reviews", reviewCount: 1600, highlights: ["Eco-friendly design", "Near MACBA museum", "Great value"] },
+  ],
+  madrid: [
+    { name: "Rosewood Villa Magna",     stars: 5, hotelType: "hotel",    location: "Salamanca, Madrid",        rating: 9.4, ratingSource: "Google Reviews", reviewCount: 1800, highlights: ["Elegant Salamanca district", "Michelin dining", "Garden terrace"] },
+    { name: "Only YOU Hotel Atocha",    stars: 4, hotelType: "boutique", location: "Atocha, Madrid",           rating: 9.0, ratingSource: "TripAdvisor",    reviewCount: 1400, highlights: ["Design-forward interiors", "Near Retiro Park", "Rooftop restaurant"] },
+    { name: "Praktik Metropol",         stars: 4, hotelType: "hotel",    location: "Centro, Madrid",           rating: 8.7, ratingSource: "Booking.com",    reviewCount: 2100, highlights: ["Central Gran Vía location", "Balcony rooms", "Good value for the location"] },
+    { name: "Hostal Central Palace Madrid", stars: 3, hotelType: "guesthouse", location: "Centro, Madrid",     rating: 8.3, ratingSource: "Google Reviews", reviewCount: 1900, highlights: ["Steps from Plaza Mayor", "Simple comfortable rooms", "Budget-friendly"] },
+  ],
+  seville: [
+    { name: "Hotel Alfonso XIII",       stars: 5, hotelType: "hotel",    location: "Centro, Seville",          rating: 9.3, ratingSource: "Google Reviews", reviewCount: 2100, highlights: ["Historic 1928 palace hotel", "Andalusian courtyard", "Walking distance to the Cathedral"] },
+    { name: "Hotel Casa 1800",          stars: 4, hotelType: "boutique", location: "Santa Cruz, Seville",      rating: 9.2, ratingSource: "Booking.com",    reviewCount: 1600, highlights: ["19th-century mansion", "Courtyard with fountain", "Free afternoon tea"] },
+    { name: "EME Catedral Hotel",       stars: 4, hotelType: "boutique", location: "Santa Cruz, Seville",      rating: 9.1, ratingSource: "TripAdvisor",    reviewCount: 1300, highlights: ["Rooftop views of the Cathedral", "Santa Cruz location", "Design-forward"] },
+    { name: "Pensión San Pancracio",    stars: 3, hotelType: "guesthouse", location: "Santa Cruz, Seville",    rating: 8.4, ratingSource: "Google Reviews", reviewCount: 900,  highlights: ["Family-run", "Central Santa Cruz alleys", "Great value"] },
+  ],
   dolomit: [
     { name: "Rosa Alpina",              stars: 5, hotelType: "boutique", location: "San Cassiano, Alta Badia",   rating: 9.7, ratingSource: "Google Reviews", reviewCount: 890,  highlights: ["St. Hubertus 3★ Michelin", "Ski-in/ski-out", "Legendary spa"] },
     { name: "Cristallo Resort & Spa",   stars: 5, hotelType: "resort",   location: "Cortina d'Ampezzo",          rating: 9.3, ratingSource: "TripAdvisor",    reviewCount: 1540, highlights: ["Palace hotel since 1901", "Panoramic Dolomite views", "Full spa"] },
