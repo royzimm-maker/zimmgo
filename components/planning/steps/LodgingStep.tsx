@@ -20,6 +20,7 @@ const TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[
   { id: "airbnb",   label: "AirBnB / Apt", icon: "🏠", sublabel: "Home-like, flexible, local feel" },
   { id: "boutique", label: "Boutique",     icon: "🛎️", sublabel: "Design-led, intimate, unique" },
   { id: "resort",   label: "Resort",       icon: "🌴", sublabel: "All-inclusive, amenities-rich" },
+  { id: "hostel",   label: "Hostel",       icon: "🎒", sublabel: "Budget-friendly, social, shared or private rooms" },
 ];
 
 const AMENITIES = [
@@ -77,6 +78,14 @@ export function LodgingStep() {
     trip.preferences.selectedHotel?.id ?? null
   );
 
+  // A custom type typed into "Other…" (e.g. "hostel") has to be included
+  // here too — it previously only got merged into the *saved* preference
+  // (assembleLodging, below) and never into what's actually searched for,
+  // so picking only a custom type fetched nothing at all.
+  const effectiveTypes = otherTypeOpen && otherTypeValue.trim()
+    ? [...types, otherTypeValue.trim() as LodgingType]
+    : types;
+
   async function fetchHotels(stars: number) {
     if (!destination) return;
     setHotelsLoading(true);
@@ -88,7 +97,7 @@ export function LodgingStep() {
           destination,
           min_stars: stars,
           max_price_per_night: budgetMax,
-          types: types.length > 0 ? types : undefined,
+          types: effectiveTypes.length > 0 ? effectiveTypes : undefined,
         }),
       });
       const data = await res.json() as HotelOption[];
@@ -103,9 +112,10 @@ export function LodgingStep() {
 
   // Only fetch hotels once the user has chosen an accommodation type — don't pre-load
   useEffect(() => {
-    const onlyAirbnb = types.length > 0 && types.every((t) => t === "airbnb") && !otherTypeOpen;
-    if (types.length > 0 && !onlyAirbnb) fetchHotels(minStars);
-  }, [types.join(","), otherTypeOpen]);
+    const onlyAirbnb = effectiveTypes.length > 0 && effectiveTypes.every((t) => t === "airbnb");
+    if (effectiveTypes.length > 0 && !onlyAirbnb) fetchHotels(minStars);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveTypes.join(",")]);
 
   // Write every change straight to the store instead of only on Continue —
   // otherwise a manual pick made here is invisible to chat (which only reads
@@ -238,9 +248,9 @@ export function LodgingStep() {
     [hotels, visibleHotelCount, reviewMode, reviewSource]
   );
 
-  const hasType = types.length > 0 || (otherTypeOpen && !!otherTypeValue.trim());
+  const hasType = effectiveTypes.length > 0;
   // Only show hotel picker if accommodation type includes bookable hotel options
-  const airbnbOnly = types.length > 0 && types.every((t) => t === "airbnb") && !otherTypeOpen;
+  const airbnbOnly = effectiveTypes.length > 0 && effectiveTypes.every((t) => t === "airbnb");
 
   if (mode === "prompt") {
     return (

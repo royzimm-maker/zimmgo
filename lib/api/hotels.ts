@@ -20,6 +20,10 @@ interface HotelSearchParams {
 
 // Hotel type tags used to filter by accommodation preference
 type HotelType = "hotel" | "boutique" | "resort" | "guesthouse";
+// User-facing lodging types requested from the planning form (types/trip.ts LodgingType) —
+// a superset of HotelType since "airbnb"/"hostel" aren't tagged in this mock inventory
+// and resolve to a nearest-match HotelType instead (see matchesType below).
+type RequestedType = HotelType | "airbnb" | "hostel";
 
 // Curated mock hotel data per destination keyword
 const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType })[]> = {
@@ -237,7 +241,7 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
   const base = findHotelBase(params.destination);
   const maxPrice = params.max_price_per_night ?? 300;  // conservative default — AI should pass explicit value
   const minStars = params.min_stars ?? 3;
-  const requestedTypes = (params.types ?? []) as HotelType[];
+  const requestedTypes = (params.types ?? []) as RequestedType[];
 
   // Per-night price bands by star rating
   const priceBand: Record<number, [number, number]> = {
@@ -246,8 +250,11 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
     3: [60, 150],
   };
 
-  // Map user-facing lodging types to internal hotel type tags
-  // "boutique" → boutique only; "hotel" → hotel/resort; everything else → any type
+  // Map user-facing lodging types to internal hotel type tags. This mock
+  // inventory has no dedicated "hostel" entries, so a hostel request maps to
+  // the nearest existing category — budget-tier "guesthouse" listings —
+  // rather than either fabricating data per city or (the previous bug)
+  // silently matching every hotel type regardless of what was asked for.
   function matchesType(h: Partial<HotelOption> & { hotelType?: HotelType }): boolean {
     if (requestedTypes.length === 0) return true;
     const ht = h.hotelType ?? "hotel";
@@ -255,7 +262,8 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
       if (t === "boutique") return ht === "boutique";
       if (t === "hotel")    return ht === "hotel";
       if (t === "resort")   return ht === "resort";
-      return true; // airbnb, other types → show all (AirBnB-only handled in UI)
+      if (t === "hostel")   return ht === "guesthouse";
+      return true; // airbnb, other free-text types → show all (AirBnB-only handled in UI)
     });
   }
 

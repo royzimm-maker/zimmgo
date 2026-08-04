@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTripStore } from "@/lib/store/tripStore";
 import { ProgressBar } from "@/components/planning/ProgressBar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -32,10 +33,51 @@ const STEP_COMPONENTS: Record<StepId, React.ComponentType> = {
   refine:         RefineStep,
 };
 
+const WANDERLOG_HEIGHT_KEY = "zimmgo-wanderlog-panel-height";
+const DEFAULT_WANDERLOG_HEIGHT = 288; // px — matches the old fixed h-72
+const MIN_PANEL_HEIGHT = 120; // px — leaves both panels usably tall
+
 export function PlanningFlow() {
   const { trip, sidebarOpen, setSidebarOpen } = useTripStore();
   const StepComponent = STEP_COMPONENTS[trip.currentStep];
   const latestItinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
+
+  // Lets the user drag the divider between the chat and Wanderlog panels —
+  // the fixed h-72 Wanderlog panel was squeezing the chat window with no
+  // way to reclaim that space. Persisted across sessions since this is a
+  // one-time layout preference, not per-trip state.
+  const [wanderlogHeight, setWanderlogHeight] = useState(DEFAULT_WANDERLOG_HEIGHT);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+
+  useEffect(() => {
+    const saved = Number(localStorage.getItem(WANDERLOG_HEIGHT_KEY));
+    if (saved && Number.isFinite(saved)) setWanderlogHeight(saved);
+  }, []);
+
+  const handleDragStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }, []);
+
+  const handleDragMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current || !splitContainerRef.current) return;
+    const rect = splitContainerRef.current.getBoundingClientRect();
+    const next = rect.bottom - e.clientY;
+    const clamped = Math.min(Math.max(next, MIN_PANEL_HEIGHT), rect.height - MIN_PANEL_HEIGHT);
+    setWanderlogHeight(clamped);
+  }, []);
+
+  const handleDragEnd = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    setWanderlogHeight((h) => {
+      localStorage.setItem(WANDERLOG_HEIGHT_KEY, String(h));
+      return h;
+    });
+  }, []);
 
   return (
     <div className="flex h-full gap-0 print:block print:h-auto">
@@ -70,11 +112,26 @@ export function PlanningFlow() {
           </Button>
         </div>
         {latestItinerary ? (
-          <div className="flex flex-1 flex-col min-h-0">
+          <div ref={splitContainerRef} className="flex flex-1 flex-col min-h-0">
             <div className="flex-1 min-h-0 overflow-hidden">
               <ChatPanel />
             </div>
-            <div className="h-72 shrink-0 border-t border-slate-200 overflow-hidden">
+            {/* Drag handle — resizes the split between chat and Wanderlog.
+                The larger transparent hit area makes it easy to grab without
+                needing pixel-perfect precision on the thin visible bar. */}
+            <div
+              onPointerDown={handleDragStart}
+              onPointerMove={handleDragMove}
+              onPointerUp={handleDragEnd}
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label="Resize chat and Wanderlog panels"
+              className="relative shrink-0 cursor-row-resize touch-none border-t border-slate-200 bg-slate-50 hover:bg-brand-100 transition-colors"
+            >
+              <div className="absolute inset-x-0 -top-1.5 -bottom-1.5" />
+              <div className="mx-auto my-0.5 h-1 w-8 rounded-full bg-slate-300" />
+            </div>
+            <div style={{ height: wanderlogHeight }} className="shrink-0 overflow-hidden">
               <WanderlogPanel itinerary={latestItinerary} />
             </div>
           </div>

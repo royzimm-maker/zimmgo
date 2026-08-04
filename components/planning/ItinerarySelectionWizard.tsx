@@ -31,7 +31,7 @@ const STAGES: { id: Stage; label: string; icon: React.ReactNode; perCity: boolea
 ];
 
 export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
-  const { trip, setSelectedFlight, setSelectedHotelForCity } = useTripStore();
+  const { trip, setSelectedFlight, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity } = useTripStore();
   const preferences = trip.preferences;
 
   const { wanderlogLabels, handleSaveToWanderlog } = useWanderlogSave(itinerary);
@@ -144,6 +144,8 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
     ? "Select your preferred option — prices are roundtrip per person, estimated."
     : stage.id === "hotels"
     ? "Tap a hotel to pick it for this city — you can change it later."
+    : stage.id === "restaurants" || stage.id === "activities"
+    ? "Tap \"Add\" to include a pick in your plan — the bookmark saves it to your Wanderlog instead, without scheduling it."
     : undefined;
 
   // What "Continue" advances to, so it reads as "move to the next thing in
@@ -241,6 +243,8 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                   restaurant={r}
                   saved={wanderlogLabels.has(r.name)}
                   onSave={() => handleSaveToWanderlog(r.name, "restaurant", r.location)}
+                  selected={(preferences.selectedRestaurantIds ?? []).includes(r.id)}
+                  onSelect={() => toggleSelectedRestaurant(r.id)}
                 />
               ))}
               {hasMoreRestaurants && !restaurantsExpanded && (
@@ -269,6 +273,8 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                     activity={a}
                     saved={wanderlogLabels.has(a.name)}
                     onSave={() => handleSaveToWanderlog(a.name, "activity", a.location)}
+                    selected={(preferences.selectedActivityIds ?? []).includes(a.id)}
+                    onSelect={() => toggleSelectedActivity(a.id)}
                   />
                 ))}
               </div>

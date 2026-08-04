@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Lightbulb } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { useTripStore } from "@/lib/store/tripStore";
+import { getTransitNote } from "@/lib/data/transitAwareness";
 import type { TransportMode } from "@/types/trip";
 
 const MODES: { id: TransportMode; label: string; icon: string; sublabel: string }[] = [
@@ -33,6 +35,7 @@ export function TransportationStep() {
   }
 
   const hasSelection = selected.length > 0 || (otherOpen && !!otherValue.trim());
+  const transitNote = getTransitNote(trip.preferences.destination);
 
   return (
     <StepShell
@@ -41,6 +44,10 @@ export function TransportationStep() {
       continueDisabled={!hasSelection}
       subtitle="How will you get around once you're there? Choose all that apply."
     >
+      <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+        <Lightbulb size={15} className="text-amber-600 shrink-0 mt-0.5" />
+        <p className="text-xs text-amber-800 leading-relaxed">{transitNote}</p>
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {MODES.map((m) => (
           <SelectChip

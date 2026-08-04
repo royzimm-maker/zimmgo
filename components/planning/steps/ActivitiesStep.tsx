@@ -10,6 +10,7 @@ import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { BeliConnect } from "@/components/planning/BeliConnect";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
+import { getIrrelevantCategories } from "@/lib/data/activityRelevance";
 import type { ActivityCategory } from "@/types/trip";
 
 // Exported so ChatPanel can turn a chat-driven update's raw category ids
@@ -31,6 +32,12 @@ export const GENERAL: { id: ActivityCategory; label: string; icon: string; subla
 
 export function ActivitiesStep() {
   const { trip, setActivities } = useTripStore();
+
+  // Don't offer categories that don't fit the destination/season (e.g.
+  // skiing for an April Tokyo trip, diving for a Madrid city break) — keeps
+  // the picker itself from steering the itinerary toward nonsensical picks.
+  const irrelevant = getIrrelevantCategories(trip.preferences.destination, trip.preferences.dates);
+  const visibleGeneral = GENERAL.filter((g) => !irrelevant.has(g.id));
 
   const [mode, setMode] = useState<"prompt" | "manual">(
     () => (trip.preferences.activities.length > 0 ? "manual" : "prompt")
@@ -100,11 +107,11 @@ export function ActivitiesStep() {
     const picks = await runSmartPick({
       kind: "activities",
       preferences: trip.preferences,
-      candidates: GENERAL.map((g) => ({ id: g.id, label: g.label })),
+      candidates: visibleGeneral.map((g) => ({ id: g.id, label: g.label })),
     });
     const picked = picks
       .map((p) => p.id)
-      .filter((id): id is ActivityCategory => GENERAL.some((g) => g.id === id));
+      .filter((id): id is ActivityCategory => visibleGeneral.some((g) => g.id === id));
     setSelectedGeneral(picked);
     setMode("manual");
     syncActivities({ general: picked });
@@ -156,7 +163,7 @@ export function ActivitiesStep() {
         </p>
       )}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {GENERAL.map((a) => (
+        {visibleGeneral.map((a) => (
           <SelectChip
             key={a.id}
             label={a.label}

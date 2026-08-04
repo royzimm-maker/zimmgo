@@ -22,7 +22,7 @@ export interface PlanningStep {
 // ─── Domain enums ─────────────────────────────────────────────────────────────
 export type BudgetRange = "under_500" | "500_750" | "750_1000" | "1000_plus";
 
-export type LodgingType = "hotel" | "airbnb" | "boutique" | "resort";
+export type LodgingType = "hotel" | "airbnb" | "boutique" | "resort" | "hostel";
 
 export type LodgingStarRating = 3 | 4 | 5;
 
@@ -141,6 +141,8 @@ export interface TripPreferences {
   selectedHotel?: HotelOption;
   selectedHotelsByCity?: Record<string, HotelOption>; // per-city picks for multi-destination trips
   selectedFlight?: FlightOption;
+  selectedRestaurantIds?: string[]; // restaurants the traveller picked in for their plan (vs. just Wanderlog-saved)
+  selectedActivityIds?: string[];   // activities the traveller picked in for their plan (vs. just Wanderlog-saved)
   airlinePrefs?: AirlinePreference;
   reviewSourcePref?: ReviewSourcePreference; // how hotel/restaurant/activity ratings are sourced
   beliPref?: BeliPreference; // optional Beli account to weight restaurant picks toward

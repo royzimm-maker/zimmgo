@@ -1,7 +1,7 @@
 "use client";
 
 import { Plane, Hotel, Users, Calendar, MapPin, Check } from "lucide-react";
-import { formatDate, formatCurrency, pairFlights } from "@/lib/utils";
+import { formatDate, formatCurrency, pairFlights, fuzzyCityMatch } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 
@@ -30,6 +30,26 @@ export function TripGlance({ itinerary, preferences }: Props) {
 
   const arrivalAirport = preferences.destination?.arrivalAirport ?? "";
   const pairs = pairFlights(flights, arrivalAirport);
+
+  // Show the traveller's actual pick per city (made in the Hotels review
+  // stage) rather than dumping the full raw fetched pool — otherwise a
+  // multi-city trip shows several unselected-looking hotels per city and
+  // the choice they already made is invisible here.
+  const cities = preferences.destination?.cities?.filter(Boolean) ?? [];
+  const displayHotels = (() => {
+    if (preferences.selectedHotel) return [preferences.selectedHotel];
+    const byCity = preferences.selectedHotelsByCity;
+    if (byCity && Object.keys(byCity).length) {
+      if (cities.length) return cities.map((c) => byCity[c]).filter((h): h is NonNullable<typeof h> => Boolean(h));
+      return Object.values(byCity);
+    }
+    if (cities.length > 1) {
+      return cities
+        .map((c) => hotels.find((h) => fuzzyCityMatch(h.city ?? h.location, c)))
+        .filter((h): h is NonNullable<typeof h> => Boolean(h));
+    }
+    return hotels.slice(0, 1);
+  })();
 
   return (
     <div className="rounded-xl border border-brand-200 bg-white overflow-hidden">
@@ -119,15 +139,21 @@ export function TripGlance({ itinerary, preferences }: Props) {
       )}
 
       {/* Hotels summary */}
-      {hotels.length > 0 && (
+      {displayHotels.length > 0 && (
         <div className="px-4 py-3 border-b border-slate-100">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1">
-            <Hotel size={10} /> Recommended Lodging
+            <Hotel size={10} />
+            {preferences.selectedHotel || preferences.selectedHotelsByCity ? "Your Lodging" : "Recommended Lodging"}
           </p>
           <div className="flex flex-col gap-1">
-            {hotels.map((h) => (
+            {displayHotels.map((h) => (
               <div key={h.id} className="flex items-center justify-between text-xs">
-                <span className="text-slate-700 font-medium">{h.name}</span>
+                <span className="text-slate-700 font-medium flex items-center gap-1">
+                  {(preferences.selectedHotel || preferences.selectedHotelsByCity) && (
+                    <Check size={11} className="text-sage-600 shrink-0" />
+                  )}
+                  {h.name}
+                </span>
                 <span className="text-slate-500">{h.location} · {formatCurrency(h.pricePerNight)}/night</span>
               </div>
             ))}

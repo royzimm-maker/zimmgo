@@ -62,6 +62,8 @@ interface TripState {
   setSelectedHotel: (hotel: HotelOption | null) => void;
   setSelectedHotelForCity: (city: string, hotel: HotelOption | null) => void;
   setSelectedFlight: (flight: import("@/types/trip").FlightOption | null) => void;
+  toggleSelectedRestaurant: (id: string) => void;
+  toggleSelectedActivity: (id: string) => void;
   setAirlines: (prefs: AirlinePreference) => void;
   setTransportation: (modes: TransportMode[]) => void;
 
@@ -284,6 +286,32 @@ export const useTripStore = create<TripState>()(
             updatedAt: new Date().toISOString(),
           },
         })),
+
+      toggleSelectedRestaurant: (id) =>
+        set((s) => {
+          const current = s.trip.preferences.selectedRestaurantIds ?? [];
+          const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+          return {
+            trip: {
+              ...s.trip,
+              preferences: { ...s.trip.preferences, selectedRestaurantIds: next },
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }),
+
+      toggleSelectedActivity: (id) =>
+        set((s) => {
+          const current = s.trip.preferences.selectedActivityIds ?? [];
+          const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+          return {
+            trip: {
+              ...s.trip,
+              preferences: { ...s.trip.preferences, selectedActivityIds: next },
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }),
 
       setAirlines: (airlinePrefs) =>
         set((s) => ({

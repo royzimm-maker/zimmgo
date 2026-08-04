@@ -14,7 +14,7 @@ import { PreTripTasks } from "@/components/planning/PreTripTasks";
 import { Wanderlog } from "@/components/planning/Wanderlog";
 import { LocalDiscovery } from "@/components/planning/LocalDiscovery";
 import { ItineraryCalendarView } from "@/components/planning/ItineraryCalendarView";
-import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
+import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay, TripPreferences } from "@/types/trip";
 
 interface Props {
   itinerary: GeneratedItinerary;
@@ -55,29 +55,55 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
   }
 
   async function handleCopy() {
+    const title = `ZimmGo Trip — ${preferences.destination?.displayName ?? "Your Trip"}`;
+
+    // Plain-text version — for terminals, Notepad, chat apps that don't
+    // render HTML. Headings get a heavier separator so they still read as
+    // sections even without bold/font-size to lean on.
     const lines: string[] = [
-      `ZimmGo Trip — ${preferences.destination?.displayName ?? "Your Trip"}`,
+      title,
+      "=".repeat(title.length),
       "",
       itinerary.aiSummary,
       "",
-      "── FLIGHTS ──",
-      ...itinerary.flights.map((f) => `${f.airline} · ${f.origin} → ${f.destination} · ${formatCurrency(f.price)}/pp`),
+      "FLIGHTS",
+      "-------",
+      ...itinerary.flights.map((f) => `• ${f.airline} — ${f.origin} → ${f.destination} — ${formatCurrency(f.price)}/pp`),
       "",
-      "── HOTELS ──",
-      ...itinerary.hotels.map((h) => `${h.name} · ${h.location} · ${formatCurrency(h.pricePerNight)}/night`),
+      "HOTELS",
+      "------",
+      ...itinerary.hotels.map((h) => `• ${h.name} — ${h.location} — ${formatCurrency(h.pricePerNight)}/night`),
       ...(itinerary.restaurants?.length
-        ? ["", "── WHERE TO EAT ──", ...itinerary.restaurants.map((r) => `${r.name} · ${r.cuisine} · ${r.priceRange} · ${r.location}`)]
+        ? ["", "WHERE TO EAT", "------------", ...itinerary.restaurants.map((r) => `• ${r.name} — ${r.cuisine}, ${r.priceRange} — ${r.location}`)]
         : []),
       "",
-      "── ITINERARY ──",
+      "DAY-BY-DAY ITINERARY",
+      "---------------------",
       ...itinerary.days.map((d) => [
-        `Day ${d.dayNumber}: ${d.theme} (${d.date})`,
+        `Day ${d.dayNumber} — ${d.theme} (${formatDate(d.date)}${d.location ? `, ${d.location}` : ""})`,
         d.morning.length ? `  Morning: ${d.morning.join(", ")}` : "",
         d.afternoon.length ? `  Afternoon: ${d.afternoon.join(", ")}` : "",
         d.evening.length ? `  Evening: ${d.evening.join(", ")}` : "",
       ].filter(Boolean).join("\n")),
     ];
-    await navigator.clipboard.writeText(lines.join("\n"));
+    const plainText = lines.join("\n");
+
+    // Rich-text version — renders as actual headings/bold/lists when pasted
+    // into Gmail, Docs, Notion, Word, etc. instead of a wall of plain text.
+    const html = buildItineraryClipboardHtml(itinerary, preferences, title);
+
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/plain": new Blob([plainText], { type: "text/plain" }),
+          "text/html": new Blob([html], { type: "text/html" }),
+        }),
+      ]);
+    } catch {
+      // Safari/older browsers, or a permissions failure on the rich write —
+      // plain text still gets the content across.
+      await navigator.clipboard.writeText(plainText);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   }
@@ -320,6 +346,91 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
       </div>
     </div>
   );
+}
+
+// ─── Clipboard HTML: a self-contained, inline-styled export so the itinerary
+// still looks intentional when pasted into Gmail/Docs/Notion/Word rather than
+// showing up as a dump of plain text with no visual hierarchy ────────────────
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// The AI summary uses **bold** markdown-style emphasis (see RichText below) —
+// carry that through to the HTML clipboard version instead of pasting the
+// literal asterisks.
+function markdownBoldToHtml(text: string): string {
+  return escapeHtml(text).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+
+function buildItineraryClipboardHtml(
+  itinerary: GeneratedItinerary,
+  preferences: TripPreferences,
+  title: string
+): string {
+  const heading = (text: string) =>
+    `<h2 style="font-size:16px;font-weight:700;margin:20px 0 8px;color:#0f172a;">${escapeHtml(text)}</h2>`;
+  const list = (items: string[]) =>
+    `<ul style="margin:0 0 4px;padding-left:20px;">${items.map((i) => `<li style="margin-bottom:4px;">${i}</li>`).join("")}</ul>`;
+
+  const summaryHtml = itinerary.aiSummary
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:0 0 10px;line-height:1.5;">${markdownBoldToHtml(p)}</p>`)
+    .join("");
+
+  const flightsHtml = list(
+    itinerary.flights.map(
+      (f) => `<strong>${escapeHtml(f.airline)}</strong> — ${escapeHtml(f.origin)} → ${escapeHtml(f.destination)} — ${escapeHtml(formatCurrency(f.price))}/pp`
+    )
+  );
+
+  const hotelsHtml = list(
+    itinerary.hotels.map(
+      (h) => `<strong>${escapeHtml(h.name)}</strong> — ${escapeHtml(h.location)} — ${escapeHtml(formatCurrency(h.pricePerNight))}/night`
+    )
+  );
+
+  const restaurantsHtml = itinerary.restaurants?.length
+    ? heading("Where to Eat") +
+      list(
+        itinerary.restaurants.map(
+          (r) => `<strong>${escapeHtml(r.name)}</strong> — ${escapeHtml(r.cuisine)}, ${escapeHtml(r.priceRange)} — ${escapeHtml(r.location)}`
+        )
+      )
+    : "";
+
+  const daysHtml = itinerary.days
+    .map((d) => {
+      const blocks = [
+        d.morning.length ? `<strong>Morning:</strong> ${escapeHtml(d.morning.join(", "))}` : "",
+        d.afternoon.length ? `<strong>Afternoon:</strong> ${escapeHtml(d.afternoon.join(", "))}` : "",
+        d.evening.length ? `<strong>Evening:</strong> ${escapeHtml(d.evening.join(", "))}` : "",
+      ].filter(Boolean);
+      return `
+        <div style="margin-bottom:14px;">
+          <p style="margin:0 0 4px;font-weight:700;color:#0f172a;">
+            Day ${d.dayNumber} — ${escapeHtml(d.theme)}
+            <span style="font-weight:400;color:#64748b;"> (${escapeHtml(formatDate(d.date))}${d.location ? `, ${escapeHtml(d.location)}` : ""})</span>
+          </p>
+          ${list(blocks)}
+        </div>`;
+    })
+    .join("");
+
+  return `
+    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1e293b;max-width:640px;">
+      <h1 style="font-size:22px;font-weight:800;margin:0 0 4px;color:#0f172a;">${escapeHtml(title)}</h1>
+      <hr style="border:none;border-top:2px solid #e2e8f0;margin:8px 0 16px;" />
+      ${summaryHtml}
+      ${heading("Flights")}${flightsHtml}
+      ${heading("Hotels")}${hotelsHtml}
+      ${restaurantsHtml}
+      ${heading("Day-by-Day Itinerary")}${daysHtml}
+    </div>`;
 }
 
 // ─── RichText: renders paragraphs, bullet lists, and **bold** without a library ─
@@ -703,16 +814,20 @@ export function RestaurantCard({
   restaurant: r,
   saved = false,
   onSave,
+  selected = false,
+  onSelect,
 }: {
   restaurant: RestaurantOption;
   saved?: boolean;
   onSave?: () => void;
+  selected?: boolean;
+  onSelect?: () => void;
 }) {
   const emoji = RESTAURANT_TIER_EMOJI[r.tier] ?? "🍽️";
   const priceColor = PRICE_LABEL_COLOR[r.priceRange] ?? "text-slate-600";
 
   return (
-    <Card padding="none" className="overflow-hidden">
+    <Card padding="none" selected={selected} className="overflow-hidden">
       <div className="p-3 flex gap-3">
         {r.imageUrl && (
           <div className="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
@@ -732,17 +847,32 @@ export function RestaurantCard({
               <p className="text-xs text-slate-600 mt-1 line-clamp-1">{r.description}</p>
             </div>
             <div className="text-right shrink-0 flex flex-col items-end gap-1">
-              {onSave && (
-                <button
-                  type="button"
-                  onClick={onSave}
-                  disabled={saved}
-                  title={saved ? "Saved to Wanderlog" : "Save to Wanderlog"}
-                  className={`transition-colors ${saved ? "text-brand-500" : "text-slate-300 hover:text-brand-500"}`}
-                >
-                  <BookMarked size={14} className={saved ? "fill-brand-100" : undefined} />
-                </button>
-              )}
+              <div className="flex items-center gap-1.5">
+                {onSelect && (
+                  <button
+                    type="button"
+                    onClick={onSelect}
+                    title={selected ? "Remove from plan" : "Add to plan"}
+                    className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                      selected ? "bg-brand-600 text-white" : "border border-slate-200 text-slate-500 hover:border-brand-300 hover:text-brand-600"
+                    }`}
+                  >
+                    {selected ? <Check size={11} /> : null}
+                    {selected ? "Added" : "Add"}
+                  </button>
+                )}
+                {onSave && (
+                  <button
+                    type="button"
+                    onClick={onSave}
+                    disabled={saved}
+                    title={saved ? "Saved to Wanderlog" : "Save to Wanderlog"}
+                    className={`transition-colors ${saved ? "text-brand-500" : "text-slate-300 hover:text-brand-500"}`}
+                  >
+                    <BookMarked size={14} className={saved ? "fill-brand-100" : undefined} />
+                  </button>
+                )}
+              </div>
               <p className="text-xs font-medium text-sage-700">{r.rating}/10</p>
             </div>
           </div>
@@ -899,13 +1029,17 @@ export function ActivityCard({
   activity,
   saved = false,
   onSave,
+  selected = false,
+  onSelect,
 }: {
   activity: ActivityOption;
   saved?: boolean;
   onSave?: () => void;
+  selected?: boolean;
+  onSelect?: () => void;
 }) {
   return (
-    <Card padding="sm">
+    <Card padding="sm" selected={selected}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -919,17 +1053,32 @@ export function ActivityCard({
           </div>
         </div>
         <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
-          {onSave && (
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={saved}
-              title={saved ? "Saved to Wanderlog" : "Save to Wanderlog"}
-              className={`transition-colors ${saved ? "text-brand-500" : "text-slate-300 hover:text-brand-500"}`}
-            >
-              <BookMarked size={15} className={saved ? "fill-brand-100" : undefined} />
-            </button>
-          )}
+          <div className="flex items-center gap-1.5">
+            {onSelect && (
+              <button
+                type="button"
+                onClick={onSelect}
+                title={selected ? "Remove from plan" : "Add to plan"}
+                className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                  selected ? "bg-brand-600 text-white" : "border border-slate-200 text-slate-500 hover:border-brand-300 hover:text-brand-600"
+                }`}
+              >
+                {selected ? <Check size={11} /> : null}
+                {selected ? "Added" : "Add"}
+              </button>
+            )}
+            {onSave && (
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={saved}
+                title={saved ? "Saved to Wanderlog" : "Save to Wanderlog"}
+                className={`transition-colors ${saved ? "text-brand-500" : "text-slate-300 hover:text-brand-500"}`}
+              >
+                <BookMarked size={15} className={saved ? "fill-brand-100" : undefined} />
+              </button>
+            )}
+          </div>
           <div>
             <p className="font-bold text-slate-900 text-sm">{formatCurrency(activity.price)}</p>
             {activity.bookingUrl && (
