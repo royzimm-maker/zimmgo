@@ -20,6 +20,13 @@ export function TripGlance({ itinerary, preferences }: Props) {
 
   const firstDay = days[0];
   const lastDay  = days[days.length - 1];
+  // The itinerary's last "day" is the final night's activities day, not the
+  // checkout/return-flight date — for an exact-dates trip those are one
+  // apart (e.g. a 7-night trip's last activity day is day 7, but the flight
+  // home is the morning of day 8). Prefer the actual selected return date
+  // so it matches what's shown in the flight cards below.
+  const departureDate = preferences.dates?.startDate ?? firstDay?.date;
+  const returnDate     = preferences.dates?.endDate   ?? lastDay?.date;
 
   const arrivalAirport = preferences.destination?.arrivalAirport ?? "";
   const pairs = pairFlights(flights, arrivalAirport);
@@ -34,8 +41,8 @@ export function TripGlance({ itinerary, preferences }: Props) {
 
       {/* Key facts grid */}
       <div className="grid grid-cols-2 gap-0 border-b border-slate-100">
-        <Fact icon={<Calendar size={13} />} label="Departure" value={firstDay ? formatDate(firstDay.date) : "—"} />
-        <Fact icon={<Calendar size={13} />} label="Return" value={lastDay ? formatDate(lastDay.date) : "—"} border />
+        <Fact icon={<Calendar size={13} />} label="Departure" value={departureDate ? formatDate(departureDate) : "—"} />
+        <Fact icon={<Calendar size={13} />} label="Return" value={returnDate ? formatDate(returnDate) : "—"} border />
         <Fact icon={<Users size={13} />} label="Travelers" value={`${travelers} ${travelers === 1 ? "person" : "people"}`} top />
         <Fact icon={<MapPin size={13} />} label="Duration" value={`${days.length} day${days.length !== 1 ? "s" : ""}`} top border />
       </div>

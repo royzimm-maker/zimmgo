@@ -297,6 +297,12 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
   };
 }
 
+function scopeToLocation<T extends { location?: string }>(items: T[], location: string): T[] {
+  const lc = location.toLowerCase();
+  const matched = items.filter((item) => item.location?.toLowerCase().includes(lc));
+  return matched.length ? matched : items;
+}
+
 function buildDays(
   start: Date,
   numDays: number,
@@ -308,14 +314,17 @@ function buildDays(
   const cities = preferences.destination?.cities?.filter(Boolean) ?? [];
   const themes = generateThemes(numDays, preferences);
 
+  // Days assigned to the same city so far, in order — used below to rotate
+  // through that city's activities/restaurants instead of repeating day 1's
+  // pick, without pulling in another city's content.
+  const cityDayCounts = new Map<string, number>();
+
   return Array.from({ length: numDays }, (_, i) => {
     const date    = new Date(start);
     date.setDate(date.getDate() + i);
     // Format from local components, not .toISOString() — that converts to
     // UTC first, which would shift the date again in positive-offset zones.
     const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
-    const dayActivities = activities.filter((_, idx) => idx % numDays === i % numDays);
 
     // Distribute cities evenly across days; fall back to full destination name
     const location = cities.length > 1
@@ -325,15 +334,24 @@ function buildDays(
     // Use the city name for in-day activity text, not the full destination string
     const cityLabel = location;
 
+    const cityDayIndex = cityDayCounts.get(location) ?? 0;
+    cityDayCounts.set(location, cityDayIndex + 1);
+
+    // Scope activities/restaurants to this day's city — falls back to the
+    // full list only if nothing matched (e.g. a bare destination string with
+    // no per-city data), so a day never surfaces another city's picks.
+    const cityActivities = scopeToLocation(activities, location);
+    const cityRestaurants = scopeToLocation(restaurants, location);
+
     return {
       date: isoDate,
       dayNumber: i + 1,
       theme: themes[i],
       location,
-      morning:   buildTimeBlock("morning",   i, dayActivities, cityLabel),
-      afternoon: buildTimeBlock("afternoon", i, dayActivities, cityLabel),
-      evening:   buildTimeBlock("evening",   i, dayActivities, cityLabel),
-      meals:     buildMeals(i, numDays, preferences, restaurants),
+      morning:   buildTimeBlock("morning",   cityDayIndex, cityActivities, cityLabel),
+      afternoon: buildTimeBlock("afternoon", cityDayIndex, cityActivities, cityLabel),
+      evening:   buildTimeBlock("evening",   cityDayIndex, cityActivities, cityLabel),
+      meals:     buildMeals(cityDayIndex, numDays, preferences, cityRestaurants),
       notes: i === 0 ? "Allow time for jet lag recovery — keep the first evening light." : undefined,
     };
   });
