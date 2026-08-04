@@ -30,6 +30,10 @@ import { calcProgress } from "@/types/trip";
 // ─── State shape ───────────────────────────────────────────────────────────────
 interface TripState {
   trip: Trip;
+  // Other trips the user has started but isn't actively working on right now.
+  // The active trip always lives in `trip`; switching moves it in and out of
+  // this list so only one Trip object is ever "live" at a time.
+  savedTrips: Trip[];
   chatMessages: ChatMessage[];
   isGenerating: boolean;   // AI is currently producing output
   sidebarOpen: boolean;
@@ -37,6 +41,9 @@ interface TripState {
   // Trip-level actions
   resetTrip: () => void;
   setTripName: (name: string) => void;
+  startNewTrip: () => void;
+  switchToTrip: (tripId: string) => void;
+  deleteTrip: (tripId: string) => void;
 
   // Step navigation
   goToStep: (step: StepId) => void;
@@ -114,10 +121,22 @@ function makeEmptyTrip(): Trip {
 }
 
 // ─── Store ─────────────────────────────────────────────────────────────────────
+// A trip only counts as "worth keeping" once the user has put real
+// information into it — an untouched blank trip shouldn't clutter the trip
+// switcher or silently survive as a phantom entry.
+function hasRealProgress(trip: Trip): boolean {
+  return (
+    trip.completedSteps.length > 0 ||
+    trip.itineraries.length > 0 ||
+    !!trip.preferences.destination
+  );
+}
+
 export const useTripStore = create<TripState>()(
   persist(
     (set, get) => ({
       trip: makeEmptyTrip(),
+      savedTrips: [],
       chatMessages: [],
       isGenerating: false,
       sidebarOpen: false,
@@ -130,6 +149,36 @@ export const useTripStore = create<TripState>()(
         set((s) => ({
           trip: { ...s.trip, name, updatedAt: new Date().toISOString() },
         })),
+
+      startNewTrip: () =>
+        set((s) => {
+          const rest = s.savedTrips.filter((t) => t.id !== s.trip.id);
+          const savedTrips = hasRealProgress(s.trip) ? [s.trip, ...rest] : rest;
+          return { trip: makeEmptyTrip(), chatMessages: [], progress: 0, savedTrips };
+        }),
+
+      switchToTrip: (tripId) =>
+        set((s) => {
+          if (tripId === s.trip.id) return {};
+          const target = s.savedTrips.find((t) => t.id === tripId);
+          if (!target) return {};
+          const rest = s.savedTrips.filter((t) => t.id !== tripId);
+          const savedTrips = hasRealProgress(s.trip) ? [s.trip, ...rest] : rest;
+          return {
+            trip: target,
+            savedTrips,
+            chatMessages: [],
+            progress: calcProgress(target.completedSteps),
+          };
+        }),
+
+      deleteTrip: (tripId) =>
+        set((s) => {
+          if (tripId === s.trip.id) {
+            return { trip: makeEmptyTrip(), chatMessages: [], progress: 0 };
+          }
+          return { savedTrips: s.savedTrips.filter((t) => t.id !== tripId) };
+        }),
 
       goToStep: (step) =>
         set((s) => ({
@@ -448,6 +497,7 @@ export const useTripStore = create<TripState>()(
       // isGenerating and sidebarOpen are transient UI state — never persist them
       partialize: (state) => ({
         trip: state.trip,
+        savedTrips: state.savedTrips,
         chatMessages: state.chatMessages,
         progress: state.progress,
         // Deliberately survives resetTrip() — a new trip should still default

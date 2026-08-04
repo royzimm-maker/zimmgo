@@ -847,18 +847,18 @@ export function RestaurantCard({
               <p className="text-xs text-slate-600 mt-1 line-clamp-1">{r.description}</p>
             </div>
             <div className="text-right shrink-0 flex flex-col items-end gap-1">
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-col items-end gap-1">
                 {onSelect && (
                   <button
                     type="button"
                     onClick={onSelect}
-                    title={selected ? "Remove from plan" : "Add to plan"}
-                    className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                    title={selected ? "Remove from your day-by-day plan" : "Add to your day-by-day plan"}
+                    className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap transition-colors ${
                       selected ? "bg-brand-600 text-white" : "border border-slate-200 text-slate-500 hover:border-brand-300 hover:text-brand-600"
                     }`}
                   >
-                    {selected ? <Check size={11} /> : null}
-                    {selected ? "Added" : "Add"}
+                    {selected ? <Check size={10} /> : null}
+                    {selected ? "In Itinerary" : "Add to Itinerary"}
                   </button>
                 )}
                 {onSave && (
@@ -866,10 +866,13 @@ export function RestaurantCard({
                     type="button"
                     onClick={onSave}
                     disabled={saved}
-                    title={saved ? "Saved to Wanderlog" : "Save to Wanderlog"}
-                    className={`transition-colors ${saved ? "text-brand-500" : "text-slate-300 hover:text-brand-500"}`}
+                    title={saved ? "Saved to Wanderlog — your save-for-later list" : "Save to Wanderlog — keep it without scheduling it"}
+                    className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap transition-colors ${
+                      saved ? "text-brand-600" : "border border-slate-200 text-slate-500 hover:border-brand-300 hover:text-brand-600"
+                    }`}
                   >
-                    <BookMarked size={14} className={saved ? "fill-brand-100" : undefined} />
+                    <BookMarked size={10} className={saved ? "fill-brand-100" : undefined} />
+                    {saved ? "Saved" : "Add to Wanderlog"}
                   </button>
                 )}
               </div>
@@ -1053,18 +1056,18 @@ export function ActivityCard({
           </div>
         </div>
         <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-col items-end gap-1">
             {onSelect && (
               <button
                 type="button"
                 onClick={onSelect}
-                title={selected ? "Remove from plan" : "Add to plan"}
-                className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                title={selected ? "Remove from your day-by-day plan" : "Add to your day-by-day plan"}
+                className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap transition-colors ${
                   selected ? "bg-brand-600 text-white" : "border border-slate-200 text-slate-500 hover:border-brand-300 hover:text-brand-600"
                 }`}
               >
-                {selected ? <Check size={11} /> : null}
-                {selected ? "Added" : "Add"}
+                {selected ? <Check size={10} /> : null}
+                {selected ? "In Itinerary" : "Add to Itinerary"}
               </button>
             )}
             {onSave && (
@@ -1072,10 +1075,13 @@ export function ActivityCard({
                 type="button"
                 onClick={onSave}
                 disabled={saved}
-                title={saved ? "Saved to Wanderlog" : "Save to Wanderlog"}
-                className={`transition-colors ${saved ? "text-brand-500" : "text-slate-300 hover:text-brand-500"}`}
+                title={saved ? "Saved to Wanderlog — your save-for-later list" : "Save to Wanderlog — keep it without scheduling it"}
+                className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap transition-colors ${
+                  saved ? "text-brand-600" : "border border-slate-200 text-slate-500 hover:border-brand-300 hover:text-brand-600"
+                }`}
               >
-                <BookMarked size={15} className={saved ? "fill-brand-100" : undefined} />
+                <BookMarked size={10} className={saved ? "fill-brand-100" : undefined} />
+                {saved ? "Saved" : "Add to Wanderlog"}
               </button>
             )}
           </div>

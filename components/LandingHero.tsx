@@ -28,14 +28,16 @@ const STEPS = [
 ];
 
 export function LandingHero() {
-  const { trip, resetTrip } = useTripStore();
+  const { trip, resetTrip, startNewTrip: archiveAndStartNewTrip } = useTripStore();
   const router = useRouter();
 
   // A returning visitor who lands here (e.g. via a bookmark, not directly on
   // /plan) would otherwise have their saved trip silently wiped by a button
   // that just says "Start planning" — contradicts the "saved to this device"
   // promise shown elsewhere. Resume instead of resetting when there's real
-  // progress; resetTrip() is still one click away via startNewTrip below.
+  // progress; startNewTrip is still one click away below, and it archives
+  // the current trip (so it's resumable later via the trip switcher) rather
+  // than discarding it outright.
   const hasProgress = trip.completedSteps.length > 0 || trip.itineraries.length > 0;
 
   function startPlanning() {
@@ -44,7 +46,7 @@ export function LandingHero() {
   }
 
   function startNewTrip() {
-    resetTrip();
+    archiveAndStartNewTrip();
     router.push("/plan");
   }
 

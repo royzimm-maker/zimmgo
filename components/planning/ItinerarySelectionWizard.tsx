@@ -139,6 +139,20 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
     expand: expandActivities,
   } = useExpandablePreview(activitiesForCity, ACTIVITY_PREVIEW_COUNT, currentCity);
 
+  // Once you're a few cities into a stage, it's easy to lose the sense of
+  // "what does this city as a whole look like" — this recap keeps that
+  // visible without requiring a restructure into a per-city-complete flow.
+  const cityRecap = useMemo(() => {
+    const hotel = preferences.selectedHotelsByCity?.[currentCity]?.name;
+    const restaurantCount = (itinerary.restaurants ?? [])
+      .filter((r) => fuzzyCityMatch(r.location, currentCity) && (preferences.selectedRestaurantIds ?? []).includes(r.id))
+      .length;
+    const activityCount = itinerary.activities
+      .filter((a) => fuzzyCityMatch(a.location, currentCity) && (preferences.selectedActivityIds ?? []).includes(a.id))
+      .length;
+    return { hotel, restaurantCount, activityCount };
+  }, [currentCity, itinerary.restaurants, itinerary.activities, preferences.selectedHotelsByCity, preferences.selectedRestaurantIds, preferences.selectedActivityIds]);
+
   const sectionTitle = stage.perCity ? `${stage.label} — ${currentCity}` : stage.label;
   const sectionSubtitle = stage.id === "flights"
     ? "Select your preferred option — prices are roundtrip per person, estimated."
@@ -182,6 +196,20 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
             />
           ))}
         </div>
+        {stage.perCity && (cityRecap.hotel || cityRecap.restaurantCount > 0 || cityRecap.activityCount > 0) && (
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+            <span className="font-semibold text-slate-400">So far in {currentCity}:</span>
+            {cityRecap.hotel && (
+              <span className="inline-flex items-center gap-1"><Hotel size={11} className="text-brand-400" /> {cityRecap.hotel}</span>
+            )}
+            {cityRecap.restaurantCount > 0 && (
+              <span className="inline-flex items-center gap-1"><UtensilsCrossed size={11} className="text-brand-400" /> {cityRecap.restaurantCount} restaurant{cityRecap.restaurantCount !== 1 ? "s" : ""}</span>
+            )}
+            {cityRecap.activityCount > 0 && (
+              <span className="inline-flex items-center gap-1"><Star size={11} className="text-brand-400" /> {cityRecap.activityCount} activit{cityRecap.activityCount !== 1 ? "ies" : "y"}</span>
+            )}
+          </p>
+        )}
       </div>
 
       {/* Stage content */}

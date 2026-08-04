@@ -1,5 +1,5 @@
 import { PlanningFlow } from "@/components/planning/PlanningFlow";
-import { StartOverButton } from "@/components/StartOverButton";
+import { TripSwitcher } from "@/components/TripSwitcher";
 
 export const metadata = {
   title: "Plan your trip — ZimmGo",
@@ -21,11 +21,13 @@ export default function PlanPage() {
       {/* Top nav */}
       <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-3 print:hidden">
         <div className="flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-brand-600 tracking-tight">ZimmGo</span>
-            <span className="hidden text-xs text-slate-400 sm:block">AI Travel Planner</span>
-          </a>
-          <StartOverButton />
+          <div className="flex items-center gap-3">
+            <a href="/" className="flex items-center gap-2">
+              <span className="text-xl font-bold text-brand-600 tracking-tight">ZimmGo</span>
+              <span className="hidden text-xs text-slate-400 sm:block">AI Travel Planner</span>
+            </a>
+          </div>
+          <TripSwitcher />
         </div>
       </header>
 
