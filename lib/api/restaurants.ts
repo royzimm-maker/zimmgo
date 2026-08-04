@@ -167,6 +167,25 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
     { name: "Sumac",              cuisine: "Levantine",         tier: "midrange", rating: 8.9, reviewCount: 1800, location: "Reykjavik", description: "Rooftop views over the harbour and a Middle Eastern menu that's become a local favorite.", mustOrder: "Lamb shoulder and the mezze platter" },
     { name: "Kaffibrennslan",     cuisine: "Café & Brunch",     tier: "brunch",   rating: 8.7, reviewCount: 2600, location: "Reykjavik", description: "One of the city's oldest cafés on the main shopping street — good coffee, better people-watching.", mustOrder: "Skyr pancakes with blueberry jam" },
   ],
+  santorini: [
+    { name: "Selene",             cuisine: "Cycladic Fine Dining", tier: "fine_dining", rating: 9.4, reviewCount: 890,  location: "Pyrgos, Santorini",  description: "The island's culinary pioneer — Cycladic ingredients elevated with real technique, caldera views included.", mustOrder: "Tasting menu with fava and tomato keftedes" },
+    { name: "Ambrosia Restaurant", cuisine: "Caldera Dining",      tier: "upscale",     rating: 9.3, reviewCount: 3100, location: "Oia, Santorini",     description: "Cliffside tables timed for sunset — book weeks ahead for a caldera-view table at golden hour.", mustOrder: "Grilled octopus and the caldera-view table" },
+    { name: "Metaxi Mas",         cuisine: "Traditional Greek",    tier: "midrange",    rating: 9.2, reviewCount: 4600, location: "Exo Gonia, Santorini", description: "Inland, away from the caldera crowds, where locals actually eat — honest Cycladic home cooking.", mustOrder: "Fava with caramelised onions" },
+    { name: "Santo Wines terrace", cuisine: "Wine Bar",            tier: "midrange",    rating: 9.0, reviewCount: 2400, location: "Pyrgos, Santorini",  description: "A winery-restaurant combo with the island's best caldera view and a serious Assyrtiko list.", mustOrder: "Assyrtiko tasting flight with small plates" },
+    { name: "Lucky's Souvlakis",  cuisine: "Street Food",          tier: "street_food", rating: 8.8, reviewCount: 5200, location: "Fira, Santorini",    description: "The souvlaki stand locals queue at after a night out — cheap, fast, and better than anywhere fancier.", mustOrder: "Pork souvlaki wrap" },
+    { name: "Melitini",           cuisine: "Café & Brunch",        tier: "brunch",      rating: 8.9, reviewCount: 1600, location: "Fira, Santorini",    description: "A relaxed courtyard café serving Greek breakfast plates away from Fira's main strip.", mustOrder: "Greek yoghurt with honey and Santorini fava" },
+  ],
+  thessaloniki: [
+    { name: "Ergon House",        cuisine: "Modern Greek",         tier: "upscale",     rating: 9.2, reviewCount: 2100, location: "Center, Thessaloniki", description: "A concept food hall and restaurant showcasing Greek producers — Thessaloniki's most polished food destination.", mustOrder: "Mixed mezze board with local wine" },
+    { name: "Ouzeri Tsipouro Ergou", cuisine: "Traditional Ouzeri", tier: "midrange",   rating: 9.0, reviewCount: 3600, location: "Ladadika, Thessaloniki", description: "A classic ouzeri in the old oil-merchant quarter — small plates and tsipouro shots the way the city's always done it.", mustOrder: "Grilled sardines and a carafe of tsipouro" },
+    { name: "Ta Nea Ilysia",      cuisine: "Traditional Taverna",  tier: "casual",      rating: 8.9, reviewCount: 2800, location: "Center, Thessaloniki", description: "A family taverna serving northern Greek classics that rarely make it onto Athens menus.", mustOrder: "Soutzoukakia (spiced meatballs) in tomato sauce" },
+    { name: "Modiano Market stalls", cuisine: "Street Food",       tier: "street_food", rating: 8.7, reviewCount: 4100, location: "Modiano Market, Thessaloniki", description: "The historic covered market's food stalls — bougatsa, gyro, and produce vendors under one iron roof.", mustOrder: "Bougatsa with cheese, fresh from the oven" },
+    { name: "Bougatsa Bantis",    cuisine: "Bakery",               tier: "brunch",      rating: 9.1, reviewCount: 3200, location: "Center, Thessaloniki", description: "The city's most famous bougatsa bakery, serving the flaky custard pastry since 1969.", mustOrder: "Custard bougatsa, still warm" },
+    { name: "To Migoma",          cuisine: "Sweets & Café",        tier: "brunch",      rating: 8.8, reviewCount: 1400, location: "Center, Thessaloniki", description: "A century-old sweet shop specialising in trigona (syrup-soaked custard triangles) — a Thessaloniki original.", mustOrder: "Trigona Panoramatos" },
+  ],
+  // "greece" is already pure Athens content, and the "athens": "greece"
+  // alias correctly routes Athens searches here — no separate "athens" key
+  // needed. Kept as the fallback for a bare "Greece" search too.
   greece: [
     {
       name: "Varoulko Seaside",

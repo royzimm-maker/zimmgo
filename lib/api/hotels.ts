@@ -103,6 +103,24 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
     { name: "Albergo Marina Piccola",   stars: 3, hotelType: "hotel",    location: "Manarola, Cinque Terre",    rating: 8.5, ratingSource: "TripAdvisor",    reviewCount: 1200, highlights: ["Seafront terrace", "Simple comfortable rooms", "Steps from the harbour"] },
     { name: "Ostello Corniglia",        stars: 3, hotelType: "guesthouse", location: "Corniglia, Cinque Terre", rating: 8.0, ratingSource: "Booking.com",    reviewCount: 700,  highlights: ["Hilltop village, fewer crowds", "Terrace views over the vineyards", "Budget-friendly"] },
   ],
+  athens: [
+    { name: "Hotel Grande Bretagne",    stars: 5, hotelType: "hotel",    location: "Syntagma Square, Athens", rating: 9.5, ratingSource: "Google Reviews", reviewCount: 3100, highlights: ["Historic 1874 grand hotel", "Acropolis-view rooftop pool", "Syntagma Square location"] },
+    { name: "AthensWas Design Hotel",   stars: 4, hotelType: "boutique", location: "Acropolis area, Athens",  rating: 9.1, ratingSource: "Booking.com",    reviewCount: 1200, highlights: ["Direct Acropolis views", "Rooftop restaurant", "Design-forward rooms"] },
+    { name: "Electra Palace Athens",    stars: 4, hotelType: "hotel",    location: "Plaka, Athens",            rating: 8.8, ratingSource: "Google Reviews", reviewCount: 2400, highlights: ["Rooftop pool with Acropolis views", "Plaka old-town location", "Reliable comfort"] },
+    { name: "Adonis Hotel",             stars: 3, hotelType: "guesthouse", location: "Plaka, Athens",          rating: 8.3, ratingSource: "Booking.com",    reviewCount: 2100, highlights: ["Small family-run hotel", "Plaka's quiet alleys", "Great value"] },
+  ],
+  santorini: [
+    { name: "Katikies Santorini",       stars: 5, hotelType: "boutique", location: "Oia, Santorini",           rating: 9.7, ratingSource: "Google Reviews", reviewCount: 980,  highlights: ["Iconic cliffside caldera views", "Infinity pools", "Cave-style suites"] },
+    { name: "Canaves Oia Suites",       stars: 4, hotelType: "boutique", location: "Oia, Santorini",           rating: 9.3, ratingSource: "Booking.com",    reviewCount: 1100, highlights: ["Whitewashed cave suites", "Private plunge pools", "Sunset views"] },
+    { name: "Aroma Suites",             stars: 4, hotelType: "boutique", location: "Fira, Santorini",          rating: 8.9, ratingSource: "Google Reviews", reviewCount: 900,  highlights: ["Caldera views without Oia prices", "Infinity pool", "Central Fira location"] },
+    { name: "Villa Roussa",             stars: 3, hotelType: "guesthouse", location: "Fira, Santorini",        rating: 8.2, ratingSource: "Booking.com",    reviewCount: 1300, highlights: ["Inland, budget-friendly", "Walking distance to Fira centre", "Simple comfortable rooms"] },
+  ],
+  thessaloniki: [
+    { name: "Makedonia Palace",         stars: 5, hotelType: "hotel",    location: "Nea Paralia, Thessaloniki", rating: 9.1, ratingSource: "Google Reviews", reviewCount: 1400, highlights: ["Waterfront promenade location", "Rooftop pool", "Panoramic Thermaic Gulf views"] },
+    { name: "Daios Luxury Living",      stars: 4, hotelType: "hotel",    location: "Nea Paralia, Thessaloniki", rating: 8.9, ratingSource: "Booking.com",    reviewCount: 1600, highlights: ["Sea-view rooms", "Modern design", "Waterfront promenade"] },
+    { name: "Colors Central Square Hotel", stars: 4, hotelType: "hotel", location: "Aristotelous Square, Thessaloniki", rating: 8.7, ratingSource: "Google Reviews", reviewCount: 2100, highlights: ["Central square location", "Rooftop bar", "Easy walk to everything"] },
+    { name: "Rotonda Hotel",            stars: 3, hotelType: "guesthouse", location: "Ano Poli, Thessaloniki", rating: 8.0, ratingSource: "Booking.com",    reviewCount: 1100, highlights: ["Old-town hillside location", "Byzantine walls nearby", "Budget-friendly"] },
+  ],
   dolomit: [
     { name: "Rosa Alpina",              stars: 5, hotelType: "boutique", location: "San Cassiano, Alta Badia",   rating: 9.7, ratingSource: "Google Reviews", reviewCount: 890,  highlights: ["St. Hubertus 3★ Michelin", "Ski-in/ski-out", "Legendary spa"] },
     { name: "Cristallo Resort & Spa",   stars: 5, hotelType: "resort",   location: "Cortina d'Ampezzo",          rating: 9.3, ratingSource: "TripAdvisor",    reviewCount: 1540, highlights: ["Palace hotel since 1901", "Panoramic Dolomite views", "Full spa"] },

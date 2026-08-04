@@ -109,6 +109,27 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Flamenco show in a traditional tablao", category: "cultural", duration: "2h", price: 55, rating: 9.0, reviewCount: 5200, isLocalFavorite: false, description: "An intimate, un-touristy tablao in Poble Sec — raw, percussive flamenco with no dinner-theatre gimmicks." },
     { name: "Costa Brava sailing day trip",       category: "sailing",  duration: "Full day", price: 140, rating: 9.3, reviewCount: 1600, isLocalFavorite: true, description: "Sail the coves north of Barcelona, with swimming stops in water most day-trippers never reach by land." },
   ],
+  athens: [
+    { name: "Acropolis & Acropolis Museum private tour", category: "cultural", duration: "4h", price: 110, rating: 9.6, reviewCount: 9800, isLocalFavorite: false, description: "Early-access entry before the tour buses arrive, with an archaeologist guide who brings the ruins back to life." },
+    { name: "Athens food and market crawl",       category: "food",     duration: "3h",  price: 70,  rating: 9.3, reviewCount: 2900, isLocalFavorite: true,  description: "Central Market, a century-old souvlaki counter, and a family bakery locals queue for at dawn." },
+    { name: "Plaka & Anafiotika sunset walk",      category: "guided_walking_tour", duration: "2h", price: 45, rating: 9.1, reviewCount: 2400, isLocalFavorite: true, description: "The village-like alleys beneath the Acropolis, built by Cycladic islanders in the 1800s — Athens's prettiest, least touristy corner." },
+    { name: "National Archaeological Museum tour", category: "cultural", duration: "2.5h", price: 50, rating: 8.9, reviewCount: 1800, isLocalFavorite: false, description: "The world's best collection of ancient Greek art, walked through with a guide who turns statues back into stories." },
+  ],
+  santorini: [
+    { name: "Santorini caldera sunset sailing",    category: "sailing",  duration: "5h",  price: 130, rating: 9.7, reviewCount: 4100, isLocalFavorite: false, description: "Catamaran around the volcanic caldera with swimming stops and a barbecue dinner as the sun drops behind the cliffs." },
+    { name: "Oia sunset viewpoint & wine tasting", category: "food",     duration: "3h",  price: 85,  rating: 9.6, reviewCount: 5200, isLocalFavorite: false, description: "The world-famous Oia sunset paired with a tasting flight from a clifftop winery growing grapes in volcanic ash." },
+    { name: "Akrotiri ruins & Red Beach",          category: "cultural", duration: "3h",  price: 40,  rating: 9.0, reviewCount: 1600, isLocalFavorite: false, description: "The 'Greek Pompeii' — a Bronze Age city preserved under volcanic ash, a short walk from the striking Red Beach." },
+    { name: "Santorini volcano hike & hot springs", category: "hiking",  duration: "4h",  price: 55,  rating: 9.2, reviewCount: 2900, isLocalFavorite: true,  description: "Boat to the still-active volcanic islet, hike the crater rim, then swim in the sulphur hot springs offshore." },
+  ],
+  thessaloniki: [
+    { name: "White Tower & waterfront promenade walk", category: "guided_walking_tour", duration: "2h", price: 30, rating: 8.8, reviewCount: 1400, isLocalFavorite: false, description: "Thessaloniki's Ottoman-era landmark tower, plus the long seafront promenade locals actually walk every evening." },
+    { name: "Ano Poli old town & Byzantine walls tour", category: "cultural", duration: "2.5h", price: 40, rating: 9.1, reviewCount: 1100, isLocalFavorite: true, description: "The hillside old town above the modern grid — Byzantine churches, city walls, and views over the Thermaic Gulf." },
+    { name: "Modiano Market food tour",            category: "guided_food_tour", duration: "3h", price: 55, rating: 9.3, reviewCount: 1900, isLocalFavorite: true, description: "Thessaloniki's historic covered market — bougatsa, souvlaki, and the city's famously good street food scene." },
+    { name: "Vergina royal tombs day trip",        category: "cultural", duration: "Full day", price: 90, rating: 9.0, reviewCount: 700, isLocalFavorite: false, description: "The gold-filled tomb of Philip II of Macedon, Alexander the Great's father — one of Greece's great archaeological finds." },
+  ],
+  // Kept as a fallback for a bare "Greece" search with no specific city —
+  // same pattern as the "italy" pool below (falls back to Rome). Athens,
+  // Santorini, and Thessaloniki above now resolve to their own pools first.
   greece: [
     { name: "Acropolis & Acropolis Museum private tour", category: "cultural", duration: "4h", price: 110, rating: 9.6, reviewCount: 9800, isLocalFavorite: false, description: "Early-access entry before the tour buses arrive, with an archaeologist guide who brings the ruins back to life." },
     { name: "Athens food and market crawl",       category: "food",     duration: "3h",  price: 70,  rating: 9.3, reviewCount: 2900, isLocalFavorite: true,  description: "Central Market, a century-old souvlaki counter, and a family bakery locals queue for at dawn." },
