@@ -318,6 +318,17 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
     { name: "Quimet y Quimet",    cuisine: "Montaditos Bar",   tier: "casual",   rating: 9.3, reviewCount: 8900, location: "Poble Sec, Barcelona", description: "A tiny standing-room bar stacked floor-to-ceiling with wine — the montaditos are legendary.", mustOrder: "Anything with the salmon-truffle combo" },
     { name: "Tickets",            cuisine: "Avant-Garde Tapas", tier: "fine_dining", rating: 9.4, reviewCount: 2200, location: "Poble Sec, Barcelona", description: "The Adrià brothers' playful tapas circus — theatrical small plates that redefine Spanish food.", mustOrder: "The tasting menu, whatever's seasonal" },
   ],
+  porto: [
+    { name: "Restaurante DOP",    cuisine: "Northern Portuguese Fine Dining", tier: "fine_dining", rating: 9.5, reviewCount: 780, location: "Ribeira, Porto", description: "Chef Rui Paula's Michelin-starred riverside restaurant reimagining northern Portuguese cuisine.", mustOrder: "Tasting menu with the octopus rice" },
+    { name: "Cantinho do Avillez", cuisine: "Modern Portuguese",  tier: "upscale",     rating: 9.2, reviewCount: 2100, location: "Ribeira, Porto", description: "José Avillez's Porto outpost — playful modern takes on Portuguese classics in the historic riverside district.", mustOrder: "Tuna tataki with wasabi mayo" },
+    { name: "Cafe Santiago",      cuisine: "Francesinha Specialist", tier: "casual",   rating: 9.3, reviewCount: 6800, location: "Baixa, Porto",  description: "The definitive francesinha — Porto's outrageous meat-stuffed, cheese-drowned sandwich in a spicy beer sauce.", mustOrder: "Francesinha with a fried egg on top" },
+    { name: "Mercado do Bolhão",  cuisine: "Food Market",         tier: "street_food", rating: 8.9, reviewCount: 4200, location: "Baixa, Porto",  description: "Porto's historic market hall, recently restored — fresh seafood, produce, and grab-and-go stalls.", mustOrder: "Grilled sardines from a market stall" },
+    { name: "Confeitaria do Bolhão", cuisine: "Bakery & Café",    tier: "brunch",      rating: 8.8, reviewCount: 2100, location: "Baixa, Porto",  description: "A century-old pastelaria near the market — the pastel de nata rivals anything in Lisbon.", mustOrder: "Pastel de nata and a galão" },
+    { name: "Wine Quay Bar",      cuisine: "Wine Bar",            tier: "midrange",    rating: 9.0, reviewCount: 1600, location: "Ribeira, Porto", description: "A floating-deck wine bar on the Douro, pouring ports and Douro reds with river views at sunset.", mustOrder: "Tawny port flight with the riverside table" },
+  ],
+  // "portugal" is already pure Lisbon content, and the "lisbon": "portugal"
+  // alias correctly routes Lisbon searches here — no separate "lisbon" key
+  // needed. Kept as the fallback for a bare "Portugal" search too.
   portugal: [
     {
       name: "Belcanto",

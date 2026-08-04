@@ -121,6 +121,18 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
     { name: "Colors Central Square Hotel", stars: 4, hotelType: "hotel", location: "Aristotelous Square, Thessaloniki", rating: 8.7, ratingSource: "Google Reviews", reviewCount: 2100, highlights: ["Central square location", "Rooftop bar", "Easy walk to everything"] },
     { name: "Rotonda Hotel",            stars: 3, hotelType: "guesthouse", location: "Ano Poli, Thessaloniki", rating: 8.0, ratingSource: "Booking.com",    reviewCount: 1100, highlights: ["Old-town hillside location", "Byzantine walls nearby", "Budget-friendly"] },
   ],
+  lisbon: [
+    { name: "Four Seasons Hotel Ritz Lisbon", stars: 5, hotelType: "hotel", location: "Marquês de Pombal, Lisbon", rating: 9.3, ratingSource: "Google Reviews", reviewCount: 1800, highlights: ["Panoramic city views", "Rooftop terrace", "Iconic since 1959"] },
+    { name: "Palácio Belmonte",         stars: 5, hotelType: "boutique", location: "Alfama, Lisbon",           rating: 9.5, ratingSource: "TripAdvisor",    reviewCount: 620,  highlights: ["15th-century palace", "Hand-painted tiled interiors", "Castle-view suites"] },
+    { name: "LX Boutique Hotel",        stars: 4, hotelType: "boutique", location: "Cais do Sodré, Lisbon",    rating: 8.9, ratingSource: "Booking.com",    reviewCount: 1400, highlights: ["Riverside Pink Street location", "Design-forward rooms", "Nightlife district"] },
+    { name: "Residencial Florescente",  stars: 3, hotelType: "guesthouse", location: "Baixa, Lisbon",          rating: 8.4, ratingSource: "TripAdvisor",    reviewCount: 1600, highlights: ["Central Baixa location", "Simple comfortable rooms", "Great value"] },
+  ],
+  porto: [
+    { name: "The Yeatman",              stars: 5, hotelType: "resort",   location: "Vila Nova de Gaia, Porto", rating: 9.6, ratingSource: "Google Reviews", reviewCount: 1400, highlights: ["Michelin-starred restaurant", "Infinity pool over the Douro", "Wine-themed suites"] },
+    { name: "Torel Avantgarde",         stars: 4, hotelType: "boutique", location: "Bonfim, Porto",            rating: 9.2, ratingSource: "TripAdvisor",    reviewCount: 780,  highlights: ["Art-themed suites", "Panoramic city terrace", "Design-forward"] },
+    { name: "Pestana Vintage Porto",    stars: 4, hotelType: "hotel",    location: "Ribeira, Porto",           rating: 8.9, ratingSource: "Booking.com",    reviewCount: 2100, highlights: ["UNESCO riverside setting", "Historic townhouses", "River views"] },
+    { name: "Guest House Douro",        stars: 3, hotelType: "guesthouse", location: "Ribeira, Porto",         rating: 8.5, ratingSource: "Google Reviews", reviewCount: 900,  highlights: ["River-view rooms", "Family-run", "Central Ribeira location"] },
+  ],
   dolomit: [
     { name: "Rosa Alpina",              stars: 5, hotelType: "boutique", location: "San Cassiano, Alta Badia",   rating: 9.7, ratingSource: "Google Reviews", reviewCount: 890,  highlights: ["St. Hubertus 3★ Michelin", "Ski-in/ski-out", "Legendary spa"] },
     { name: "Cristallo Resort & Spa",   stars: 5, hotelType: "resort",   location: "Cortina d'Ampezzo",          rating: 9.3, ratingSource: "TripAdvisor",    reviewCount: 1540, highlights: ["Palace hotel since 1901", "Panoramic Dolomite views", "Full spa"] },

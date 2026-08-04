@@ -136,6 +136,21 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Santorini caldera sunset sailing",   category: "sailing",  duration: "5h",  price: 130, rating: 9.7, reviewCount: 4100, isLocalFavorite: false, description: "Catamaran around the volcanic caldera with swimming stops and a barbecue dinner as the sun drops behind the cliffs." },
     { name: "Hydra day trip by ferry",            category: "hiking",   duration: "Full day", price: 65, rating: 9.1, reviewCount: 1200, isLocalFavorite: true, description: "A car-free island an hour from Piraeus — donkey paths, hidden coves, and none of Mykonos's cruise-ship crowds." },
   ],
+  lisbon: [
+    { name: "Belém & Jerónimos Monastery guided walk", category: "cultural", duration: "3h", price: 60, rating: 9.2, reviewCount: 3300, isLocalFavorite: false, description: "The monastery, the tower, and the original pastel de nata bakery, tied together with Portugal's Age of Discovery history." },
+    { name: "Tram 28 & Alfama food tour",         category: "food",     duration: "3h",  price: 80,  rating: 9.4, reviewCount: 2600, isLocalFavorite: true,  description: "Ride the old wooden tram through Lisbon's oldest quarter, stopping for ginjinha, bifanas, and a fado-house nightcap." },
+    { name: "Sintra day trip: palaces and forests", category: "cultural", duration: "Full day", price: 95, rating: 9.5, reviewCount: 5400, isLocalFavorite: false, description: "Pena Palace's technicolor towers and the mossy Quinta da Regaleira, away from the Lisbon heat in the hills." },
+    { name: "LX Factory street art & design walk", category: "guided_walking_tour", duration: "2h", price: 35, rating: 8.9, reviewCount: 2100, isLocalFavorite: true, description: "A former industrial complex turned street-art and indie-design hub under the 25 de Abril bridge — Lisbon's coolest afternoon." },
+  ],
+  porto: [
+    { name: "Douro Valley wine tasting day trip", category: "food",     duration: "Full day", price: 150, rating: 9.6, reviewCount: 1800, isLocalFavorite: true, description: "Terraced vineyards by train from Porto, tasting port and table wine at a family-run quinta most tours skip." },
+    { name: "Port wine lodge tour & tasting",     category: "food",     duration: "2.5h", price: 40,  rating: 9.4, reviewCount: 3600, isLocalFavorite: true,  description: "Cross the Dom Luís bridge to the port wine cellars where every major house ages its barrels along the riverbank." },
+    { name: "Ribeira riverside & Livraria Lello tour", category: "guided_walking_tour", duration: "2h", price: 35, rating: 9.2, reviewCount: 4100, isLocalFavorite: false, description: "Porto's UNESCO riverfront district, ending at the ornate bookshop rumoured to have inspired Harry Potter's Flourish and Blotts." },
+    { name: "Douro River six-bridges cruise",     category: "sailing",  duration: "1h",   price: 20,  rating: 8.8, reviewCount: 5200, isLocalFavorite: true,  description: "A short boat ride past all six of Porto's bridges — the classic, cheap way to see the city from the water." },
+  ],
+  // Kept as a fallback for a bare "Portugal" search — Lisbon and Porto
+  // above now resolve to their own pools first (this pool was previously
+  // mostly Lisbon content with one Porto item mixed in).
   portugal: [
     { name: "Belém & Jerónimos Monastery guided walk", category: "cultural", duration: "3h", price: 60, rating: 9.2, reviewCount: 3300, isLocalFavorite: false, description: "The monastery, the tower, and the original pastel de nata bakery, tied together with Portugal's Age of Discovery history." },
     { name: "Tram 28 & Alfama food tour",         category: "food",     duration: "3h",  price: 80,  rating: 9.4, reviewCount: 2600, isLocalFavorite: true,  description: "Ride the old wooden tram through Lisbon's oldest quarter, stopping for ginjinha, bifanas, and a fado-house nightcap." },
