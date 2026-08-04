@@ -392,6 +392,25 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
     { name: "Cervejaria Ramiro",  cuisine: "Seafood",          tier: "upscale",  rating: 9.3, reviewCount: 9400, location: "Intendente, Lisbon", description: "The city's shrine to shellfish — garlic tiger prawns and bread rolls to mop up the sauce.", mustOrder: "Tiger prawns à guilho and the prego roll after" },
     { name: "Manteigaria",        cuisine: "Pastelaria",       tier: "brunch",   rating: 9.1, reviewCount: 12000, location: "Chiado, Lisbon", description: "Watch the pastéis de nata come fresh out of the oven at this open-kitchen bakery.", mustOrder: "Pastel de nata, still warm" },
   ],
+  edinburgh: [
+    { name: "The Kitchin",        cuisine: "Modern Scottish",     tier: "fine_dining", rating: 9.5, reviewCount: 890,  location: "Leith, Edinburgh", description: "One Michelin star from a chef who trained under Marco Pierre White — 'nature to plate' Scottish ingredients done seriously.", mustOrder: "Tasting menu with the Scottish langoustines" },
+    { name: "The Witchery by the Castle", cuisine: "Gothic Fine Dining", tier: "upscale", rating: 9.3, reviewCount: 3600, location: "Royal Mile, Edinburgh", description: "Candlelit, oak-panelled, and steps from the castle — as theatrical as the food is good.", mustOrder: "Scottish beef with whisky sauce" },
+    { name: "Ondine",             cuisine: "Seafood",             tier: "upscale",     rating: 9.2, reviewCount: 2400, location: "Old Town, Edinburgh", description: "Sustainably-sourced Scottish seafood in a bright, buzzy dining room just off the Royal Mile.", mustOrder: "Shellfish platter for two" },
+    { name: "The Scran & Scallie", cuisine: "Gastropub",          tier: "midrange",    rating: 9.1, reviewCount: 4100, location: "Stockbridge, Edinburgh", description: "Tom Kitchin's casual pub spinoff — proper Scottish comfort food, no pretense.", mustOrder: "Haggis, neeps and tatties" },
+    { name: "Oink",               cuisine: "Hog Roast Street Food", tier: "street_food", rating: 8.8, reviewCount: 5200, location: "Royal Mile, Edinburgh", description: "A whole hog roasting in the window on the Royal Mile — the sandwich cart every Edinburgh local recommends.", mustOrder: "Hog roast roll with crackling and stuffing" },
+    { name: "Mary's Milk Bar",    cuisine: "Ice Cream & Café",    tier: "brunch",      rating: 9.0, reviewCount: 1800, location: "Grassmarket, Edinburgh", description: "A retro milk bar hand-churning ice cream in small batches — the queue down the Grassmarket cobbles is worth it.", mustOrder: "Whatever flavour's on the chalkboard today" },
+  ],
+  glasgow: [
+    { name: "Cail Bruich",        cuisine: "Modern Scottish",     tier: "fine_dining", rating: 9.4, reviewCount: 720,  location: "West End, Glasgow", description: "One Michelin star in Glasgow's West End — seasonal Scottish tasting menus without the Edinburgh price tag.", mustOrder: "Tasting menu with the Perthshire venison" },
+    { name: "Ubiquitous Chip",    cuisine: "Scottish Institution", tier: "upscale",    rating: 9.2, reviewCount: 3800, location: "Ashton Lane, Glasgow", description: "A Glasgow legend since 1971, tucked down cobbled Ashton Lane — a courtyard dining room and serious Scottish cooking.", mustOrder: "Venison haggis with clapshot" },
+    { name: "The Gannet",         cuisine: "Modern Scottish",     tier: "midrange",    rating: 9.1, reviewCount: 2100, location: "Finnieston, Glasgow", description: "Finnieston's flagship restaurant — nose-to-tail Scottish cooking in the city's trendiest food strip.", mustOrder: "Whatever's on the daily changing menu" },
+    { name: "Barras Market",      cuisine: "Street Food",         tier: "street_food", rating: 8.9, reviewCount: 2900, location: "East End, Glasgow", description: "Glasgow's famous weekend flea market, now ringed with street-food stalls — the city's most local food scene.", mustOrder: "Whatever smells best that weekend" },
+    { name: "Loon Fung",          cuisine: "Cantonese",           tier: "casual",      rating: 8.8, reviewCount: 4600, location: "Chinese Quarter, Glasgow", description: "A Glasgow institution since the 1970s — the city's best dim sum, no reservations, always busy.", mustOrder: "Dim sum trolley, whatever comes round first" },
+    { name: "Tantrum Doughnuts",  cuisine: "Bakery & Café",       tier: "brunch",      rating: 9.0, reviewCount: 1600, location: "West End, Glasgow", description: "Small-batch doughnuts with genuinely inventive flavours, from a tiny West End bakery with a cult following.", mustOrder: "Whatever the flavour of the week is" },
+  ],
+  // "uk" is already pure London content, and the "london": "uk" alias
+  // correctly routes London searches here — no separate "london" key
+  // needed. Kept as the fallback for a bare "UK" search too.
   uk: [
     {
       name: "The Clove Club",

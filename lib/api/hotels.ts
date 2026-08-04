@@ -151,6 +151,24 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
     { name: "EME Catedral Hotel",       stars: 4, hotelType: "boutique", location: "Santa Cruz, Seville",      rating: 9.1, ratingSource: "TripAdvisor",    reviewCount: 1300, highlights: ["Rooftop views of the Cathedral", "Santa Cruz location", "Design-forward"] },
     { name: "Pensión San Pancracio",    stars: 3, hotelType: "guesthouse", location: "Santa Cruz, Seville",    rating: 8.4, ratingSource: "Google Reviews", reviewCount: 900,  highlights: ["Family-run", "Central Santa Cruz alleys", "Great value"] },
   ],
+  london: [
+    { name: "The Savoy",                stars: 5, hotelType: "hotel",    location: "Strand, London",           rating: 9.4, ratingSource: "Google Reviews", reviewCount: 3200, highlights: ["Iconic Thames-side address", "Art Deco glamour", "Legendary afternoon tea"] },
+    { name: "The Zetter Townhouse",     stars: 4, hotelType: "boutique", location: "Clerkenwell, London",      rating: 9.1, ratingSource: "Booking.com",    reviewCount: 980,  highlights: ["Quirky Georgian townhouse", "Cocktail parlour", "Intimate scale"] },
+    { name: "The Hoxton Shoreditch",    stars: 4, hotelType: "boutique", location: "Shoreditch, London",       rating: 9.0, ratingSource: "TripAdvisor",    reviewCount: 2400, highlights: ["Design-led rooms", "Buzzy East London location", "Lively lobby bar"] },
+    { name: "Premier Inn London County Hall", stars: 3, hotelType: "hotel", location: "South Bank, London",    rating: 8.5, ratingSource: "Google Reviews", reviewCount: 5600, highlights: ["Riverside location by the London Eye", "Reliable comfort", "Good value for central London"] },
+  ],
+  edinburgh: [
+    { name: "The Witchery by the Castle", stars: 5, hotelType: "boutique", location: "Royal Mile, Edinburgh", rating: 9.5, ratingSource: "TripAdvisor",    reviewCount: 620,  highlights: ["Gothic opulent suites", "Steps from the castle", "Legendary atmosphere"] },
+    { name: "The Balmoral",             stars: 5, hotelType: "hotel",    location: "Princes Street, Edinburgh", rating: 9.4, ratingSource: "Google Reviews", reviewCount: 1900, highlights: ["Iconic clock tower landmark", "Castle views", "Michelin-starred dining on-site"] },
+    { name: "Fingal",                   stars: 4, hotelType: "boutique", location: "Leith, Edinburgh",         rating: 9.2, ratingSource: "Booking.com",    reviewCount: 890,  highlights: ["Converted 1960s lighthouse ship", "Leith waterfront", "Nautical Art Deco design"] },
+    { name: "Ibis Edinburgh Centre",    stars: 3, hotelType: "hotel",    location: "Royal Mile, Edinburgh",    rating: 8.1, ratingSource: "Google Reviews", reviewCount: 2600, highlights: ["Central Royal Mile location", "Simple reliable rooms", "Budget-friendly"] },
+  ],
+  glasgow: [
+    { name: "Kimpton Blythswood Square", stars: 5, hotelType: "hotel",   location: "Blythswood Square, Glasgow", rating: 9.2, ratingSource: "Google Reviews", reviewCount: 1600, highlights: ["Georgian townhouse setting", "Rooftop spa", "Central city location"] },
+    { name: "Hotel du Vin Glasgow",     stars: 4, hotelType: "boutique", location: "West End, Glasgow",        rating: 9.0, ratingSource: "Booking.com",    reviewCount: 1300, highlights: ["Victorian townhouse conversion", "Wine-themed interiors", "West End location"] },
+    { name: "Grasshoppers Hotel",       stars: 4, hotelType: "boutique", location: "Central Station, Glasgow", rating: 8.9, ratingSource: "TripAdvisor",    reviewCount: 1100, highlights: ["Quirky rooftop location above Central Station", "Free evening supper", "Great value boutique"] },
+    { name: "Ibis Glasgow City Centre", stars: 3, hotelType: "hotel",    location: "City Centre, Glasgow",     rating: 8.0, ratingSource: "Google Reviews", reviewCount: 2400, highlights: ["Central location", "Simple reliable rooms", "Budget-friendly"] },
+  ],
   dolomit: [
     { name: "Rosa Alpina",              stars: 5, hotelType: "boutique", location: "San Cassiano, Alta Badia",   rating: 9.7, ratingSource: "Google Reviews", reviewCount: 890,  highlights: ["St. Hubertus 3★ Michelin", "Ski-in/ski-out", "Legendary spa"] },
     { name: "Cristallo Resort & Spa",   stars: 5, hotelType: "resort",   location: "Cortina d'Ampezzo",          rating: 9.3, ratingSource: "TripAdvisor",    reviewCount: 1540, highlights: ["Palace hotel since 1901", "Panoramic Dolomite views", "Full spa"] },

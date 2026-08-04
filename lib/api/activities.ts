@@ -172,6 +172,27 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Sintra day trip: palaces and forests", category: "cultural", duration: "Full day", price: 95, rating: 9.5, reviewCount: 5400, isLocalFavorite: false, description: "Pena Palace's technicolor towers and the mossy Quinta da Regaleira, away from the Lisbon heat in the hills." },
     { name: "Douro Valley wine tasting day trip", category: "food",     duration: "Full day", price: 150, rating: 9.6, reviewCount: 1800, isLocalFavorite: true, description: "Terraced vineyards by train from Porto, tasting port and table wine at a family-run quinta most tours skip." },
   ],
+  london: [
+    { name: "Westminster & Parliament insider tour", category: "cultural", duration: "3h", price: 85, rating: 9.1, reviewCount: 4200, isLocalFavorite: false, description: "Access areas closed to the general public, with a guide who separates the history from the tourist myths." },
+    { name: "Borough Market & Southwark food crawl", category: "food",  duration: "3h",  price: 75,  rating: 9.3, reviewCount: 3100, isLocalFavorite: true,  description: "London's oldest food market plus the backstreet pie shops and cheesemongers locals actually shop at." },
+    { name: "British Museum & Rosetta Stone tour",  category: "cultural", duration: "2.5h", price: 40, rating: 9.2, reviewCount: 6800, isLocalFavorite: false, description: "The Rosetta Stone, Egyptian mummies, and the Parthenon marbles — free entry, but a guide makes sense of the scale." },
+    { name: "West End theatre show with backstage tour", category: "cultural", duration: "3h", price: 90, rating: 9.0, reviewCount: 2100, isLocalFavorite: false, description: "A matinee ticket to a long-running West End show, paired with a backstage look at how London theatre actually runs." },
+  ],
+  edinburgh: [
+    { name: "Edinburgh Old Town ghost & vaults tour", category: "cultural", duration: "2h", price: 45, rating: 9.0, reviewCount: 6700, isLocalFavorite: false, description: "The underground vaults beneath South Bridge, with the city's genuinely unsettling history rather than jump-scares." },
+    { name: "Scottish Highlands day trip from Edinburgh", category: "hiking", duration: "Full day", price: 110, rating: 9.5, reviewCount: 2900, isLocalFavorite: true, description: "Glencoe and Loch Ness in a single day, timed to reach the glens before the tour-bus convoys." },
+    { name: "Edinburgh Castle & Royal Mile guided walk", category: "cultural", duration: "2.5h", price: 35, rating: 9.3, reviewCount: 4600, isLocalFavorite: false, description: "The castle that's dominated the skyline for a thousand years, then down the Royal Mile through Old Town closes and wynds." },
+    { name: "Whisky tasting in a historic Old Town cellar", category: "food", duration: "2h", price: 60, rating: 9.4, reviewCount: 1800, isLocalFavorite: true, description: "A guided flight through Scotland's whisky regions in a 16th-century vault beneath the Royal Mile." },
+  ],
+  glasgow: [
+    { name: "Glasgow mural trail & street art walk", category: "guided_walking_tour", duration: "2h", price: 30, rating: 9.0, reviewCount: 1600, isLocalFavorite: true, description: "The City Centre Mural Trail — dozens of large-scale street art pieces most visitors walk straight past." },
+    { name: "Kelvingrove Art Gallery & Museum tour", category: "cultural", duration: "2h", price: 25, rating: 9.1, reviewCount: 3400, isLocalFavorite: false, description: "A Victorian red-sandstone museum with everything from a Spitfire to Dalí — free entry, genuinely excellent collection." },
+    { name: "Glasgow whisky & gin tasting",         category: "food",     duration: "2h",  price: 55,  rating: 9.2, reviewCount: 1400, isLocalFavorite: true, description: "Scotland's other whisky city — a guided tasting through Lowland and Highland drams in a West End bar." },
+    { name: "West End & Ashton Lane food crawl",    category: "guided_food_tour", duration: "2.5h", price: 45, rating: 8.9, reviewCount: 1100, isLocalFavorite: true, description: "Glasgow's leafy, studenty West End — cobbled Ashton Lane's bars and the city's best casual food scene." },
+  ],
+  // Kept as a fallback for a bare "UK" search — London and Edinburgh above
+  // now get their own clean pools (this pool previously mixed both
+  // together, so even a London-only search got Highlands day-trip content).
   uk: [
     { name: "Westminster & Parliament insider tour", category: "cultural", duration: "3h", price: 85, rating: 9.1, reviewCount: 4200, isLocalFavorite: false, description: "Access areas closed to the general public, with a guide who separates the history from the tourist myths." },
     { name: "Borough Market & Southwark food crawl", category: "food",  duration: "3h",  price: 75,  rating: 9.3, reviewCount: 3100, isLocalFavorite: true,  description: "London's oldest food market plus the backstreet pie shops and cheesemongers locals actually shop at." },
