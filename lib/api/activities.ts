@@ -40,6 +40,15 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Vatican Museums & Sistine Chapel",category: "cultural",    duration: "3h",   price: 85,  rating: 9.4, reviewCount: 45000, isLocalFavorite: false, description: "Reserved-entry tour that gets you in before the crowds. The ceiling is even more staggering in person." },
     { name: "Vespa tour of the old city",     category: "guided_walking_tour", duration: "3h", price: 120, rating: 9.6, reviewCount: 3200, isLocalFavorite: true,  description: "See the city the Roman way — on the back of a Vespa with a local guide." },
   ],
+  // Direct pool-key match beats the shared DESTINATION_ALIASES entry
+  // ("florence" → "italy"), so a Florence search resolves here instead of
+  // reusing Rome's content under a mismatched city label — see resolvePool.
+  florence: [
+    { name: "Uffizi Gallery skip-the-line tour", category: "cultural",     duration: "3h",   price: 90,  rating: 9.6, reviewCount: 15600, isLocalFavorite: false, description: "Botticelli's Birth of Venus, Michelangelo, da Vinci — reserved entry with an art historian who makes the Renaissance click." },
+    { name: "Brunelleschi's Dome climb",         category: "adventure",    duration: "1.5h", price: 40,  rating: 9.5, reviewCount: 9200,  isLocalFavorite: true,  description: "463 steps between the Duomo's double shells to a terrace view over the terracotta rooftops — book weeks ahead, it sells out." },
+    { name: "Chianti countryside wine day trip", category: "food",         duration: "Full day", price: 135, rating: 9.4, reviewCount: 3100, isLocalFavorite: false, description: "Rolling vineyards south of the city, tasting Chianti Classico at a family-run estate most tour buses skip." },
+    { name: "Oltrarno artisan workshop walk",    category: "guided_walking_tour", duration: "2.5h", price: 55, rating: 9.3, reviewCount: 1700, isLocalFavorite: true, description: "Cross the Arno to the leather and goldsmith workshops where Florentines actually shop — a different city from the Duomo crowds." },
+  ],
   amalfi: [
     { name: "Amalfi Coast boat trip",         category: "sailing",      duration: "6h",   price: 140, rating: 9.7, reviewCount: 4800, isLocalFavorite: true,  description: "Private boat along the clifftop towns — Ravello, Positano, Praiano — with swimming stops in hidden coves." },
     { name: "Limoncello-making class",        category: "food",         duration: "2h",   price: 65,  rating: 9.2, reviewCount: 2100, isLocalFavorite: true,  description: "A local family shares their terrace lemon grove and century-old recipe. You leave with a bottle." },
