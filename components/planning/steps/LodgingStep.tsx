@@ -139,19 +139,15 @@ export function LodgingStep() {
   }
 
   function toggleType(t: LodgingType) {
-    setTypes((prev) => {
-      const next = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
-      syncLodging({ types: next });
-      return next;
-    });
+    const next = types.includes(t) ? types.filter((x) => x !== t) : [...types, t];
+    setTypes(next);
+    syncLodging({ types: next });
   }
 
   function toggleAmenity(a: string) {
-    setAmenities((prev) => {
-      const next = prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a];
-      syncLodging({ amenities: next });
-      return next;
-    });
+    const next = amenities.includes(a) ? amenities.filter((x) => x !== a) : [...amenities, a];
+    setAmenities(next);
+    syncLodging({ amenities: next });
   }
 
   function handleOtherTypeChange(v: string) {
@@ -159,11 +155,9 @@ export function LodgingStep() {
     syncLodging({ otherTypeValue: v });
   }
   function handleOtherTypeToggle() {
-    setOtherTypeOpen((prev) => {
-      const next = !prev;
-      syncLodging({ otherTypeOpen: next });
-      return next;
-    });
+    const next = !otherTypeOpen;
+    setOtherTypeOpen(next);
+    syncLodging({ otherTypeOpen: next });
   }
   function handleOtherAmenityChange(v: string) {
     setOtherAmenity(v);

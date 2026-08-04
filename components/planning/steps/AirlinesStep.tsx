@@ -136,39 +136,29 @@ export function AirlinesStep() {
   }
 
   function toggleAirline(name: string) {
-    setSelectedAirlines((prev) => {
-      const next = prev.includes(name) ? prev.filter((a) => a !== name) : [...prev, name];
-      syncAirlines({ airlines: next });
-      return next;
-    });
+    const next = selectedAirlines.includes(name) ? selectedAirlines.filter((a) => a !== name) : [...selectedAirlines, name];
+    setSelectedAirlines(next);
+    syncAirlines({ airlines: next });
   }
   function toggleAlliance(id: AirlineAlliance) {
-    setSelectedAlliances((prev) => {
-      const next = prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id];
-      syncAirlines({ alliances: next });
-      return next;
-    });
+    const next = selectedAlliances.includes(id) ? selectedAlliances.filter((a) => a !== id) : [...selectedAlliances, id];
+    setSelectedAlliances(next);
+    syncAirlines({ alliances: next });
   }
   function toggleCabin(c: string) {
-    setCabins((prev) => {
-      const next = prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c];
-      syncAirlines({ cabins: next });
-      return next;
-    });
+    const next = cabins.includes(c) ? cabins.filter((x) => x !== c) : [...cabins, c];
+    setCabins(next);
+    syncAirlines({ cabins: next });
   }
   function toggleLowestFare() {
-    setLowestFare((prev) => {
-      const next = !prev;
-      syncAirlines({ lowestFare: next });
-      return next;
-    });
+    const next = !lowestFare;
+    setLowestFare(next);
+    syncAirlines({ lowestFare: next });
   }
   function togglePreferNonstop() {
-    setPreferNonstop((prev) => {
-      const next = !prev;
-      syncAirlines({ preferNonstop: next });
-      return next;
-    });
+    const next = !preferNonstop;
+    setPreferNonstop(next);
+    syncAirlines({ preferNonstop: next });
   }
 
   function handleContinue() {

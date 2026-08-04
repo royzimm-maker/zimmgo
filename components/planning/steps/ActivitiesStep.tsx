@@ -81,11 +81,9 @@ export function ActivitiesStep() {
   }
 
   function toggleGeneral(id: ActivityCategory) {
-    setSelectedGeneral((prev) => {
-      const next = prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id];
-      syncActivities({ general: next });
-      return next;
-    });
+    const next = selectedGeneral.includes(id) ? selectedGeneral.filter((a) => a !== id) : [...selectedGeneral, id];
+    setSelectedGeneral(next);
+    syncActivities({ general: next });
   }
 
   function handleOtherChange(v: string) {
@@ -93,11 +91,9 @@ export function ActivitiesStep() {
     syncActivities({ otherValue: v });
   }
   function handleOtherToggle() {
-    setOtherOpen((prev) => {
-      const next = !prev;
-      syncActivities({ otherOpen: next });
-      return next;
-    });
+    const next = !otherOpen;
+    setOtherOpen(next);
+    syncActivities({ otherOpen: next });
   }
 
   async function handleZigyPick() {

@@ -60,11 +60,9 @@ export function VibeStep() {
   }
 
   function toggle(id: VibeTag) {
-    setSelected((prev) => {
-      const next = prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id];
-      syncVibes({ selected: next });
-      return next;
-    });
+    const next = selected.includes(id) ? selected.filter((v) => v !== id) : [...selected, id];
+    setSelected(next);
+    syncVibes({ selected: next });
   }
 
   function handleOtherChange(v: string) {
@@ -72,11 +70,9 @@ export function VibeStep() {
     syncVibes({ otherValue: v });
   }
   function handleOtherToggle() {
-    setOtherOpen((prev) => {
-      const next = !prev;
-      syncVibes({ otherOpen: next });
-      return next;
-    });
+    const next = !otherOpen;
+    setOtherOpen(next);
+    syncVibes({ otherOpen: next });
   }
 
   function handleContinue() {
