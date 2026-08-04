@@ -75,6 +75,10 @@ export function ItineraryStep() {
       continueLabel={isPersonalized ? "Update personalization" : "Personalize my plan"}
       continueDisabled={!latest}
       onContinue={() => goToStep("refine")}
+      // "Skip" would go to the same next step ("refine") as the primary
+      // button above — a second button for the same destination is just
+      // confusing, not an actual alternate path.
+      hideSkip
       subtitle="Your personalised day-by-day itinerary, built around your preferences."
     >
       {/* Personalization saved banner */}

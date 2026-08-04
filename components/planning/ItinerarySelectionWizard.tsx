@@ -146,6 +146,16 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
     ? "Tap a hotel to pick it for this city — you can change it later."
     : undefined;
 
+  // What "Continue" advances to, so it reads as "move to the next thing in
+  // this picks review" rather than looking like the page-level navigation
+  // (Back / Skip / Personalize) that sits right below this wizard.
+  const isLastStep = currentStep === totalSteps;
+  const nextLabel = isLastStep
+    ? "Finish review"
+    : stage.perCity && cityIdx < cities.length - 1
+    ? `Continue to ${cities[cityIdx + 1]}`
+    : `Continue to ${stages[stageIdx + 1]?.label}`;
+
   return (
     <div className="flex flex-col gap-5">
       {/* Progress header */}
@@ -279,17 +289,27 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
         )}
       </Section>
 
-      {/* Navigation */}
+      {/* Navigation — deliberately "outline" rather than "primary" so this
+          in-wizard nav doesn't visually match the solid-blue page-level
+          Back/Skip/Personalize bar that sits directly below it. */}
       <div className="flex items-center justify-between pt-2 border-t border-slate-100">
         <Button variant="ghost" size="sm" onClick={goBack} disabled={!canGoBack} className="text-slate-500">
           <ArrowLeft size={14} />
           Back
         </Button>
-        <Button variant="primary" size="sm" onClick={goNext}>
-          {currentStep === totalSteps ? "Finish review" : "Continue"}
+        <Button variant="outline" size="sm" onClick={goNext}>
+          {nextLabel}
           <ArrowRight size={14} />
         </Button>
       </div>
+
+      {/* Reassurance: skipping this review doesn't hold back personalization —
+          it only leaves the flight/hotel shown in the summary as ZiGy's
+          default pick instead of one you chose. */}
+      <p className="text-xs text-slate-400 -mt-2 text-center">
+        You can jump ahead any time — ZiGy can make these picks for you based on your trip
+        preferences and the best each destination has to offer, and you can always change them later.
+      </p>
     </div>
   );
 }

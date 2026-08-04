@@ -17,6 +17,11 @@ interface StepShellProps {
   continueDisabled?: boolean;
   continueLoading?: boolean;
   subtitle?: string;
+  // Hide the generic "Skip" button for steps where it would land on the same
+  // next step as the primary Continue action — e.g. Itinerary's Continue is
+  // itself "Personalize my plan", so a second "Skip" button next to it does
+  // nothing Continue doesn't already do, it just adds a confusing duplicate.
+  hideSkip?: boolean;
 }
 
 export function StepShell({
@@ -27,6 +32,7 @@ export function StepShell({
   continueDisabled = false,
   continueLoading = false,
   subtitle,
+  hideSkip = false,
 }: StepShellProps) {
   const { goToStep, completeStep, trip } = useTripStore();
   const meta  = STEP_META[stepId];
@@ -85,7 +91,7 @@ export function StepShell({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {nextId && (
+          {nextId && !hideSkip && (
             <Button variant="ghost" size="sm" onClick={handleSkip} className="text-slate-400">
               Skip
               <SkipForward size={14} />
