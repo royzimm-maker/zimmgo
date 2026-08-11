@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
-import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
+import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { BeliConnect } from "@/components/planning/BeliConnect";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
@@ -42,6 +42,7 @@ export function ActivitiesStep() {
   const [mode, setMode] = useState<"prompt" | "manual">(
     () => (trip.preferences.activities.length > 0 ? "manual" : "prompt")
   );
+  const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
   const { picking, pickSummary, run: runSmartPick } = useSmartPick();
 
   const [selectedGeneral, setSelectedGeneral] = useState<ActivityCategory[]>(
@@ -121,6 +122,12 @@ export function ActivitiesStep() {
     setActivities(assembleActivities());
   }
 
+  async function handlePromptContinue() {
+    if (modeChoice === "manual") setMode("manual");
+    else if (modeChoice === "zigy") await handleZigyPick();
+    return false; // stay on this step — just switches to the picker view
+  }
+
   const totalSelected =
     selectedGeneral.length + (otherOpen && otherValue.trim() ? 1 : 0);
 
@@ -128,15 +135,18 @@ export function ActivitiesStep() {
     return (
       <StepShell
         stepId="activities"
-        hideContinue
+        continueLabel="Continue"
+        continueDisabled={!modeChoice}
+        continueLoading={picking}
+        onContinue={handlePromptContinue}
         subtitle="How do you want to choose your activities?"
       >
         <ChooseModePrompt
           manualLabel="I'll pick myself"
           manualDescription="Browse the categories and choose what sounds good."
           zigyDescription="I'll suggest top-rated activities that fit the vibe of your trip and your destination — you can still adjust before continuing."
-          onManual={() => setMode("manual")}
-          onZigy={handleZigyPick}
+          selected={modeChoice}
+          onSelect={setModeChoice}
           loading={picking}
         />
       </StepShell>

@@ -5,7 +5,7 @@ import { Star, ExternalLink, Check, Sparkles } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
-import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
+import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,7 @@ export function LodgingStep() {
   const { trip, setLodging, setSelectedHotel, setReviewSourcePref } = useTripStore();
   const existing = trip.preferences.lodging;
   const [mode, setMode] = useState<"prompt" | "manual">(() => (existing ? "manual" : "prompt"));
+  const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
   const { picking, pickSummary, run: runSmartPick } = useSmartPick();
   // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
   const destination = trip.preferences.destination?.cities?.[0]
@@ -252,19 +253,28 @@ export function LodgingStep() {
   // Only show hotel picker if accommodation type includes bookable hotel options
   const airbnbOnly = effectiveTypes.length > 0 && effectiveTypes.every((t) => t === "airbnb");
 
+  async function handlePromptContinue() {
+    if (modeChoice === "manual") setMode("manual");
+    else if (modeChoice === "zigy") await handleZigyPick();
+    return false; // stay on this step — just switches to the picker view
+  }
+
   if (mode === "prompt") {
     return (
       <StepShell
         stepId="lodging"
-        hideContinue
+        continueLabel="Continue"
+        continueDisabled={!modeChoice}
+        continueLoading={picking}
+        onContinue={handlePromptContinue}
         subtitle="How do you want to choose your lodging preferences?"
       >
         <ChooseModePrompt
           manualLabel="I'll pick myself"
           manualDescription="Choose the accommodation type, star rating, and amenities that matter to you."
           zigyDescription="I'll suggest top-rated stays that fit the vibe of your trip, your destination, and your budget — you can still adjust before continuing."
-          onManual={() => setMode("manual")}
-          onZigy={handleZigyPick}
+          selected={modeChoice}
+          onSelect={setModeChoice}
           loading={picking}
         />
       </StepShell>

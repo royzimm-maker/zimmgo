@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/core";
 import { X, Sparkles, BookMarked, ArrowRight } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
-import { ChooseModePrompt } from "@/components/planning/ChooseModePrompt";
+import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { fetchSmartPick } from "@/lib/api/smartPick";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -292,6 +292,7 @@ export function RefineStep() {
   const [autoPlanCities, setAutoPlanCities] = useState<Set<string>>(new Set());
   // Returning users who already personalized skip straight to the board
   const [mode, setMode] = useState<"prompt" | "manual">(() => (itinerary?.finalizedPlan ? "manual" : "prompt"));
+  const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -478,8 +479,14 @@ export function RefineStep() {
     return (
       <StepShell
         stepId="refine"
-        continueLabel="I'll build it myself"
-        onContinue={() => { setMode("manual"); return false; }}
+        continueLabel="Continue"
+        continueDisabled={!modeChoice}
+        continueLoading={arranging}
+        onContinue={async () => {
+          if (modeChoice === "manual") setMode("manual");
+          else if (modeChoice === "zigy") await handleAutoPlanAll();
+          return false; // stay on this step — just switches to the board view
+        }}
         subtitle="How do you want to personalize your plan?"
       >
         <ChooseModePrompt
@@ -492,8 +499,8 @@ export function RefineStep() {
               : "ZiGy is arranging…"
           }
           zigyDescription="ZiGy sequences every city's activities and restaurants across the days — you can still review and adjust anything after."
-          onManual={() => setMode("manual")}
-          onZigy={handleAutoPlanAll}
+          selected={modeChoice}
+          onSelect={setModeChoice}
           loading={arranging}
         />
       </StepShell>

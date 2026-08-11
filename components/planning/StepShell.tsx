@@ -22,11 +22,6 @@ interface StepShellProps {
   // itself "Personalize my plan", so a second "Skip" button next to it does
   // nothing Continue doesn't already do, it just adds a confusing duplicate.
   hideSkip?: boolean;
-  // Hide the primary Continue button for steps where the content itself is
-  // the set of actions (e.g. the manual-vs-ZiGy choice screen) — a footer
-  // button that duplicates one of those in-content options just reads as a
-  // second, confusing "I'll pick myself".
-  hideContinue?: boolean;
 }
 
 export function StepShell({
@@ -38,7 +33,6 @@ export function StepShell({
   continueLoading = false,
   subtitle,
   hideSkip = false,
-  hideContinue = false,
 }: StepShellProps) {
   const { goToStep, completeStep, trip } = useTripStore();
   const meta  = STEP_META[stepId];
@@ -103,17 +97,15 @@ export function StepShell({
               <SkipForward size={14} />
             </Button>
           )}
-          {!hideContinue && (
-            <Button
-              variant="primary"
-              onClick={handleContinue}
-              disabled={continueDisabled}
-              loading={continueLoading}
-            >
-              {continueLabel}
-              {!continueLoading && <ArrowRight size={14} />}
-            </Button>
-          )}
+          <Button
+            variant="primary"
+            onClick={handleContinue}
+            disabled={continueDisabled}
+            loading={continueLoading}
+          >
+            {continueLabel}
+            {!continueLoading && <ArrowRight size={14} />}
+          </Button>
         </div>
       </div>
     </div>
