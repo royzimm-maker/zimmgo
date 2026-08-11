@@ -58,7 +58,7 @@ export function TripSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute left-0 z-50 mt-1.5 w-72 rounded-lg border border-slate-200 bg-white shadow-lg py-1.5">
+        <div className="absolute right-0 z-50 mt-1.5 w-72 rounded-lg border border-slate-200 bg-white shadow-lg py-1.5">
           <p className="px-3 pb-1.5 pt-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
             Your trips
           </p>
