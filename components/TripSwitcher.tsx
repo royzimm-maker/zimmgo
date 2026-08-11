@@ -42,8 +42,13 @@ export function TripSwitcher() {
 
   function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation();
-    if (!confirm("Delete this trip? This can't be undone.")) return;
+    const isActive = id === trip.id;
+    const label = isActive
+      ? "Delete this trip? This can't be undone — you'll start with a blank trip."
+      : "Delete this trip? This can't be undone.";
+    if (!confirm(label)) return;
     deleteTrip(id);
+    if (isActive) setOpen(false);
   }
 
   return (
@@ -81,16 +86,14 @@ export function TripSwitcher() {
                 {t.id === trip.id && (
                   <span className="shrink-0 text-[10px] font-semibold text-brand-500">Active</span>
                 )}
-                {t.id !== trip.id && (
-                  <button
-                    type="button"
-                    onClick={(e) => handleDelete(e, t.id)}
-                    title="Delete trip"
-                    className="shrink-0 text-slate-300 opacity-0 hover:text-red-400 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={(e) => handleDelete(e, t.id)}
+                  title="Delete trip"
+                  className="shrink-0 text-slate-300 opacity-0 hover:text-red-400 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             ))}
           </div>
