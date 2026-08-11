@@ -256,8 +256,7 @@ export function LodgingStep() {
     return (
       <StepShell
         stepId="lodging"
-        continueLabel="I'll pick myself"
-        onContinue={() => { setMode("manual"); return false; }}
+        hideContinue
         subtitle="How do you want to choose your lodging preferences?"
       >
         <ChooseModePrompt

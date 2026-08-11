@@ -128,8 +128,7 @@ export function ActivitiesStep() {
     return (
       <StepShell
         stepId="activities"
-        continueLabel="I'll pick myself"
-        onContinue={() => { setMode("manual"); return false; }}
+        hideContinue
         subtitle="How do you want to choose your activities?"
       >
         <ChooseModePrompt
