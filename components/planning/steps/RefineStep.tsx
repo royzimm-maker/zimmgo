@@ -527,13 +527,16 @@ export function RefineStep() {
     return { city, total, placed: total - unplaced };
   });
 
-  // Prompt to move on once the active city's bank is empty, rather than leaving
-  // the user to notice the city tabs on their own.
+  // Prompt to move on once the active city has some placed items, rather than
+  // leaving the user to notice the city tabs on their own — shown even if a
+  // few items are still sitting unplaced, since a user who's decided to skip
+  // those souldn't be stuck with no nudge to move to the next city.
   const activeCityStats = effectiveCity ? cityStats.find((s) => s.city === effectiveCity) : undefined;
   const activeCityIdx = effectiveCity ? cities.indexOf(effectiveCity) : -1;
   const nextCity = activeCityIdx >= 0 && activeCityIdx < cities.length - 1 ? cities[activeCityIdx + 1] : null;
+  const activeCityComplete = visibleBank.length === 0;
   const showNextCityPrompt = Boolean(
-    effectiveCity && nextCity && activeCityStats && activeCityStats.total > 0 && visibleBank.length === 0
+    effectiveCity && nextCity && activeCityStats && activeCityStats.total > 0 && activeCityStats.placed > 0
   );
 
   return (
@@ -580,11 +583,17 @@ export function RefineStep() {
         </div>
       )}
 
-      {/* Prompt to move to the next city once this one's items are all placed */}
+      {/* Prompt to move to the next city — always available once you've placed
+          something here, not just once every last item is placed, so leaving
+          a few items unplaced on purpose doesn't strand you without a nudge. */}
       {showNextCityPrompt && (
         <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-sage-200 bg-sage-50 px-3 py-2.5">
           <p className="text-xs text-sage-700">
-            <span className="font-semibold">{effectiveCity} is all set!</span> Ready to personalize {nextCity}?
+            {activeCityComplete ? (
+              <><span className="font-semibold">{effectiveCity} is all set!</span> Ready to personalize {nextCity}?</>
+            ) : (
+              <>{effectiveCity} looks good — move on to {nextCity} whenever you're ready.</>
+            )}
           </p>
           <button
             type="button"
