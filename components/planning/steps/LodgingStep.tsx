@@ -295,10 +295,15 @@ export function LodgingStep() {
       />
       <div className="flex flex-col gap-6">
         {pickSummary && (
-          <p className="text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2">
-            <Sparkles size={11} className="inline mr-1" />
-            {pickSummary}
-          </p>
+          <div className="rounded-lg bg-brand-50 px-3 py-2">
+            <p className="text-xs text-brand-600">
+              <Sparkles size={11} className="inline mr-1" />
+              {pickSummary}
+            </p>
+            <p className="mt-1 text-[10px] text-brand-400">
+              You can still adjust these below — nothing here is locked in.
+            </p>
+          </div>
         )}
         {/* Type */}
         <div>

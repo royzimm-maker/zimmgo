@@ -166,10 +166,15 @@ export function ActivitiesStep() {
         loading={picking}
       />
       {pickSummary && (
-        <p className="mb-4 text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2">
-          <Sparkles size={11} className="inline mr-1" />
-          {pickSummary}
-        </p>
+        <div className="mb-4 rounded-lg bg-brand-50 px-3 py-2">
+          <p className="text-xs text-brand-600">
+            <Sparkles size={11} className="inline mr-1" />
+            {pickSummary}
+          </p>
+          <p className="mt-1 text-[10px] text-brand-400">
+            You can still adjust these below — nothing here is locked in.
+          </p>
+        </div>
       )}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {visibleGeneral.map((a) => (

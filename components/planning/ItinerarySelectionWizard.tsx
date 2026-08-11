@@ -240,10 +240,15 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                 {pickingHotel ? "ZiGy is choosing…" : `Let ZiGy choose for ${currentCity}`}
               </button>
               {hotelPickReasons[currentCity] && (
-                <p className="text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2 -mt-1">
-                  <Sparkles size={11} className="inline mr-1" />
-                  {hotelPickReasons[currentCity]}
-                </p>
+                <div className="rounded-lg bg-brand-50 px-3 py-2 -mt-1">
+                  <p className="text-xs text-brand-600">
+                    <Sparkles size={11} className="inline mr-1" />
+                    {hotelPickReasons[currentCity]}
+                  </p>
+                  <p className="mt-1 text-[10px] text-brand-400">
+                    You can still adjust this below — nothing here is locked in.
+                  </p>
+                </div>
               )}
               {hotelsForCity.map((h) => {
                 const selected = preferences.selectedHotelsByCity?.[currentCity]?.id === h.id;
