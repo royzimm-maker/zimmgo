@@ -90,7 +90,7 @@ export function TripSwitcher() {
                   type="button"
                   onClick={(e) => handleDelete(e, t.id)}
                   title="Delete trip"
-                  className="shrink-0 text-slate-300 opacity-0 hover:text-red-400 group-hover:opacity-100 transition-opacity"
+                  className="shrink-0 text-slate-300 hover:text-red-400 transition-colors"
                 >
                   <Trash2 size={13} />
                 </button>
