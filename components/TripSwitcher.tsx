@@ -4,10 +4,33 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, MapPin, Plus, Trash2 } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
+import { parseLocalDate } from "@/lib/utils";
 import type { Trip } from "@/types/trip";
 
 function destinationLabel(trip: Trip): string {
   return trip.preferences.destination?.displayName ?? "Not started yet";
+}
+
+const COMPACT_DATE = { month: "short", day: "numeric" } as const;
+const FLEX_MONTH: Intl.DateTimeFormatOptions = { month: "short", year: "numeric" };
+
+function dateLabel(trip: Trip): string | null {
+  const dates = trip.preferences.dates;
+  if (!dates) return null;
+  if (dates.type === "exact" && dates.startDate && dates.endDate) {
+    const start = parseLocalDate(dates.startDate);
+    const end = parseLocalDate(dates.endDate);
+    const sameYear = start.getFullYear() === end.getFullYear();
+    const startLabel = start.toLocaleDateString("en-US", COMPACT_DATE);
+    const endLabel = end.toLocaleDateString("en-US", sameYear ? COMPACT_DATE : { ...COMPACT_DATE, year: "numeric" });
+    return `${startLabel} – ${endLabel}, ${end.getFullYear()}`;
+  }
+  if (dates.type === "flexible" && dates.flexibleMonth) {
+    const [y, m] = dates.flexibleMonth.split("-").map(Number);
+    const monthLabel = new Date(y, m - 1, 1).toLocaleDateString("en-US", FLEX_MONTH);
+    return dates.flexibleDuration ? `${monthLabel} · ${dates.flexibleDuration} days` : monthLabel;
+  }
+  return null;
 }
 
 export function TripSwitcher() {
@@ -72,25 +95,28 @@ export function TripSwitcher() {
               <div
                 key={t.id}
                 onClick={() => (t.id === trip.id ? setOpen(false) : handleSwitch(t.id))}
-                className={`group flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 ${
+                className={`group flex cursor-pointer items-start gap-2 px-3 py-2 text-sm hover:bg-slate-50 ${
                   t.id === trip.id ? "bg-brand-50" : ""
                 }`}
               >
-                <MapPin size={13} className={t.id === trip.id ? "text-brand-500 shrink-0" : "text-slate-300 shrink-0"} />
+                <MapPin size={13} className={`mt-0.5 ${t.id === trip.id ? "text-brand-500 shrink-0" : "text-slate-300 shrink-0"}`} />
                 <div className="min-w-0 flex-1">
                   <p className={`truncate font-medium ${t.id === trip.id ? "text-brand-700" : "text-slate-700"}`}>
                     {t.name}
                   </p>
                   <p className="truncate text-[11px] text-slate-400">{destinationLabel(t)}</p>
+                  {dateLabel(t) && (
+                    <p className="truncate text-[10px] text-slate-400">{dateLabel(t)}</p>
+                  )}
                 </div>
                 {t.id === trip.id && (
-                  <span className="shrink-0 text-[10px] font-semibold text-brand-500">Active</span>
+                  <span className="shrink-0 mt-0.5 text-[10px] font-semibold text-brand-500">Active</span>
                 )}
                 <button
                   type="button"
                   onClick={(e) => handleDelete(e, t.id)}
                   title="Delete trip"
-                  className="shrink-0 text-slate-300 hover:text-red-400 transition-colors"
+                  className="shrink-0 mt-0.5 text-slate-300 hover:text-red-400 transition-colors"
                 >
                   <Trash2 size={13} />
                 </button>
