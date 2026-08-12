@@ -17,10 +17,17 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
   // misdetect single-city trips as multi-destination.
   const isMulti = (preferences.destination?.cities?.length ?? 0) > 1;
 
+  const cityList = preferences.destination?.cities?.filter(Boolean) ?? [];
+
   if (isMulti) {
     parts.push(
       `Please create a comprehensive **multi-destination** travel plan covering: **${destNames}**.` +
-      ` Allocate days across all destinations and include logical travel connections between them.`
+      ` Allocate days across all destinations and include logical travel connections between them.` +
+      ` The day-by-day plan is built programmatically around exactly these ${cityList.length} legs, in this order: ${cityList.map((c) => `"${c}"`).join(", ")}.` +
+      ` You MUST call search_hotels, search_activities, and search_restaurants using these exact strings as the \`destination\` parameter — one set of calls per leg, no more, no fewer. ` +
+      `Do not substitute a more specific sub-area (e.g. a particular neighbourhood or nearby city) as the \`destination\` value, even if you think it's more precise — that would cause the results to be dropped, since nothing downstream in this pipeline knows about it. ` +
+      `If you want to mention specific neighbourhoods or nearby towns worth visiting within one of these legs, do that in your descriptive text, not as a separate \`destination\` value. ` +
+      `Your final written summary must describe the trip strictly as these ${cityList.length} legs with the same city names — do not present a different, more granular breakdown (e.g. splitting one leg into named sub-cities with their own night counts) than what these tool calls and the day-by-day structure actually use.`
     );
   } else {
     parts.push(`Please create a comprehensive travel plan for **${destNames}**.`);

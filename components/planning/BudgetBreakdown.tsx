@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DollarSign, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { estimateTripBudget } from "@/lib/budget";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 
 interface Props {
@@ -10,47 +11,15 @@ interface Props {
   preferences: TripPreferences;
 }
 
-interface BudgetLine {
-  label: string;
-  amount: number;
-  note: string;
-}
-
-function calcBudget(itinerary: GeneratedItinerary, preferences: TripPreferences) {
-  const travelers = preferences.travelers ?? 1;
-  const days = itinerary.days.length;
-  const dailyFood = preferences.dailyFoodBudgetPerPerson ?? 80;
-
-  // Flights list contains alternative options — only the first two represent
-  // the outbound + return legs actually being budgeted (matches TripGlance).
-  const flightCost = itinerary.flights.slice(0, 2).reduce((s, f) => s + f.price, 0) * travelers;
-  const hotelNights = Math.max(days - 1, 1);
-  const avgNightly = itinerary.hotels.length
-    ? itinerary.hotels.reduce((s, h) => s + h.pricePerNight, 0) / itinerary.hotels.length
-    : 0;
-  const hotelCost = avgNightly * hotelNights;
-  const activityCost = itinerary.activities.reduce((s, a) => s + a.price, 0) * travelers;
-  const foodCost = dailyFood * travelers * days;
-  const transportCost = Math.round(days * 25 * travelers);
-  const subtotal = flightCost + hotelCost + activityCost + foodCost + transportCost;
-  const misc = Math.round(subtotal * 0.1);
-  const total = subtotal + misc;
-
-  const lines: BudgetLine[] = [
-    { label: "Flights",                   amount: flightCost,    note: `${travelers} traveler${travelers > 1 ? "s" : ""}, outbound + return` },
-    { label: "Hotels",                    amount: hotelCost,     note: `${hotelNights} night${hotelNights > 1 ? "s" : ""}, avg ${formatCurrency(avgNightly)}/night` },
-    { label: "Activities & Tours",        amount: activityCost,  note: `${itinerary.activities.length} experience${itinerary.activities.length !== 1 ? "s" : ""}` },
-    { label: "Food & Dining",             amount: foodCost,      note: `~$${dailyFood}/person/day × ${days} days` },
-    { label: "Local Transportation",      amount: transportCost, note: "rideshare, transit, taxis" },
-    { label: "Miscellaneous (10% buffer)",amount: misc,          note: "tips, souvenirs, incidentals" },
-  ];
-
-  return { lines, total, perPerson: Math.round(total / travelers), travelers };
-}
-
 export function BudgetBreakdown({ itinerary, preferences }: Props) {
   const [open, setOpen] = useState(false);
-  const { lines, total, perPerson, travelers } = calcBudget(itinerary, preferences);
+  // Same estimator used server-side to set totalEstimatedCost (Trip-at-a-
+  // Glance's "Est. total") — passing the same itinerary data back through it
+  // here keeps the two numbers shown to the user identical.
+  const { lines, total, perPerson, travelers } = estimateTripBudget(
+    { numDays: itinerary.days.length, flights: itinerary.flights, hotels: itinerary.hotels, activities: itinerary.activities },
+    preferences
+  );
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">

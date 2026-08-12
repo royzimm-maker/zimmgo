@@ -12,6 +12,7 @@ import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoo
 import { applyReviewSourcePref } from "@/lib/data/reviewSources";
 import { applyBeliPreference } from "@/lib/data/beli";
 import { groupByLocation, parseLocalDate } from "@/lib/utils";
+import { estimateTripBudget } from "@/lib/budget";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
@@ -41,6 +42,16 @@ function maxNightlyBudget(preferences: TripPreferences): number {
   return resolveBudget(preferences)?.max ?? DEFAULT_BUDGET_MAX;
 }
 
+// Mock hotel/activity/restaurant pools fall back to a generic "default" entry
+// for any destination string they don't recognise, and stamp that entry's
+// location with whatever `destination` was passed in — so a call with a
+// missing/empty destination produces results with no location at all. Those
+// can never be scoped to a city afterwards and end up permanently stuck in
+// every city's "available" bank in Personalize. Reject the call instead.
+function hasDestination(input: Record<string, unknown>): boolean {
+  return typeof input.destination === "string" && input.destination.trim().length > 0;
+}
+
 // Tool dispatcher — maps tool_name → actual function call
 async function dispatchTool(
   name: string,
@@ -50,11 +61,11 @@ async function dispatchTool(
     case "search_flights":
       return searchFlights(input as unknown as Parameters<typeof searchFlights>[0]);
     case "search_hotels":
-      return searchHotels(input as unknown as Parameters<typeof searchHotels>[0]);
+      return hasDestination(input) ? searchHotels(input as unknown as Parameters<typeof searchHotels>[0]) : [];
     case "search_activities":
-      return searchActivities(input as unknown as Parameters<typeof searchActivities>[0]);
+      return hasDestination(input) ? searchActivities(input as unknown as Parameters<typeof searchActivities>[0]) : [];
     case "search_restaurants":
-      return searchRestaurants(input as unknown as Parameters<typeof searchRestaurants>[0]);
+      return hasDestination(input) ? searchRestaurants(input as unknown as Parameters<typeof searchRestaurants>[0]) : [];
     case "generate_itinerary":
       // This tool signals that the AI is ready to synthesise
       return { status: "ready_to_synthesise", input };
@@ -238,13 +249,6 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     hotels = [preferences.selectedHotel, ...hotels.filter((h) => h.id !== preferences.selectedHotel!.id)];
   }
 
-  const travelers    = preferences.travelers ?? 2;
-  const rooms        = preferences.rooms ?? 1;
-  const hotelTotal   = hotels[0]  ? hotels[0].pricePerNight * numDays * rooms : 0;
-  // Flights are alternative options — only count the first two (outbound + return)
-  const flightTotal  = flights.slice(0, 2).reduce((s, f) => s + f.price, 0) * travelers;
-  const actTotal     = activities.slice(0, 4).reduce((s, a) => s + a.price, 0) * travelers;
-
   const dest = preferences.destination?.displayName ?? "your destination";
   const acts = (preferences.activities ?? []).slice(0, 3).join(", ");
   const vibeList = (preferences.vibes ?? []).slice(0, 2).join(" and ");
@@ -279,6 +283,14 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     preferences.destination?.cities
   );
 
+  // Same inputs (numDays, flights, hotels, activities) the Estimated Budget
+  // Breakdown reads from the returned itinerary below, via the shared
+  // estimator — so the two totals shown to the user can never disagree.
+  const { total: totalEstimatedCost } = estimateTripBudget(
+    { numDays, flights, hotels: ratedHotels, activities: ratedActivities },
+    preferences
+  );
+
   return {
     id: uuid(),
     tripId,
@@ -289,7 +301,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     hotels: ratedHotels,
     activities: ratedActivities,
     restaurants: ratedRestaurants.length ? ratedRestaurants : undefined,
-    totalEstimatedCost: hotelTotal + flightTotal + actTotal,
+    totalEstimatedCost,
     currency: "USD",
     aiSummary: summaryFallback,
     whyThisWorks: whyFallback,
@@ -357,18 +369,32 @@ function buildDays(
   });
 }
 
+// "Arrival" and "Farewell" only make sense on the first/last day of the whole
+// trip — cycling them into the middle pool (the old behaviour) meant any trip
+// longer than the pool's length got a day that re-announced "Arrival" deep
+// into the itinerary. They're reserved here and never handed out elsewhere.
 function generateThemes(numDays: number, preferences: TripPreferences): string[] {
   const dest = preferences.destination?.displayName ?? "destination";
-  const base = [
-    `Arrival & First Impressions of ${dest}`,
+  const arrival = `Arrival & First Impressions of ${dest}`;
+  const farewell = "Relaxation, Shopping & Farewell Dinner";
+  const middle = [
     "Iconic Landmarks & Cultural Immersion",
     "Local Neighbourhoods & Hidden Gems",
     "Day Trip & Natural Scenery",
     "Food, Markets & Evening Atmosphere",
     "Adventure & Active Exploration",
-    "Relaxation, Shopping & Farewell Dinner",
+    "Art, History & Architecture",
+    "Coastal or Scenic Excursion",
+    "Markets, Crafts & Local Makers",
+    "A Slower, Wander-as-you-go Day",
   ];
-  return Array.from({ length: numDays }, (_, i) => base[i % base.length]);
+
+  if (numDays === 1) return [arrival];
+  if (numDays === 2) return [arrival, farewell];
+
+  const middleCount = numDays - 2;
+  const middleDays = Array.from({ length: middleCount }, (_, i) => middle[i % middle.length]);
+  return [arrival, ...middleDays, farewell];
 }
 
 function buildTimeBlock(
