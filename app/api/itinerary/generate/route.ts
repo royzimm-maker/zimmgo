@@ -94,6 +94,10 @@ export async function POST(request: NextRequest) {
     let activities:  ActivityOption[]   = [];
     let restaurants: RestaurantOption[] = [];
     let finalText    = "";
+    // The specific hotel per city the AI names in its final written summary —
+    // set by its generate_itinerary call so the "Recommended Lodging" card
+    // can show that same hotel instead of an arbitrary search result.
+    let selectedHotelIdByCity: Record<string, string> = {};
 
     // We allow up to 8 tool-call rounds to prevent infinite loops
     for (let round = 0; round < 8; round++) {
@@ -130,6 +134,12 @@ export async function POST(request: NextRequest) {
         if (block.name === "search_hotels")       hotels       = [...hotels,       ...(result as HotelOption[])];
         if (block.name === "search_activities")   activities   = [...activities,   ...(result as ActivityOption[])];
         if (block.name === "search_restaurants")  restaurants  = [...restaurants,  ...(result as RestaurantOption[])];
+        if (block.name === "generate_itinerary") {
+          const input = block.input as { selected_hotels?: { city: string; hotel_id: string }[] };
+          for (const sel of input.selected_hotels ?? []) {
+            selectedHotelIdByCity[sel.city] = sel.hotel_id;
+          }
+        }
 
         toolResults.push({
           type: "tool_result",
@@ -198,6 +208,7 @@ export async function POST(request: NextRequest) {
       activities,
       restaurants,
       aiSummary: finalText,
+      selectedHotelIdByCity,
     });
 
     return NextResponse.json(itinerary);
@@ -217,10 +228,13 @@ interface AssembleParams {
   activities: ActivityOption[];
   restaurants: RestaurantOption[];
   aiSummary: string;
+  // City name (matching preferences.destination.cities) → hotel id, from the
+  // AI's own generate_itinerary call — see the hotelsByCity reordering below.
+  selectedHotelIdByCity: Record<string, string>;
 }
 
 function assembleItinerary(p: AssembleParams): GeneratedItinerary {
-  const { preferences, flights, activities, restaurants, aiSummary, tripId } = p;
+  const { preferences, flights, activities, restaurants, aiSummary, tripId, selectedHotelIdByCity } = p;
   let hotels = p.hotels;
 
   let startDate: string;
@@ -271,6 +285,18 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
 
   // Cap hotels per city (not globally) so every destination stays represented
   const hotelsByCity = groupByLocation(hotels, (h) => h.city ?? h.location);
+  // Put the AI's own pick for this city first — it's the one named and
+  // described in its written summary — so "Recommended Lodging" (items[0]
+  // per city) can't show a different, arbitrarily-first-fetched hotel.
+  for (const group of hotelsByCity) {
+    const pickId = selectedHotelIdByCity[group.location];
+    if (!pickId) continue;
+    const idx = group.items.findIndex((h) => h.id === pickId);
+    if (idx > 0) {
+      const [picked] = group.items.splice(idx, 1);
+      group.items.unshift(picked);
+    }
+  }
   const topHotels = hotelsByCity.flatMap((g) => g.items.slice(0, 3));
 
   // Shape ratings per the user's review-source preference (single source vs cross-referenced average)

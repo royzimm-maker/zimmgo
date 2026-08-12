@@ -131,7 +131,12 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     "For multi-destination trips: call search_activities AND search_restaurants SEPARATELY for EACH destination city — one tool call per city. Do NOT call these tools for the departure airport city. " +
     "For activities and restaurants: include a `location` field on every item naming the specific city or neighbourhood it belongs to (e.g. \"Rome\", \"Amalfi Coast\"). " +
     "Always pass max_price_per_night and min_stars to search_hotels based on the traveler's stated budget and lodging preferences. " +
-    "For each recommendation, briefly explain why it's the best fit for this traveller's specific preferences."
+    "For each recommendation, briefly explain why it's the best fit for this traveller's specific preferences. " +
+    `When you're ready to finish, call generate_itinerary and include \`selected_hotels\`: one entry per destination city (${
+      cityList.length ? cityList.map((c) => `"${c}"`).join(", ") : `"${destNames}"`
+    }), each with the exact id of the specific hotel you're recommending and writing about in your final summary. ` +
+    "This must be a hotel id you actually got back from search_hotels for that city — don't invent one. " +
+    "The app displays whichever hotel you name here, so if your summary describes a specific property (name, price, why it's a good fit), that same hotel must be the one you select here — never describe one hotel in your prose and select a different one."
   );
 
   return parts.join(" ");

@@ -113,7 +113,19 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
         vibes: { type: "array", items: { type: "string" } },
         budget_range: { type: "string" },
         transportation_modes: { type: "array", items: { type: "string" } },
-        selected_hotel_id: { type: "string" },
+        selected_hotels: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              city: { type: "string", description: "Must exactly match one of the destination city names given in the prompt." },
+              hotel_id: { type: "string", description: "The id of the specific hotel from search_hotels' results for this city that you recommend and describe in your final written summary." },
+            },
+            required: ["city", "hotel_id"],
+          },
+          description:
+            "For each destination city, the hotel you're actually recommending — required so the app's displayed lodging pick matches what your summary describes instead of an arbitrary result.",
+        },
         selected_flight_ids: { type: "array", items: { type: "string" } },
         selected_activity_ids: { type: "array", items: { type: "string" } },
       },
