@@ -52,23 +52,23 @@ export function LandingHero() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      {/* Beta banner */}
-      <div className="bg-amber-400/10 border-b border-amber-400/20 px-4 py-1.5 text-center">
-        <p className="text-xs text-amber-300">
+    <main className="min-h-screen bg-slate-50">
+      {/* Beta banner — matches the plan page's beta banner exactly */}
+      <div className="bg-amber-50 border-b border-amber-200 px-4 py-1.5 text-center">
+        <p className="text-xs text-amber-700">
           <span className="inline-flex items-center gap-1 font-semibold mr-1">
-            <span className="rounded bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">Beta</span>
+            <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Beta</span>
           </span>
           ZimmGo is an early prototype — recommendations are illustrative and not live booking data.
         </p>
       </div>
 
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4">
-        <Logo size={34} dark />
+      <nav className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
+        <Logo size={34} />
         <button
           onClick={startPlanning}
-          className="text-sm text-slate-400 hover:text-white transition-colors"
+          className="text-sm text-slate-500 hover:text-slate-900 transition-colors"
         >
           Start planning →
         </button>
@@ -76,19 +76,19 @@ export function LandingHero() {
 
       {/* Hero */}
       <div className="mx-auto max-w-4xl px-6 pt-16 pb-24 text-center">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5">
-          <Sparkles size={14} className="text-brand-400" />
-          <span className="text-xs font-medium text-brand-300">AI-powered travel planning</span>
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5">
+          <Sparkles size={14} className="text-brand-600" />
+          <span className="text-xs font-medium text-brand-700">AI-powered travel planning</span>
         </div>
 
-        <h1 className="text-balance text-5xl font-bold text-white leading-tight sm:text-6xl">
+        <h1 className="text-balance text-5xl font-bold text-slate-900 leading-tight sm:text-6xl">
           Plan trips like a{" "}
-          <span className="bg-gradient-to-r from-brand-400 to-sage-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-brand-600 to-sage-600 bg-clip-text text-transparent">
             seasoned traveller
           </span>
         </h1>
 
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 leading-relaxed">
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-500 leading-relaxed">
           ZimmGo acts as your personal AI travel advisor — guiding you step-by-step from
           destination to a complete day-by-day itinerary, with curated flights, hotels, and
           experiences matched to your taste and budget.
@@ -103,12 +103,12 @@ export function LandingHero() {
             <button
               type="button"
               onClick={startNewTrip}
-              className="text-sm text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2"
+              className="text-sm text-slate-400 hover:text-slate-600 transition-colors underline underline-offset-2"
             >
               Start a new trip instead
             </button>
           ) : (
-            <p className="text-sm text-slate-500">Free · No sign-up required</p>
+            <p className="text-sm text-slate-400">Free · No sign-up required</p>
           )}
         </div>
 
@@ -117,25 +117,25 @@ export function LandingHero() {
           {STEPS.map((step, idx) => (
             <div key={step.label} className="flex items-center">
               <div className="flex shrink-0 flex-col items-center gap-1">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 text-base">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-base">
                   {step.icon}
                 </div>
-                <span className="text-[10px] text-slate-500">{step.label}</span>
+                <span className="text-[10px] text-slate-400">{step.label}</span>
               </div>
               {idx < STEPS.length - 1 && (
-                <div className="mx-1 h-px w-4 bg-slate-700 shrink-0" />
+                <div className="mx-1 h-px w-4 bg-slate-200 shrink-0" />
               )}
             </div>
           ))}
         </div>
-        <p className="mt-3 text-xs text-slate-600">
+        <p className="mt-3 text-xs text-slate-400">
           9 guided steps · complete what matters, skip what doesn&apos;t
         </p>
       </div>
 
       {/* Popular destinations */}
-      <div className="border-t border-slate-800 bg-slate-900/60 py-12 px-6">
-        <p className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-slate-600">
+      <div className="border-t border-slate-200 bg-white py-12 px-6">
+        <p className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
           Popular destinations
         </p>
         <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-3">
@@ -143,10 +143,10 @@ export function LandingHero() {
             <button
               key={d.name}
               onClick={startPlanning}
-              className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-300 transition-all hover:border-brand-500 hover:text-white"
+              className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition-all hover:border-brand-400 hover:text-brand-700"
             >
               <span>{d.flag}</span>
-              <MapPin size={12} className="text-slate-500" />
+              <MapPin size={12} className="text-slate-400" />
               {d.name}
             </button>
           ))}
@@ -154,28 +154,28 @@ export function LandingHero() {
       </div>
 
       {/* Social proof */}
-      <div className="border-t border-slate-800 py-10 px-6 text-center">
+      <div className="border-t border-slate-200 py-10 px-6 text-center">
         <div className="flex items-center justify-center gap-1 mb-2">
           {[1,2,3,4,5].map((i) => (
             <Star key={i} size={14} className="fill-amber-400 text-amber-400" />
           ))}
         </div>
-        <p className="text-slate-400 text-sm">
+        <p className="text-slate-500 text-sm">
           &ldquo;Finally a trip planner that makes <em>actual recommendations</em> instead of endless lists.&rdquo;
         </p>
-        <p className="mt-1 text-xs text-slate-600">— Early beta user</p>
+        <p className="mt-1 text-xs text-slate-400">— Early beta user</p>
       </div>
 
       {/* Powered by Claude */}
-      <div className="border-t border-slate-800 py-5 px-6 text-center">
-        <p className="text-xs text-slate-600 flex items-center justify-center gap-2">
-          <Sparkles size={11} className="text-slate-600" />
+      <div className="border-t border-slate-200 py-5 px-6 text-center">
+        <p className="text-xs text-slate-400 flex items-center justify-center gap-2">
+          <Sparkles size={11} className="text-slate-400" />
           Powered by{" "}
           <a
             href="https://anthropic.com/claude"
             target="_blank"
             rel="noreferrer"
-            className="text-slate-500 hover:text-slate-300 transition-colors font-medium"
+            className="text-slate-500 hover:text-slate-700 transition-colors font-medium"
           >
             Claude
           </a>
