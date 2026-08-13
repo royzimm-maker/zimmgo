@@ -2,6 +2,7 @@
 
 import { ArrowRight, MapPin, Star, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/branding/Logo";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useRouter } from "next/navigation";
 
@@ -64,7 +65,7 @@ export function LandingHero() {
 
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4">
-        <span className="text-xl font-bold text-white tracking-tight">ZimmGo</span>
+        <Logo size={34} dark />
         <button
           onClick={startPlanning}
           className="text-sm text-slate-400 hover:text-white transition-colors"

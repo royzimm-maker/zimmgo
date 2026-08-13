@@ -1,5 +1,6 @@
 import { PlanningFlow } from "@/components/planning/PlanningFlow";
 import { TripSwitcher } from "@/components/TripSwitcher";
+import { Logo } from "@/components/branding/Logo";
 
 export const metadata = {
   title: "Plan your trip — ZimmGo",
@@ -23,7 +24,7 @@ export default function PlanPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <a href="/" className="flex items-center gap-2">
-              <span className="text-xl font-bold text-brand-600 tracking-tight">ZimmGo</span>
+              <Logo size={30} />
               <span className="hidden text-xs text-slate-400 sm:block">AI Travel Planner</span>
             </a>
           </div>
