@@ -14,6 +14,7 @@ import type {
   Destination,
   DatePreference,
   HotelOption,
+  FlightOption,
   LodgingPreference,
   AirlinePreference,
   ActivityCategory,
@@ -76,6 +77,7 @@ interface TripState {
 
   // Itinerary
   addItinerary: (itinerary: GeneratedItinerary) => void;
+  setItineraryFlights: (itineraryId: string, flights: FlightOption[]) => void;
   updateItineraryRefinements: (itineraryId: string, refinements: ItineraryRefinements) => void;
   saveFinalizedPlan: (itineraryId: string, plan: FinalizedPlan) => void;
   markItineraryReviewed: (itineraryId: string) => void;
@@ -391,6 +393,21 @@ export const useTripStore = create<TripState>()(
           trip: {
             ...s.trip,
             itineraries: [...s.trip.itineraries, itinerary],
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      // Used by the manual "search flights" fallback in the review wizard,
+      // for itineraries generated without any (e.g. search_flights came back
+      // empty, or the AI skipped the call) — lets the traveller retry the
+      // search themselves instead of being stuck with no flight options ever.
+      setItineraryFlights: (itineraryId, flights) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            itineraries: s.trip.itineraries.map((it) =>
+              it.id === itineraryId ? { ...it, flights } : it
+            ),
             updatedAt: new Date().toISOString(),
           },
         })),

@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, MapPin, Sparkles } from "lucide-react";
+import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, MapPin, Sparkles, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { useExpandablePreview } from "@/lib/hooks/useExpandablePreview";
 import { fetchSmartPick } from "@/lib/api/smartPick";
+import { fetchFlightSearch } from "@/lib/api/searchFlights";
 import { fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
 import {
   Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard,
@@ -40,8 +41,24 @@ interface WizardStep {
 }
 
 export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
-  const { trip, setSelectedFlight, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity } = useTripStore();
+  const { trip, setSelectedFlight, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity, setItineraryFlights } = useTripStore();
   const preferences = trip.preferences;
+
+  const [searchingFlights, setSearchingFlights] = useState(false);
+  const [flightSearchError, setFlightSearchError] = useState<string | null>(null);
+
+  async function handleSearchFlights() {
+    setSearchingFlights(true);
+    setFlightSearchError(null);
+    try {
+      const flights = await fetchFlightSearch(preferences);
+      setItineraryFlights(itinerary.id, flights);
+    } catch (e: unknown) {
+      setFlightSearchError(e instanceof Error ? e.message : "Flight search failed");
+    } finally {
+      setSearchingFlights(false);
+    }
+  }
 
   const { wanderlogLabels, handleSaveToWanderlog } = useWanderlogSave(itinerary);
 
@@ -254,8 +271,20 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
             <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50 px-4 py-6 text-center">
               <p className="text-sm text-amber-800">Flight search was skipped for this trip.</p>
               <p className="text-xs text-amber-700 mt-1">
-                Your dates are further out than airlines typically open bookings for — check back closer to your trip to add flights.
+                Your dates are further out than airlines typically open bookings for — but you can search now anyway if you'd like.
               </p>
+              <SearchFlightsButton
+                onClick={handleSearchFlights}
+                loading={searchingFlights}
+                disabled={!preferences.destination?.departureAirport || !preferences.destination?.arrivalAirport}
+                error={flightSearchError}
+              />
+            </div>
+          ) : preferences.destination?.departureAirport && preferences.destination?.arrivalAirport ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+              <p className="text-sm text-slate-500">No specific flight options found yet.</p>
+              <p className="text-xs text-slate-400 mt-1">Ask ZiGy in the chat panel for suggestions, or search again below.</p>
+              <SearchFlightsButton onClick={handleSearchFlights} loading={searchingFlights} error={flightSearchError} />
             </div>
           ) : (
             <EmptyState label="flight options" />
@@ -421,6 +450,38 @@ function EmptyState({ label }: { label: string }) {
     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
       <p className="text-sm text-slate-500">No specific {label} found yet.</p>
       <p className="text-xs text-slate-400 mt-1">Ask ZiGy in the chat panel for suggestions — you can move on for now.</p>
+    </div>
+  );
+}
+
+function SearchFlightsButton({
+  onClick,
+  loading,
+  disabled = false,
+  error,
+}: {
+  onClick: () => void;
+  loading: boolean;
+  disabled?: boolean;
+  error: string | null;
+}) {
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={loading || disabled}
+        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
+      >
+        <Search size={14} />
+        {loading ? "Searching…" : "Search for flights"}
+      </button>
+      {disabled && !loading && (
+        <p className="text-[11px] text-slate-400 mt-1.5">
+          Set a departure airport on the Flights step first.
+        </p>
+      )}
+      {error && <p className="text-xs text-red-600 mt-1.5">{error}</p>}
     </div>
   );
 }
