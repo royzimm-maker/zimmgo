@@ -129,7 +129,7 @@ export function LandingHero() {
           ))}
         </div>
         <p className="mt-3 text-xs text-slate-400">
-          9 guided steps · complete what matters, skip what doesn&apos;t
+          9 guided steps to help you plan everything you need for your next dream vacation
         </p>
       </div>
 
