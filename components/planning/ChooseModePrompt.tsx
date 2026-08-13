@@ -65,7 +65,7 @@ export function ChooseModePrompt({
         className={`flex items-start justify-between gap-3 rounded-xl border p-4 text-left transition-all disabled:opacity-70 ${
           selected === "zigy"
             ? "border-brand-500 ring-2 ring-brand-200 shadow-md bg-brand-50/50"
-            : "border-brand-300 bg-brand-50/50 hover:border-brand-400 hover:shadow-sm"
+            : "border-slate-200 bg-white hover:border-brand-300 hover:shadow-sm"
         }`}
       >
         <div>

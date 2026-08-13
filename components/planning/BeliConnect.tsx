@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
 
@@ -8,10 +8,21 @@ import { useTripStore } from "@/lib/store/tripStore";
 // than waiting for the host step's Continue button, so it can be dropped into
 // whichever step makes sense without wiring into that step's handleContinue.
 export function BeliConnect() {
-  const { trip, setBeliPref } = useTripStore();
+  const { trip, setBeliPref, defaultBeliPref } = useTripStore();
   const existing = trip.preferences.beliPref;
-  const [beliUsername, setBeliUsername] = useState(existing?.username ?? "");
-  const [beliConnected, setBeliConnectedState] = useState(existing?.connected ?? false);
+  // Falls back to the remembered connection from a previous trip when this
+  // trip hasn't set one yet, so returning users don't have to reconnect.
+  const [beliUsername, setBeliUsername] = useState(existing?.username ?? defaultBeliPref?.username ?? "");
+  const [beliConnected, setBeliConnectedState] = useState(existing?.connected ?? defaultBeliPref?.connected ?? false);
+
+  // The fallback above is cosmetic only — write it into this trip's own
+  // preferences too, otherwise restaurant generation (which reads
+  // trip.preferences.beliPref directly) wouldn't actually use it despite the
+  // UI showing "Connected".
+  useEffect(() => {
+    if (!existing && defaultBeliPref) setBeliPref(defaultBeliPref);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function connect() {
     setBeliConnectedState(true);

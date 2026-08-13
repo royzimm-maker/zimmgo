@@ -98,6 +98,9 @@ interface TripState {
   // User-level default (persists across trips, unlike trip.preferences)
   defaultDepartureAirport?: string;
   setDefaultDepartureAirport: (airport: string | undefined) => void;
+  // Same idea for Beli — connecting is a one-time account link, not a
+  // per-trip preference, so it shouldn't have to be redone every trip.
+  defaultBeliPref?: BeliPreference;
 }
 
 // ─── Initial values ────────────────────────────────────────────────────────────
@@ -289,6 +292,9 @@ export const useTripStore = create<TripState>()(
           },
         })),
 
+      // Also updates the remembered default so the next trip starts already
+      // connected — a Beli account link isn't something worth re-entering
+      // per trip, unlike trip-scoped preferences.
       setBeliPref: (beliPref) =>
         set((s) => ({
           trip: {
@@ -296,6 +302,7 @@ export const useTripStore = create<TripState>()(
             preferences: { ...s.trip.preferences, beliPref },
             updatedAt: new Date().toISOString(),
           },
+          defaultBeliPref: beliPref,
         })),
 
       setSelectedHotel: (selectedHotel) =>
@@ -490,6 +497,7 @@ export const useTripStore = create<TripState>()(
 
       defaultDepartureAirport: undefined,
       setDefaultDepartureAirport: (defaultDepartureAirport) => set({ defaultDepartureAirport }),
+      defaultBeliPref: undefined,
     }),
     {
       name: "zimmgo-trip",
@@ -503,6 +511,7 @@ export const useTripStore = create<TripState>()(
         // Deliberately survives resetTrip() — a new trip should still default
         // to the airport the user flies from most, unlike trip-scoped prefs.
         defaultDepartureAirport: state.defaultDepartureAirport,
+        defaultBeliPref: state.defaultBeliPref,
       }),
     }
   )

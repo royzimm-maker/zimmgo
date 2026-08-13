@@ -9,16 +9,21 @@ import { useTripStore } from "@/lib/store/tripStore";
 import { BUDGET_LABELS, type BudgetRange } from "@/types/trip";
 
 // ─── Lodging tier options ─────────────────────────────────────────────────────
+// Deliberately price-only — no star rating or accommodation style claims here.
+// A boutique hotel and a big chain can land at the same nightly rate, and
+// "$200-400 = 4-star" isn't reliably true, so pinning a style/star claim to a
+// price band both overpromises and duplicates the Lodging step's own type
+// and star-rating pickers, which are the actual place to choose that.
 const LODGING_TIERS: {
   id: BudgetRange;
   label: string;
   sublabel: string;
-  exampleHotel: string;
+  note: string;
 }[] = [
-  { id: "under_500",  label: "Under $200 / room / night", sublabel: "Value-focused",          exampleHotel: "Boutique 3★, guesthouse, or Airbnb" },
-  { id: "500_750",    label: "$200 – $400 / room / night", sublabel: "Comfort-focused",       exampleHotel: "4★ hotel or premium Airbnb" },
-  { id: "750_1000",   label: "$400 – $700 / room / night", sublabel: "Premium experience",    exampleHotel: "4–5★ or design hotel" },
-  { id: "1000_plus",  label: "$700+ / room / night",       sublabel: "Luxury / no compromise", exampleHotel: "5★ suite or exclusive villa" },
+  { id: "under_500",  label: "Under $200 / room / night",  sublabel: "Value-focused",          note: "Keeps lodging costs low so the budget goes further elsewhere" },
+  { id: "500_750",    label: "$200 – $400 / room / night", sublabel: "Comfort-focused",        note: "A solid range for well-reviewed stays, whatever style you're after" },
+  { id: "750_1000",   label: "$400 – $700 / room / night", sublabel: "Premium experience",     note: "More space, service, and amenities, at any style of property" },
+  { id: "1000_plus",  label: "$700+ / room / night",       sublabel: "Luxury / no compromise", note: "Top-tier service and space, wherever you choose to stay" },
 ];
 
 // ─── Food budget presets ──────────────────────────────────────────────────────
@@ -205,6 +210,7 @@ export function BudgetStep() {
           <p className="mb-1 text-sm font-semibold text-slate-700">Lodging budget</p>
           <p className="mb-3 text-xs text-slate-400">
             Per room per night — pick as many tiers as you&apos;d consider, we&apos;ll match hotels and rentals across them.
+            You&apos;ll choose hotel type and star rating separately in the Lodging step.
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {LODGING_TIERS.map((opt) => (
@@ -225,7 +231,7 @@ export function BudgetStep() {
                   <div>
                     <p className="font-semibold text-slate-900 text-sm">{opt.label}</p>
                     <p className="text-xs text-brand-600 font-medium">{opt.sublabel}</p>
-                    <p className="mt-1.5 text-xs text-slate-500">🏨 {opt.exampleHotel}</p>
+                    <p className="mt-1.5 text-xs text-slate-500">{opt.note}</p>
                   </div>
                 </div>
               </Card>

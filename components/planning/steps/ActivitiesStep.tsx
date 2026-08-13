@@ -160,11 +160,13 @@ export function ActivitiesStep() {
       continueDisabled={totalSelected === 0}
       subtitle="What kind of experiences do you love? We'll weave these into your itinerary."
     >
-      <ModeToggleBanner
-        label="Activities for you to choose from — or let ZiGy pick."
-        onZigy={handleZigyPick}
-        loading={picking}
-      />
+      {modeChoice !== "zigy" && (
+        <ModeToggleBanner
+          label="Activities for you to choose from — or let ZiGy pick."
+          onZigy={handleZigyPick}
+          loading={picking}
+        />
+      )}
       {pickSummary && (
         <div className="mb-4 rounded-lg bg-brand-50 px-3 py-2">
           <p className="text-xs text-brand-600">

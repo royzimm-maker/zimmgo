@@ -288,11 +288,13 @@ export function LodgingStep() {
       continueDisabled={!hasType}
       subtitle="We'll surface options that match your taste."
     >
-      <ModeToggleBanner
-        label="Lodging preferences for you to choose from — or let ZiGy pick."
-        onZigy={handleZigyPick}
-        loading={picking}
-      />
+      {modeChoice !== "zigy" && (
+        <ModeToggleBanner
+          label="Lodging preferences for you to choose from — or let ZiGy pick."
+          onZigy={handleZigyPick}
+          loading={picking}
+        />
+      )}
       <div className="flex flex-col gap-6">
         {pickSummary && (
           <div className="rounded-lg bg-brand-50 px-3 py-2">
