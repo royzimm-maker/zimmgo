@@ -38,6 +38,11 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     const d = preferences.dates;
     if (d.type === "exact") {
       parts.push(`Travel dates: ${d.startDate} to ${d.endDate}.`);
+      if (isMulti) {
+        parts.push(
+          `If that date range is too short to reasonably cover all ${cityList.length} destinations (e.g. it's only a day or two for a multi-city trip), do not silently build a plan for the literal dates — explain in your summary that you're extending the trip and state the corrected date range and per-city night split, AND build the actual \`days\` array in generate_itinerary to match that corrected range exactly, one day per date, starting from the original start date. The written summary and the \`days\` array must always describe the same length trip — never promise more days in prose than the \`days\` array actually contains.`
+        );
+      }
     } else {
       parts.push(`Flexible travel: ~${d.flexibleDuration} days in ${d.flexibleMonth}.`);
     }

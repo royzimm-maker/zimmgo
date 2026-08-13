@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Shuffle, Info } from "lucide-react";
+import { Calendar, Shuffle, Info, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SimpleDatePicker } from "@/components/ui/SimpleDatePicker";
 import { cn } from "@/lib/utils";
@@ -52,8 +52,19 @@ export function DatesStep() {
   const [customDur,    setCustomDur   ] = useState(false);
   const [customDurVal, setCustomDurVal] = useState("");
 
+  // At least one night per city, so a multi-city trip can't be planned with
+  // fewer nights than destinations — a same-day date range for e.g. 3 cities
+  // forces the itinerary generator to silently squash or invent days.
+  const cityCount = trip.preferences.destination?.cities?.filter(Boolean).length ?? 1;
+  const minNights = Math.max(1, cityCount);
+  const tripNights =
+    startDate && endDate
+      ? Math.round((new Date(endDate + "T00:00:00").getTime() - new Date(startDate + "T00:00:00").getTime()) / 86400000)
+      : 0;
+  const tooFewNights = mode === "exact" && !!startDate && !!endDate && startDate <= endDate && tripNights < minNights;
+
   function isValid() {
-    if (mode === "exact") return !!startDate && !!endDate && startDate <= endDate;
+    if (mode === "exact") return !!startDate && !!endDate && startDate <= endDate && tripNights >= minNights;
     return true;
   }
 
@@ -128,6 +139,15 @@ export function DatesStep() {
               softMax={maxDate}
             />
           </div>
+          {tooFewNights && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
+              <AlertCircle size={15} className="text-red-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-red-800 leading-relaxed">
+                {tripNights} night{tripNights !== 1 ? "s" : ""} isn&apos;t enough to cover all {cityCount} destinations on this trip
+                — pick a return date at least {minNights} night{minNights !== 1 ? "s" : ""} after departure.
+              </p>
+            </div>
+          )}
           {isBeyondFlightWindow && (
             <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
               <Info size={15} className="text-amber-600 shrink-0 mt-0.5" />
