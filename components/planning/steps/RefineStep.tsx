@@ -14,9 +14,8 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { X, Sparkles, Heart, ArrowRight } from "lucide-react";
+import { X, Sparkles, Heart, ArrowRight, Hotel, UtensilsCrossed, Star, CalendarDays, CheckCircle2 } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
-import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { fetchSmartPick } from "@/lib/api/smartPick";
 import { formatCurrency, formatDate, scrollStepToTop } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -296,9 +295,6 @@ export function RefineStep() {
   const [arranging, setArranging] = useState(false);
   const [arrangeSummaries, setArrangeSummaries] = useState<Record<string, string>>({});
   const [autoPlanCities, setAutoPlanCities] = useState<Set<string>>(new Set());
-  // Returning users who already personalized skip straight to the board
-  const [mode, setMode] = useState<"prompt" | "manual">(() => (itinerary?.finalizedPlan ? "manual" : "prompt"));
-  const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -460,7 +456,6 @@ export function RefineStep() {
     } finally {
       setArranging(false);
       setAutoPlanCities(new Set());
-      setMode("manual");
     }
   }
 
@@ -482,40 +477,23 @@ export function RefineStep() {
     );
   }
 
-  if (mode === "prompt") {
-    return (
-      <StepShell
-        stepId="refine"
-        continueLabel="Continue"
-        continueDisabled={!modeChoice}
-        continueLoading={arranging}
-        onContinue={async () => {
-          if (modeChoice === "manual") setMode("manual");
-          else if (modeChoice === "zigy") await handleAutoPlanAll();
-          scrollStepToTop(); // switching views here doesn't remount the step
-          return false; // stay on this step — just switches to the board view
-        }}
-        subtitle="How do you want to personalize your plan?"
-      >
-        <ChooseModePrompt
-          manualLabel="I'll build it myself"
-          manualDescription="Drag activities and restaurants onto each day yourself, one city at a time."
-          zigyLabel="Let ZiGy plan it for me"
-          zigyLoadingLabel={
-            autoPlanCities.size > 0
-              ? `ZiGy is arranging — ${Array.from(autoPlanCities).join(", ")}…`
-              : "ZiGy is arranging…"
-          }
-          zigyDescription="ZiGy sequences every city's activities and restaurants across the days — you can still review and adjust anything after."
-          selected={modeChoice}
-          onSelect={setModeChoice}
-          loading={arranging}
-        />
-      </StepShell>
-    );
-  }
-
   const placedCount = Object.values(dayCards).flat().length;
+
+  // What's already been decided in earlier steps, per city — the point of
+  // this summary is to make clear that hotel/restaurant/activity picks
+  // aren't starting from scratch here, only day-by-day scheduling is.
+  const cityDecisions = cities.map((city) => {
+    const hotelName = trip.preferences.selectedHotelsByCity?.[city]?.name;
+    const restaurantCount = (itinerary.restaurants ?? []).filter(
+      (r) => resolveCardCity(r.location, cities) === city && (trip.preferences.selectedRestaurantIds ?? []).includes(r.id)
+    ).length;
+    const activityCount = itinerary.activities.filter(
+      (a) => resolveCardCity(a.location, cities) === city && (trip.preferences.selectedActivityIds ?? []).includes(a.id)
+    ).length;
+    const cityDays = days.filter((d) => !d.location || locationsMatch(d.location, city));
+    const scheduledDays = cityDays.filter((d) => (dayCards[d.dayNumber] ?? []).length > 0).length;
+    return { city, hotelName, restaurantCount, activityCount, totalDays: cityDays.length, scheduledDays };
+  });
   const activeCard = activeId ? cardMap[activeId] : null;
 
   // Scope the board to one city at a time — reduces clutter on multi-city trips
@@ -552,8 +530,62 @@ export function RefineStep() {
       stepId="refine"
       continueLabel="Done — view my plan"
       onContinue={handleDone}
-      subtitle="Drag activities and restaurants onto each day to personalize your plan."
+      subtitle="Here's what's already set — fill in any gaps or fine-tune the schedule below."
     >
+      {/* What's already decided, per city — the hotel/restaurant/activity
+          picks came from the review wizard, not from scratch here. Gaps are
+          called out neutrally: an empty day or no hotel yet might be
+          deliberate for travellers who want to keep things loose. */}
+      <div className="rounded-xl border border-slate-200 bg-white mb-4 overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-slate-700">Where things stand</p>
+          {cities.length > 1 && (
+            <button
+              type="button"
+              onClick={handleAutoPlanAll}
+              disabled={arranging}
+              className="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-700 transition-colors disabled:opacity-60"
+            >
+              <Sparkles size={11} />
+              {arranging
+                ? autoPlanCities.size > 0
+                  ? `Arranging ${Array.from(autoPlanCities).join(", ")}…`
+                  : "Arranging…"
+                : "Let ZiGy schedule every city"}
+            </button>
+          )}
+        </div>
+        <div className="divide-y divide-slate-100">
+          {cityDecisions.map(({ city, hotelName, restaurantCount, activityCount, totalDays, scheduledDays }) => {
+            const allScheduled = totalDays > 0 && scheduledDays === totalDays;
+            return (
+              <div key={city} className="px-4 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+                <p className="text-xs font-semibold text-slate-800 min-w-[80px]">{city}</p>
+                <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                  <Hotel size={11} className={hotelName ? "text-brand-400" : "text-amber-500"} />
+                  {hotelName ?? "No hotel picked yet"}
+                </span>
+                <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                  <UtensilsCrossed size={11} className="text-brand-400" />
+                  {restaurantCount} restaurant{restaurantCount !== 1 ? "s" : ""}
+                </span>
+                <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                  <Star size={11} className="text-brand-400" />
+                  {activityCount} activit{activityCount !== 1 ? "ies" : "y"}
+                </span>
+                <span className={`ml-auto flex items-center gap-1 text-[11px] font-medium ${allScheduled ? "text-sage-600" : "text-slate-400"}`}>
+                  {allScheduled ? <CheckCircle2 size={11} /> : <CalendarDays size={11} />}
+                  {scheduledDays} of {totalDays} day{totalDays !== 1 ? "s" : ""} scheduled
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p className="px-4 py-2 text-[10px] text-slate-400 border-t border-slate-100">
+          An empty day just means nothing's scheduled for it yet — that's fine if you'd rather keep things open. Drag items below to fill it in, or ask ZiGy.
+        </p>
+      </div>
+
       {/* Progress hint */}
       <div className="flex items-center justify-between text-xs mb-4">
         <span className="text-slate-500">
@@ -598,7 +630,7 @@ export function RefineStep() {
         <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-sage-200 bg-sage-50 px-3 py-2.5">
           <p className="text-xs text-sage-700">
             {activeCityComplete ? (
-              <><span className="font-semibold">{effectiveCity} is all set!</span> Ready to personalize {nextCity}?</>
+              <><span className="font-semibold">{effectiveCity} is all set!</span> Ready to fine-tune {nextCity}?</>
             ) : (
               <>{effectiveCity} looks good — move on to {nextCity} whenever you're ready.</>
             )}

@@ -72,7 +72,7 @@ export function ItineraryStep() {
   return (
     <StepShell
       stepId="itinerary"
-      continueLabel={isPersonalized ? "Update personalization" : "Personalize my plan"}
+      continueLabel={isPersonalized ? "Update my schedule" : "Review & fine-tune my plan"}
       continueDisabled={!latest}
       onContinue={() => goToStep("refine")}
       // "Skip" would go to the same next step ("refine") as the primary
@@ -86,7 +86,7 @@ export function ItineraryStep() {
         <div className="mb-4 flex items-center gap-3 rounded-xl bg-gradient-to-r from-sage-50 to-brand-50 border border-sage-200 px-4 py-3">
           <CheckCircle2 size={18} className="text-sage-600 shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-sage-700">Personalization saved!</p>
+            <p className="text-sm font-semibold text-sage-700">Schedule saved!</p>
             <p className="text-xs text-slate-500">Your picks now appear as chips in each day card below.</p>
           </div>
         </div>
@@ -98,7 +98,7 @@ export function ItineraryStep() {
           <Trophy size={20} className="text-brand-500 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-brand-700">
-              {isPersonalized ? "Itinerary personalized!" : "Itinerary unlocked!"}
+              {isPersonalized ? "Itinerary scheduled!" : "Itinerary unlocked!"}
             </p>
             <p className="text-xs text-slate-500">
               {isPersonalized

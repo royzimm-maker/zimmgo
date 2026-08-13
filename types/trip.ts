@@ -369,7 +369,7 @@ export const STEP_META: Record<StepId, Omit<PlanningStep, "completed">> = {
   airlines:       { id: "airlines",       label: "Flights",        description: "Any airline preferences?",       skippable: true  },
   transportation: { id: "transportation", label: "Getting Around", description: "How will you move locally?",     skippable: false },
   itinerary:      { id: "itinerary",      label: "Itinerary",      description: "Your personalised day-by-day plan", skippable: false },
-  refine:         { id: "refine",         label: "Personalize",    description: "Fine-tune your plan",              skippable: true  },
+  refine:         { id: "refine",         label: "Review & Fine-Tune", description: "Check what's set, fill any gaps", skippable: true  },
 };
 
 export function calcProgress(completedSteps: StepId[]): number {
