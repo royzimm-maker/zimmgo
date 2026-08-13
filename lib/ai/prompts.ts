@@ -3,7 +3,8 @@ import { resolveBudget } from "@/types/trip";
 
 // "Where do you want to go?" free-text input — parsed with parse_destination
 export function buildDestinationParsePrompt(text: string): string {
-  return `The traveller typed this into a "where do you want to go?" field:\n\n"${text}"\n\nCall parse_destination with the real place names they mentioned (respecting any explicit constraints they stated, like "just X" or "no side trips" implying a single city) and a clean display label.`;
+  return `The traveller typed this into a "where do you want to go?" field:\n\n"${text}"\n\nCall parse_destination with the real place names they mentioned (respecting any explicit constraints they stated, like "just X" or "no side trips" implying a single city) and a clean display label. ` +
+    `If they named more than one place, order \`cities\` in a sensible visiting sequence based on real-world geography (e.g. don't zigzag back and forth across a country or region) — not necessarily the order they happened to type them in. Only preserve their literal order if they clearly stated a specific route or sequence (e.g. "start in X, end in Y").`;
 }
 
 // Builds the user-facing prompt for itinerary generation from the stored preferences
@@ -136,7 +137,10 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
       cityList.length ? cityList.map((c) => `"${c}"`).join(", ") : `"${destNames}"`
     }), each with the exact id of the specific hotel you're recommending and writing about in your final summary. ` +
     "This must be a hotel id you actually got back from search_hotels for that city — don't invent one. " +
-    "The app displays whichever hotel you name here, so if your summary describes a specific property (name, price, why it's a good fit), that same hotel must be the one you select here — never describe one hotel in your prose and select a different one."
+    "The app displays whichever hotel you name here, so if your summary describes a specific property (name, price, why it's a good fit), that same hotel must be the one you select here — never describe one hotel in your prose and select a different one. " +
+    (isMulti
+      ? `Also include \`inter_city_travel\` in that same generate_itinerary call: one entry for each transfer between consecutive legs in this order (${cityList.map((c) => `"${c}"`).join(" → ")}) — how the traveller actually gets from each city to the next (mode + rough duration), based on real-world geography. This is shown to the traveller on the day they arrive in each new city, so it needs to be concrete and correct, not vague ("travel between cities").`
+      : "")
   );
 
   return parts.join(" ");

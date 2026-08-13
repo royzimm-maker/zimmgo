@@ -98,6 +98,9 @@ export async function POST(request: NextRequest) {
     // set by its generate_itinerary call so the "Recommended Lodging" card
     // can show that same hotel instead of an arbitrary search result.
     let selectedHotelIdByCity: Record<string, string> = {};
+    // How to actually get from the previous city to this one — shown on the
+    // first day of each new city leg.
+    let travelNoteByCity: Record<string, string> = {};
 
     // We allow up to 8 tool-call rounds to prevent infinite loops
     for (let round = 0; round < 8; round++) {
@@ -135,9 +138,15 @@ export async function POST(request: NextRequest) {
         if (block.name === "search_activities")   activities   = [...activities,   ...(result as ActivityOption[])];
         if (block.name === "search_restaurants")  restaurants  = [...restaurants,  ...(result as RestaurantOption[])];
         if (block.name === "generate_itinerary") {
-          const input = block.input as { selected_hotels?: { city: string; hotel_id: string }[] };
+          const input = block.input as {
+            selected_hotels?: { city: string; hotel_id: string }[];
+            inter_city_travel?: { to_city: string; note: string }[];
+          };
           for (const sel of input.selected_hotels ?? []) {
             selectedHotelIdByCity[sel.city] = sel.hotel_id;
+          }
+          for (const leg of input.inter_city_travel ?? []) {
+            travelNoteByCity[leg.to_city] = leg.note;
           }
         }
 
@@ -209,6 +218,7 @@ export async function POST(request: NextRequest) {
       restaurants,
       aiSummary: finalText,
       selectedHotelIdByCity,
+      travelNoteByCity,
     });
 
     return NextResponse.json(itinerary);
@@ -231,10 +241,12 @@ interface AssembleParams {
   // City name (matching preferences.destination.cities) → hotel id, from the
   // AI's own generate_itinerary call — see the hotelsByCity reordering below.
   selectedHotelIdByCity: Record<string, string>;
+  // City name → how to get there from the previous leg, from the same call.
+  travelNoteByCity: Record<string, string>;
 }
 
 function assembleItinerary(p: AssembleParams): GeneratedItinerary {
-  const { preferences, flights, activities, restaurants, aiSummary, tripId, selectedHotelIdByCity } = p;
+  const { preferences, flights, activities, restaurants, aiSummary, tripId, selectedHotelIdByCity, travelNoteByCity } = p;
   let hotels = p.hotels;
 
   let startDate: string;
@@ -256,7 +268,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     numDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
   }
 
-  const days: ItineraryDay[] = buildDays(parseLocalDate(startDate), numDays, activities, restaurants, preferences);
+  const days: ItineraryDay[] = buildDays(parseLocalDate(startDate), numDays, activities, restaurants, preferences, travelNoteByCity);
 
   // If user pre-selected a hotel in the Lodging step, use it; otherwise use AI-searched results
   if (preferences.selectedHotel) {
@@ -346,7 +358,8 @@ function buildDays(
   numDays: number,
   activities: ActivityOption[],
   restaurants: RestaurantOption[],
-  preferences: TripPreferences
+  preferences: TripPreferences,
+  travelNoteByCity: Record<string, string> = {}
 ): ItineraryDay[] {
   const dest = preferences.destination?.displayName ?? "the destination";
   const cities = preferences.destination?.cities?.filter(Boolean) ?? [];
@@ -381,6 +394,17 @@ function buildDays(
     const cityActivities = scopeToLocation(activities, location);
     const cityRestaurants = scopeToLocation(restaurants, location);
 
+    // First day overall gets a jet-lag note; the first day of every
+    // subsequent city gets how to actually make that transfer, when the AI
+    // supplied one — otherwise that day just has no note, rather than a
+    // vague placeholder.
+    const isNewCityLeg = i > 0 && cityDayIndex === 0;
+    const notes = i === 0
+      ? "Allow time for jet lag recovery — keep the first evening light."
+      : isNewCityLeg
+      ? travelNoteByCity[location]
+      : undefined;
+
     return {
       date: isoDate,
       dayNumber: i + 1,
@@ -390,7 +414,7 @@ function buildDays(
       afternoon: buildTimeBlock("afternoon", cityDayIndex, cityActivities, cityLabel),
       evening:   buildTimeBlock("evening",   cityDayIndex, cityActivities, cityLabel),
       meals:     buildMeals(cityDayIndex, numDays, preferences, cityRestaurants),
-      notes: i === 0 ? "Allow time for jet lag recovery — keep the first evening light." : undefined,
+      notes,
     };
   });
 }

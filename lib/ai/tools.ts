@@ -128,6 +128,18 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
         },
         selected_flight_ids: { type: "array", items: { type: "string" } },
         selected_activity_ids: { type: "array", items: { type: "string" } },
+        inter_city_travel: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              to_city: { type: "string", description: "The destination city of this leg — must exactly match one of the destination city names given in the prompt, excluding the very first city (there's nothing to travel from before it)." },
+              note: { type: "string", description: "One short, concrete sentence on how to actually make this transfer — mode (train/flight/rental car/ferry) and a rough duration, e.g. \"Take the ~2.5hr AVE high-speed train from Barcelona to Seville.\" Base this on real-world geography and the traveller's stated local transport preferences." },
+            },
+            required: ["to_city", "note"],
+          },
+          description: "Required for multi-destination trips: one entry per city-to-city transfer, in visiting order, describing how the traveller actually gets from the previous city to this one.",
+        },
       },
       required: ["destination"],
     },
@@ -148,7 +160,7 @@ export const PARSE_DESTINATION_TOOL: Anthropic.Tool = {
       cities: {
         type: "array",
         items: { type: "string" },
-        description: "Real place names only (e.g. \"Barcelona\", \"Kyoto\") — never sentence fragments, filler words, or the traveller's own instructions. A single-city trip should have exactly one entry.",
+        description: "Real place names only (e.g. \"Barcelona\", \"Kyoto\") — never sentence fragments, filler words, or the traveller's own instructions. A single-city trip should have exactly one entry. For multiple places, order them in a logical geographic visiting sequence, not necessarily the order the traveller typed them.",
       },
       displayName: {
         type: "string",
