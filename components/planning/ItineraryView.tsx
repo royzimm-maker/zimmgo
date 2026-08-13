@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, BookMarked, Calendar, List } from "lucide-react";
+import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, BookMarked, Calendar, List, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate, pairFlights, groupByLocation } from "@/lib/utils";
@@ -117,6 +117,19 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
       <div className={showCalendar ? "flex flex-col gap-6 print:hidden" : "contents"}>
       {/* Trip at a Glance */}
       <TripGlance itinerary={itinerary} preferences={preferences} />
+
+      {/* Gateway city advisory — flagged when the arrival/departure airport
+          isn't in any of the destination cities and a same-day connection
+          isn't realistic, so it's easy to miss until you're booking. */}
+      {itinerary.gatewayAdvisory && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <Lightbulb size={16} className="text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-amber-800 mb-0.5">Plan a gateway-city stopover</p>
+            <p className="text-xs text-amber-800 leading-relaxed">{itinerary.gatewayAdvisory}</p>
+          </div>
+        </div>
+      )}
 
       {/* ZiGy's Take */}
       <div className="rounded-xl border border-sage-200 bg-white overflow-hidden">

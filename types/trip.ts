@@ -288,6 +288,10 @@ export interface GeneratedItinerary {
   currency: string;
   aiSummary: string;
   whyThisWorks: string;
+  // Set only when the arrival/departure airport isn't in one of the
+  // destination cities and a same-day onward connection genuinely isn't
+  // realistic — flags that a night in the gateway city is worth planning for.
+  gatewayAdvisory?: string;
   neighborhoods?: NeighborhoodOption[];
   refinements?: ItineraryRefinements;
   wanderlog?: WanderlogItem[];

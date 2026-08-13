@@ -140,6 +140,11 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
           },
           description: "Required for multi-destination trips: one entry per city-to-city transfer, in visiting order, describing how the traveller actually gets from the previous city to this one.",
         },
+        gateway_advisory: {
+          type: "string",
+          description:
+            "Only set this if the traveller's arrival/departure airport is in a city that ISN'T one of their destination cities, AND reaching the first (or leaving from the last) destination the same day genuinely isn't realistic — e.g. no practical same-day onward connection, or it would eat most of a travel day. State plainly that they should plan on a night in the gateway city before heading to the first destination and/or before the flight home, and roughly why. Omit entirely if the traveller is flying directly into/out of one of their own destination cities, or if a same-day onward connection is realistic.",
+        },
       },
       required: ["destination"],
     },

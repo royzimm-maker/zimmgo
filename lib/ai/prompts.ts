@@ -140,7 +140,8 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     "The app displays whichever hotel you name here, so if your summary describes a specific property (name, price, why it's a good fit), that same hotel must be the one you select here — never describe one hotel in your prose and select a different one. " +
     (isMulti
       ? `Also include \`inter_city_travel\` in that same generate_itinerary call: one entry for each transfer between consecutive legs in this order (${cityList.map((c) => `"${c}"`).join(" → ")}) — how the traveller actually gets from each city to the next (mode + rough duration), based on real-world geography. This is shown to the traveller on the day they arrive in each new city, so it needs to be concrete and correct, not vague ("travel between cities").`
-      : "")
+      : "") +
+    " Also check whether the traveller's arrival/departure airport is actually in one of their destination cities. If it isn't, decide honestly whether a same-day onward connection to the first destination (or a same-day return from the last one) is realistic — if not, set `gateway_advisory` on the same generate_itinerary call flagging that they should plan on a night in the gateway city first/last, with a brief real reason. Leave it unset if a same-day connection is genuinely fine."
   );
 
   return parts.join(" ");

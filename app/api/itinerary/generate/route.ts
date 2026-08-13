@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
     // How to actually get from the previous city to this one — shown on the
     // first day of each new city leg.
     let travelNoteByCity: Record<string, string> = {};
+    let gatewayAdvisory: string | undefined;
 
     // We allow up to 8 tool-call rounds to prevent infinite loops
     for (let round = 0; round < 8; round++) {
@@ -141,6 +142,7 @@ export async function POST(request: NextRequest) {
           const input = block.input as {
             selected_hotels?: { city: string; hotel_id: string }[];
             inter_city_travel?: { to_city: string; note: string }[];
+            gateway_advisory?: string;
           };
           for (const sel of input.selected_hotels ?? []) {
             selectedHotelIdByCity[sel.city] = sel.hotel_id;
@@ -148,6 +150,7 @@ export async function POST(request: NextRequest) {
           for (const leg of input.inter_city_travel ?? []) {
             travelNoteByCity[leg.to_city] = leg.note;
           }
+          if (input.gateway_advisory) gatewayAdvisory = input.gateway_advisory;
         }
 
         toolResults.push({
@@ -219,6 +222,7 @@ export async function POST(request: NextRequest) {
       aiSummary: finalText,
       selectedHotelIdByCity,
       travelNoteByCity,
+      gatewayAdvisory,
     });
 
     return NextResponse.json(itinerary);
@@ -243,10 +247,11 @@ interface AssembleParams {
   selectedHotelIdByCity: Record<string, string>;
   // City name → how to get there from the previous leg, from the same call.
   travelNoteByCity: Record<string, string>;
+  gatewayAdvisory?: string;
 }
 
 function assembleItinerary(p: AssembleParams): GeneratedItinerary {
-  const { preferences, flights, activities, restaurants, aiSummary, tripId, selectedHotelIdByCity, travelNoteByCity } = p;
+  const { preferences, flights, activities, restaurants, aiSummary, tripId, selectedHotelIdByCity, travelNoteByCity, gatewayAdvisory } = p;
   let hotels = p.hotels;
 
   let startDate: string;
@@ -343,6 +348,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     currency: "USD",
     aiSummary: summaryFallback,
     whyThisWorks: whyFallback,
+    gatewayAdvisory,
     neighborhoods: neighborhoods.length ? neighborhoods : undefined,
   };
 }
