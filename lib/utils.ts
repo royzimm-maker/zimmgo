@@ -87,6 +87,25 @@ export function fuzzyCityMatch(a?: string, b?: string): boolean {
   return x === y || x.includes(y) || y.includes(x);
 }
 
+// API routes return `{ error: message }` on failure, but `message` itself is
+// sometimes the Anthropic SDK's own error object serialized to a string
+// (e.g. `401 {"type":"error","error":{"type":"authentication_error",...}}`).
+// Pull out something a user can actually read instead of dumping raw JSON.
+export function extractApiErrorMessage(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw);
+    const inner = typeof parsed?.error === "string" ? parsed.error : JSON.stringify(parsed?.error ?? parsed);
+    if (/"type"\s*:\s*"authentication_error"/.test(inner)) {
+      return "The AI service rejected the configured API key — check ANTHROPIC_API_KEY and try again.";
+    }
+    const msgMatch = inner.match(/"message"\s*:\s*"([^"]+)"/);
+    if (msgMatch) return msgMatch[1];
+    return inner;
+  } catch {
+    return raw;
+  }
+}
+
 /** Group an array of items by location, preserving first-seen order. */
 export function groupByLocation<T>(
   items: T[],

@@ -14,7 +14,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { X, Sparkles, Heart, ArrowRight, Hotel, UtensilsCrossed, Star, CalendarDays, CheckCircle2 } from "lucide-react";
+import { X, Sparkles, Heart, ArrowRight, Hotel, UtensilsCrossed, Star, CalendarDays, CheckCircle2, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { fetchSmartPick } from "@/lib/api/smartPick";
 import { formatCurrency, formatDate, scrollStepToTop } from "@/lib/utils";
@@ -294,6 +294,7 @@ export function RefineStep() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [arranging, setArranging] = useState(false);
   const [arrangeSummaries, setArrangeSummaries] = useState<Record<string, string>>({});
+  const [arrangeError, setArrangeError] = useState<string | null>(null);
   const [autoPlanCities, setAutoPlanCities] = useState<Set<string>>(new Set());
 
   const sensors = useSensors(
@@ -429,10 +430,14 @@ export function RefineStep() {
   async function handleSmartArrange() {
     if (!effectiveCity) return;
     setArranging(true);
+    setArrangeError(null);
     try {
       await arrangeCity(effectiveCity);
-    } catch {
-      // Silently fail — manual drag-and-drop still works
+    } catch (e: unknown) {
+      // A real failure (bad API key, network blip) shouldn't look identical
+      // to "ZiGy just didn't place anything" — manual drag-and-drop is still
+      // there as a fallback either way, but the user deserves to know why.
+      setArrangeError(e instanceof Error ? e.message : "ZiGy couldn't arrange this city right now");
     } finally {
       setArranging(false);
     }
@@ -440,9 +445,10 @@ export function RefineStep() {
 
   async function handleAutoPlanAll() {
     setArranging(true);
+    setArrangeError(null);
     setAutoPlanCities(new Set(cities));
     try {
-      await Promise.allSettled(
+      const results = await Promise.allSettled(
         cities.map((city) =>
           arrangeCity(city).finally(() => {
             setAutoPlanCities((prev) => {
@@ -453,6 +459,11 @@ export function RefineStep() {
           })
         )
       );
+      const failed = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+      if (failed.length) {
+        const reason = failed[0].reason;
+        setArrangeError(reason instanceof Error ? reason.message : "ZiGy couldn't arrange some cities right now");
+      }
     } finally {
       setArranging(false);
       setAutoPlanCities(new Set());
@@ -559,6 +570,12 @@ export function RefineStep() {
             </button>
           )}
         </div>
+        {arrangeError && (
+          <div className="flex items-start gap-2 border-b border-red-100 bg-red-50 px-4 py-2">
+            <AlertCircle size={13} className="text-red-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-red-700">{arrangeError}</p>
+          </div>
+        )}
         <div className="divide-y divide-slate-100">
           {cityDecisions.map(({ city, hotelName, restaurantCount, activityCount, totalDays, scheduledDays }) => {
             const allScheduled = totalDays > 0 && scheduledDays === totalDays;

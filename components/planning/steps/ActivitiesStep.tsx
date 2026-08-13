@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
@@ -44,7 +44,7 @@ export function ActivitiesStep() {
     () => (trip.preferences.activities.length > 0 ? "manual" : "prompt")
   );
   const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
-  const { picking, pickSummary, run: runSmartPick } = useSmartPick();
+  const { picking, pickSummary, error: pickError, run: runSmartPick } = useSmartPick();
 
   const [selectedGeneral, setSelectedGeneral] = useState<ActivityCategory[]>(
     trip.preferences.activities.filter((a): a is ActivityCategory =>
@@ -150,6 +150,7 @@ export function ActivitiesStep() {
           selected={modeChoice}
           onSelect={setModeChoice}
           loading={picking}
+          error={pickError}
         />
       </StepShell>
     );
@@ -167,7 +168,17 @@ export function ActivitiesStep() {
           label="Activities for you to choose from — or let ZiGy pick."
           onZigy={handleZigyPick}
           loading={picking}
+          error={pickError}
         />
+      )}
+      {/* modeChoice === "zigy" hides the banner above (no redundant "let ZiGy
+          pick" prompt right after picking) — but that means a failure from
+          that exact path needs its own surface, not to vanish along with it. */}
+      {modeChoice === "zigy" && pickError && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+          <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-red-700">{pickError}</p>
+        </div>
       )}
       {pickSummary && (
         <div className="mb-4 rounded-lg bg-brand-50 px-3 py-2">

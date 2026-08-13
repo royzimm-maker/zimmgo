@@ -1,3 +1,4 @@
+import { extractApiErrorMessage } from "@/lib/utils";
 import type { SmartPickRequestBody, SmartPickResponse } from "@/types/smartPick";
 
 export async function fetchSmartPick(body: SmartPickRequestBody): Promise<SmartPickResponse> {
@@ -6,6 +7,6 @@ export async function fetchSmartPick(body: SmartPickRequestBody): Promise<SmartP
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) throw new Error(extractApiErrorMessage(await res.text()));
   return res.json();
 }

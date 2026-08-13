@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { ItineraryView } from "@/components/planning/ItineraryView";
 import { ItinerarySelectionWizard } from "@/components/planning/ItinerarySelectionWizard";
 import { useTripStore } from "@/lib/store/tripStore";
+import { extractApiErrorMessage } from "@/lib/utils";
 import type { GeneratedItinerary } from "@/types/trip";
 
 export function ItineraryStep() {
@@ -27,7 +28,7 @@ export function ItineraryStep() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tripId: trip.id, preferences: trip.preferences }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(extractApiErrorMessage(await res.text()));
       const data: GeneratedItinerary = await res.json();
       addItinerary(data);
       completeStep("itinerary");

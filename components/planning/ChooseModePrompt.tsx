@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, AlertCircle } from "lucide-react";
 
 export type ModeChoice = "manual" | "zigy";
 
@@ -20,6 +20,9 @@ interface Props {
   selected: ModeChoice | null;
   onSelect: (choice: ModeChoice) => void;
   loading: boolean;
+  // Set when a previous ZiGy pick attempt failed — a real failure (bad API
+  // key, network blip) should never look identical to "ZiGy picked nothing."
+  error?: string | null;
 }
 
 const DEFAULT_REASSURANCE =
@@ -35,9 +38,16 @@ export function ChooseModePrompt({
   selected,
   onSelect,
   loading,
+  error,
 }: Props) {
   return (
     <div className="flex flex-col gap-3">
+      {error && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+          <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-red-700">{error}</p>
+        </div>
+      )}
       <button
         type="button"
         onClick={() => onSelect("manual")}

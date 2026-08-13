@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Star, ExternalLink, Check, Sparkles } from "lucide-react";
+import { Star, ExternalLink, Check, Sparkles, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
@@ -40,7 +40,7 @@ export function LodgingStep() {
   const existing = trip.preferences.lodging;
   const [mode, setMode] = useState<"prompt" | "manual">(() => (existing ? "manual" : "prompt"));
   const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
-  const { picking, pickSummary, run: runSmartPick } = useSmartPick();
+  const { picking, pickSummary, error: pickError, run: runSmartPick } = useSmartPick();
   // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
   const destination = trip.preferences.destination?.cities?.[0]
     ?? trip.preferences.destination?.displayName ?? "";
@@ -277,6 +277,7 @@ export function LodgingStep() {
           selected={modeChoice}
           onSelect={setModeChoice}
           loading={picking}
+          error={pickError}
         />
       </StepShell>
     );
@@ -294,7 +295,17 @@ export function LodgingStep() {
           label="Lodging preferences for you to choose from — or let ZiGy pick."
           onZigy={handleZigyPick}
           loading={picking}
+          error={pickError}
         />
+      )}
+      {/* modeChoice === "zigy" hides the banner above (no redundant "let ZiGy
+          pick" prompt right after picking) — but that means a failure from
+          that exact path needs its own surface, not to vanish along with it. */}
+      {modeChoice === "zigy" && pickError && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+          <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-red-700">{pickError}</p>
+        </div>
       )}
       <div className="flex flex-col gap-6">
         {pickSummary && (

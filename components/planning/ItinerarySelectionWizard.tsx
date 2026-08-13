@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, MapPin, Sparkles, Search } from "lucide-react";
+import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, MapPin, Sparkles, Search, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
@@ -97,8 +97,10 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
   }, [stepIdx]);
   const [pickingHotel, setPickingHotel] = useState(false);
   const [hotelPickReasons, setHotelPickReasons] = useState<Record<string, string>>({});
+  const [hotelPickError, setHotelPickError] = useState<string | null>(null);
   const [pickingActivities, setPickingActivities] = useState(false);
   const [activityPickReasons, setActivityPickReasons] = useState<Record<string, string>>({});
+  const [activityPickError, setActivityPickError] = useState<string | null>(null);
 
   const step = steps[stepIdx];
   const stage = step.stage;
@@ -128,6 +130,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
 
   async function handleSmartPickHotel() {
     setPickingHotel(true);
+    setHotelPickError(null);
     try {
       const data = await fetchSmartPick({ kind: "hotel", city: currentCity, preferences, hotels: hotelsForCity });
       const pick = data.picks[0];
@@ -136,22 +139,26 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
         setSelectedHotelForCity(currentCity, hotel);
         setHotelPickReasons((prev) => ({ ...prev, [currentCity]: pick.reason }));
       }
-    } catch {
-      // Silently fail — the picker UI is still there as a fallback
+    } catch (e: unknown) {
+      // A real failure (bad API key, network blip) shouldn't look identical
+      // to "ZiGy picked nothing" — the picker UI is still there as a fallback
+      // either way, but the user deserves to know why.
+      setHotelPickError(e instanceof Error ? e.message : "ZiGy couldn't pick a hotel right now");
     } finally {
       setPickingHotel(false);
     }
   }
   async function handleSmartPickActivities() {
     setPickingActivities(true);
+    setActivityPickError(null);
     try {
       const data = await fetchSmartPick({ kind: "activities_for_city", city: currentCity, preferences, activities: activitiesForCity });
       for (const pick of data.picks) {
         if (!(preferences.selectedActivityIds ?? []).includes(pick.id)) toggleSelectedActivity(pick.id);
       }
       setActivityPickReasons((prev) => ({ ...prev, [currentCity]: data.summary }));
-    } catch {
-      // Silently fail — the picker UI is still there as a fallback
+    } catch (e: unknown) {
+      setActivityPickError(e instanceof Error ? e.message : "ZiGy couldn't pick activities right now");
     } finally {
       setPickingActivities(false);
     }
@@ -307,6 +314,12 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                   ? `Re-pick the hotel for ${currentCity} with ZiGy`
                   : `Let ZiGy choose the hotel for ${currentCity}`}
               </button>
+              {hotelPickError && (
+                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 -mt-1">
+                  <AlertCircle size={13} className="text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-700">{hotelPickError}</p>
+                </div>
+              )}
               {hotelPickReasons[currentCity] && (
                 <div className="rounded-lg bg-brand-50 px-3 py-2 -mt-1">
                   <p className="text-xs text-brand-600">
@@ -380,6 +393,12 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                   ? `Re-pick activities for ${currentCity} with ZiGy`
                   : `Let ZiGy choose activities for ${currentCity}`}
               </button>
+              {activityPickError && (
+                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 -mt-1">
+                  <AlertCircle size={13} className="text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-700">{activityPickError}</p>
+                </div>
+              )}
               {activityPickReasons[currentCity] && (
                 <div className="rounded-lg bg-brand-50 px-3 py-2 -mt-1">
                   <p className="text-xs text-brand-600">
