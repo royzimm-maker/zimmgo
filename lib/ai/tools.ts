@@ -177,6 +177,7 @@ export const ADD_TO_WANDERLOG_TOOL: Anthropic.Tool = {
             label: { type: "string", description: "Short name of the thing to save, e.g. a restaurant, activity, or place name" },
             source: { type: "string", enum: ["activity", "restaurant", "discovery", "custom"], description: "What kind of item this is — use \"custom\" if unsure" },
             location: { type: "string", description: "City or neighbourhood, if known" },
+            description: { type: "string", description: "One short sentence on what it actually is — enough that the traveller recognizes it when reading their Wanderlog months later, without having to remember this conversation." },
           },
           required: ["label", "source"],
         },

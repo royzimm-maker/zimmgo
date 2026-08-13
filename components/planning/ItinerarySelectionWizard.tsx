@@ -275,7 +275,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                   key={r.id}
                   restaurant={r}
                   saved={wanderlogLabels.has(r.name)}
-                  onSave={() => handleSaveToWanderlog(r.name, "restaurant", r.location)}
+                  onSave={() => handleSaveToWanderlog(r.name, "restaurant", r.location, r.description)}
                   selected={(preferences.selectedRestaurantIds ?? []).includes(r.id)}
                   onSelect={() => toggleSelectedRestaurant(r.id)}
                 />
@@ -305,7 +305,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                     key={a.id}
                     activity={a}
                     saved={wanderlogLabels.has(a.name)}
-                    onSave={() => handleSaveToWanderlog(a.name, "activity", a.location)}
+                    onSave={() => handleSaveToWanderlog(a.name, "activity", a.location, a.description)}
                     selected={(preferences.selectedActivityIds ?? []).includes(a.id)}
                     onSelect={() => toggleSelectedActivity(a.id)}
                   />

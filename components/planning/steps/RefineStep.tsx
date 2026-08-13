@@ -376,7 +376,8 @@ export function RefineStep() {
     if (!info) return;
     const name = info.kind === "activity" ? info.activity?.name : info.restaurant?.name;
     if (!name) return;
-    addWanderlogItem(itinerary.id, { label: name, source: info.kind, location: getCardLocation(cardId) });
+    const description = info.kind === "activity" ? info.activity?.description : info.restaurant?.description;
+    addWanderlogItem(itinerary.id, { label: name, source: info.kind, location: getCardLocation(cardId), description });
     setBank((prev) => prev.filter((id) => id !== cardId));
   }
 

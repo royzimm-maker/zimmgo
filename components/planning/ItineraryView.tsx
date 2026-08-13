@@ -207,7 +207,7 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
                 key={r.id}
                 restaurant={r}
                 saved={wanderlogLabels.has(r.name)}
-                onSave={() => handleSaveToWanderlog(r.name, "restaurant", r.location)}
+                onSave={() => handleSaveToWanderlog(r.name, "restaurant", r.location, r.description)}
               />
             )}
           />
@@ -295,7 +295,7 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
                 key={a.id}
                 activity={a}
                 saved={wanderlogLabels.has(a.name)}
-                onSave={() => handleSaveToWanderlog(a.name, "activity", a.location)}
+                onSave={() => handleSaveToWanderlog(a.name, "activity", a.location, a.description)}
               />
             )}
             gridCols

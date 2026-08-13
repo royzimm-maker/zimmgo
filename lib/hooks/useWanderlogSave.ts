@@ -15,9 +15,9 @@ export function useWanderlogSave(itinerary: GeneratedItinerary) {
     [itinerary.wanderlog]
   );
 
-  function handleSaveToWanderlog(label: string, source: "activity" | "restaurant", location?: string) {
+  function handleSaveToWanderlog(label: string, source: "activity" | "restaurant", location?: string, description?: string) {
     if (wanderlogLabels.has(label)) return;
-    addWanderlogItem(itinerary.id, { label, source, location });
+    addWanderlogItem(itinerary.id, { label, source, location, description });
   }
 
   return { wanderlogLabels, handleSaveToWanderlog };

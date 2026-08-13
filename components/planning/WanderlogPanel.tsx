@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookMarked, X, Plus, Star } from "lucide-react";
+import { BookMarked, X, Plus } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { GeneratedItinerary, WanderlogItem } from "@/types/trip";
 
@@ -13,29 +13,11 @@ const GROUP_LABEL: Record<WanderlogItem["source"], string> = {
   custom: "Your notes",
 };
 
-function StarRatingInput({ value, onChange }: { value?: number; onChange: (v: number) => void }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n)}
-          title={`Rate ${n} star${n !== 1 ? "s" : ""}`}
-          className="text-slate-300 hover:text-amber-400 transition-colors"
-        >
-          <Star size={11} className={value && n <= value ? "fill-amber-400 text-amber-400" : undefined} />
-        </button>
-      ))}
-    </div>
-  );
-}
-
 // Compact sidebar counterpart to Wanderlog — same data and actions, but grouped
 // by type (dining/activities/local picks/notes) and sized for the narrow chat
 // column rather than the full-width itinerary page.
 export function WanderlogPanel({ itinerary }: { itinerary: GeneratedItinerary }) {
-  const { addWanderlogItem, removeWanderlogItem, updateWanderlogNote, updateWanderlogRating } = useTripStore();
+  const { addWanderlogItem, removeWanderlogItem, updateWanderlogNote } = useTripStore();
   const [draft, setDraft] = useState("");
   const items = itinerary.wanderlog ?? [];
 
@@ -83,6 +65,7 @@ export function WanderlogPanel({ itinerary }: { itinerary: GeneratedItinerary })
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold text-slate-800 truncate">{w.label}</p>
                       {w.location && <p className="text-[9px] text-slate-400 truncate">{w.location}</p>}
+                      {w.description && <p className="text-[10px] text-slate-500 mt-0.5 leading-snug line-clamp-2">{w.description}</p>}
                     </div>
                     <button
                       type="button"
@@ -92,12 +75,6 @@ export function WanderlogPanel({ itinerary }: { itinerary: GeneratedItinerary })
                     >
                       <X size={11} />
                     </button>
-                  </div>
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <StarRatingInput
-                      value={w.userRating}
-                      onChange={(n) => updateWanderlogRating(itinerary.id, w.id, w.userRating === n ? undefined : n)}
-                    />
                   </div>
                   <input
                     type="text"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookMarked, ChevronDown, ChevronUp, X, Plus, Star } from "lucide-react";
+import { BookMarked, ChevronDown, ChevronUp, X, Plus } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { GeneratedItinerary } from "@/types/trip";
 
@@ -16,26 +16,8 @@ interface Props {
   itinerary: GeneratedItinerary;
 }
 
-function StarRatingInput({ value, onChange }: { value?: number; onChange: (v: number) => void }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n)}
-          title={`Rate ${n} star${n !== 1 ? "s" : ""}`}
-          className="text-slate-300 hover:text-amber-400 transition-colors"
-        >
-          <Star size={13} className={value && n <= value ? "fill-amber-400 text-amber-400" : undefined} />
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export function Wanderlog({ itinerary }: Props) {
-  const { addWanderlogItem, removeWanderlogItem, updateWanderlogNote, updateWanderlogRating } = useTripStore();
+  const { addWanderlogItem, removeWanderlogItem, updateWanderlogNote } = useTripStore();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -77,7 +59,7 @@ export function Wanderlog({ itinerary }: Props) {
       {open && (
         <div className="border-t border-slate-100 px-4 py-3">
           <p className="text-xs text-slate-500 mb-3">
-            A save-for-later list, separate from your day-by-day plan. Tap the <BookMarked size={10} className="inline -mt-0.5" /> bookmark on any restaurant or activity to add it here instead of scheduling it — good for backups, "if we have time" ideas, or things you want to remember without committing to a day. Been already? Leave your own rating and a note for next time.
+            A save-for-later list, separate from your day-by-day plan. Tap the <BookMarked size={10} className="inline -mt-0.5" /> bookmark on any restaurant or activity to add it here instead of scheduling it — good for backups, "if we have time" ideas, or things you want to remember without committing to a day. Been already? Leave yourself a note for next time.
           </p>
 
           {items.length > 0 && (
@@ -93,6 +75,7 @@ export function Wanderlog({ itinerary }: Props) {
                         </span>
                       </div>
                       {w.location && <p className="text-[10px] text-slate-400 mt-0.5">{w.location}</p>}
+                      {w.description && <p className="text-[11px] text-slate-500 mt-1 leading-snug">{w.description}</p>}
                     </div>
                     <button
                       type="button"
@@ -102,14 +85,6 @@ export function Wanderlog({ itinerary }: Props) {
                     >
                       <X size={13} />
                     </button>
-                  </div>
-
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <span className="text-[10px] text-slate-400">Your rating:</span>
-                    <StarRatingInput
-                      value={w.userRating}
-                      onChange={(n) => updateWanderlogRating(itinerary.id, w.id, w.userRating === n ? undefined : n)}
-                    />
                   </div>
 
                   <input

@@ -37,7 +37,7 @@ export function LocalDiscovery({ preferences, itineraryId }: Props) {
   );
 
   const onSave = itineraryId
-    ? (label: string) => addWanderlogItem(itineraryId, { label, source: "discovery" })
+    ? (label: string, description?: string) => addWanderlogItem(itineraryId, { label, source: "discovery", description })
     : undefined;
 
   return (
@@ -104,7 +104,7 @@ function SceneTab({
   onSave,
 }: {
   discovery: ReturnType<typeof getLocalDiscovery>;
-  onSave?: (label: string) => void;
+  onSave?: (label: string, description?: string) => void;
 }) {
   const { events, hiddenGems } = discovery;
 
@@ -126,7 +126,7 @@ function SceneTab({
                     {onSave && (
                       <button
                         type="button"
-                        onClick={() => onSave(ev.name)}
+                        onClick={() => onSave(ev.name, ev.description)}
                         className="text-slate-300 hover:text-brand-500 transition-colors"
                         title="Save to Wanderlog"
                       >
@@ -168,7 +168,7 @@ function SceneTab({
                     {onSave && (
                       <button
                         type="button"
-                        onClick={() => onSave(gem.name)}
+                        onClick={() => onSave(gem.name, gem.description)}
                         className="text-slate-300 hover:text-brand-500 transition-colors"
                         title="Save to Wanderlog"
                       >

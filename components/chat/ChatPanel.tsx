@@ -138,6 +138,7 @@ export function ChatPanel() {
             label: item.label,
             source: item.source,
             location: item.location,
+            description: item.description,
           });
         }
       }

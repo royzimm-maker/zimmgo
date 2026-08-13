@@ -264,8 +264,11 @@ export interface FinalizedPlan {
 export interface WanderlogItem {
   id: string;
   label: string;
+  // What it actually is — carried over from the activity/restaurant/local-
+  // discovery pick at save time, since "Casa Bonay" means nothing to a
+  // traveller re-reading their Wanderlog months later without it.
+  description?: string;
   note?: string;
-  userRating?: number; // 1-5 — the traveller's own rating, set once they've actually been
   source: "activity" | "restaurant" | "discovery" | "custom";
   location?: string;
   addedAt: string;
