@@ -86,7 +86,7 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
   {
     name: "search_restaurants",
     description:
-      "Find top restaurants at the destination across all price tiers — from street food to fine dining. Returns 3-4 curated picks.",
+      "Find top restaurants at the destination across all price tiers — from street food to fine dining. Prioritizes restaurants with Michelin Guide recognition (stars, Bib Gourmand) that fit the requested budget tier. Returns 3-4 curated picks.",
     input_schema: {
       type: "object" as const,
       properties: {

@@ -1,6 +1,6 @@
 import type { TripPreferences, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 
-export type SmartPickKind = "hotel" | "schedule" | "activities" | "vibes" | "lodging";
+export type SmartPickKind = "hotel" | "schedule" | "activities" | "vibes" | "lodging" | "activities_for_city";
 
 export interface SmartPickRequestBody {
   kind: SmartPickKind;

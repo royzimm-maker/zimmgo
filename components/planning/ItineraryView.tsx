@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, BookMarked, Calendar, List, Lightbulb } from "lucide-react";
+import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, Heart, Calendar, List, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate, pairFlights, groupByLocation } from "@/lib/utils";
@@ -854,6 +854,7 @@ export function RestaurantCard({
               <div className="flex items-center gap-1.5 flex-wrap">
                 <p className="font-semibold text-slate-800 text-sm truncate">{r.name}</p>
                 <span className={`text-xs font-bold shrink-0 ${priceColor}`}>{r.priceRange}</span>
+                {r.michelinDistinction && <Badge variant="warning">🎖️ {r.michelinDistinction}</Badge>}
                 {r.isBeliPick && <Badge variant="success">Beli pick</Badge>}
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">{emoji} {r.cuisine} · {r.location}</p>
@@ -884,7 +885,7 @@ export function RestaurantCard({
                       saved ? "text-brand-600" : "border border-slate-200 text-slate-500 hover:border-brand-300 hover:text-brand-600"
                     }`}
                   >
-                    <BookMarked size={10} className={saved ? "fill-brand-100" : undefined} />
+                    <Heart size={10} className={saved ? "fill-brand-600" : undefined} />
                     {saved ? "Saved" : "Add to Wanderlog"}
                   </button>
                 )}
@@ -1093,7 +1094,7 @@ export function ActivityCard({
                   saved ? "text-brand-600" : "border border-slate-200 text-slate-500 hover:border-brand-300 hover:text-brand-600"
                 }`}
               >
-                <BookMarked size={10} className={saved ? "fill-brand-100" : undefined} />
+                <Heart size={10} className={saved ? "fill-brand-600" : undefined} />
                 {saved ? "Saved" : "Add to Wanderlog"}
               </button>
             )}

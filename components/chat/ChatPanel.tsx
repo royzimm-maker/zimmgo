@@ -250,24 +250,19 @@ export function ChatPanel() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
-        {/* Welcome */}
+        {/* Welcome — kept compact so it doesn't crowd the Wanderlog panel
+            below it once an itinerary exists. */}
         {!hasMessages && (
-          <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-50">
-              <Sparkles size={20} className="text-brand-500" />
-            </div>
-            <div>
-              <p className="font-medium text-slate-800 text-sm">ZiGy</p>
-              <p className="text-xs text-slate-500 mt-1">
-                Your personal AI travel advisor — ask me anything about your trip or itinerary.
-              </p>
-            </div>
-            <div className="w-full mt-2 flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2 pb-2 text-center">
+            <p className="text-xs text-slate-500">
+              Ask me anything about your trip, or try:
+            </p>
+            <div className="flex flex-wrap justify-center gap-1.5">
               {STARTER_PROMPTS.map((p) => (
                 <button
                   key={p}
                   onClick={() => sendMessage(p)}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 text-left hover:bg-slate-100 hover:border-slate-300 transition-all"
+                  className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] text-slate-600 text-left hover:bg-slate-100 hover:border-slate-300 transition-all"
                 >
                   {p}
                 </button>

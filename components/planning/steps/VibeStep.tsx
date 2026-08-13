@@ -12,7 +12,7 @@ import type { VibeTag } from "@/types/trip";
 export const VIBES: { id: VibeTag; label: string; icon: string; sublabel: string }[] = [
   { id: "romantic",             label: "Romantic",            icon: "💑",  sublabel: "Couple-focused, slow-paced, indulgent" },
   { id: "nightlife",            label: "Nightlife",           icon: "🎉",  sublabel: "Bars, clubs, late nights" },
-  { id: "great_food",           label: "Food-First Travel",   icon: "🍽️",  sublabel: "Reservations planned ahead, meals as the main event" },
+  { id: "great_food",           label: "Food-Forward Travel", icon: "🍽️",  sublabel: "Meals are a highlight — good reservations, local favorites" },
   { id: "outdoor",              label: "Outdoors & Nature",   icon: "🏞️",  sublabel: "Hiking, scenic landscapes, time outside" },
   { id: "beaches",              label: "Beaches",             icon: "🏖️",  sublabel: "Sun, sand, and sea" },
   { id: "shopping",             label: "Shopping",            icon: "🛍️",  sublabel: "Local markets to luxury boutiques" },

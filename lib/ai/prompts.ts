@@ -54,6 +54,11 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
 
   if (preferences.vibes.length) {
     parts.push(`Trip vibe: ${preferences.vibes.join(", ")}.`);
+    if (preferences.vibes.includes("great_food")) {
+      parts.push(
+        `Because "great_food" (Food-Forward Travel) is one of their vibes, make sure at least one guided food tour or hands-on food experience (market visit, tasting, cooking class) appears in the day-by-day plan for every city, alongside your usual restaurant picks — don't let this vibe show up only as good reservations.`
+      );
+    }
   }
 
   if (preferences.travelers || preferences.rooms) {
@@ -142,6 +147,7 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     "For multi-destination trips: call search_hotels SEPARATELY for EACH destination city — one tool call per city, using the correct city name. " +
     "For multi-destination trips: call search_activities AND search_restaurants SEPARATELY for EACH destination city — one tool call per city. Do NOT call these tools for the departure airport city. " +
     "For activities and restaurants: include a `location` field on every item naming the specific city or neighbourhood it belongs to (e.g. \"Rome\", \"Amalfi Coast\"). " +
+    "When search_restaurants returns options with Michelin Guide recognition (stars, Bib Gourmand) that fit the traveller's budget, favor those in your picks and call it out explicitly in your write-up — it's a real, verifiable distinction worth naming, not just a rating number. " +
     "Always pass max_price_per_night and min_stars to search_hotels based on the traveler's stated budget and lodging preferences. " +
     "For each recommendation, briefly explain why it's the best fit for this traveller's specific preferences. " +
     `When you're ready to finish, call generate_itinerary and include \`selected_hotels\`: one entry per destination city (${
@@ -258,6 +264,24 @@ export function buildHotelPickPrompt(
   return `Pick the single best hotel in ${city} for this traveller.${vibeStr}${budgetStr}\n\nOptions:\n${list}\n\nCall make_selection with exactly one pick — its id and a one-sentence reason it's the right fit for this trip.`;
 }
 
+// "Let ZiGy choose" — pick 3-5 real activities (from search results already
+// shown for this city) on the traveller's behalf, distinct from
+// buildPreferencePickPrompt's "activities" kind, which picks category labels
+// before any real search has happened.
+export function buildActivitiesForCityPickPrompt(
+  city: string,
+  preferences: TripPreferences,
+  activities: ActivityOption[]
+): string {
+  const vibeStr = preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
+  const list = activities.map((a) =>
+    `- id="${a.id}" ${a.name} | ${a.duration} | $${a.price} | ${a.description}`
+  ).join("\n");
+
+  return `Pick 3-5 of the best activities in ${city} for this traveller from the options below.${vibeStr}\n\nOptions:\n${list}\n\n` +
+    `Call make_selection with each pick's id and a one-sentence reason it's a good fit, plus a 1-2 sentence overall summary of your approach for this city.`;
+}
+
 // "Let ZiGy arrange" — assign a city's activities and restaurants across its days
 export function buildSchedulePickPrompt(
   city: string,
@@ -297,7 +321,11 @@ export function buildPreferencePickPrompt(
   const vibeStr = kind !== "vibes" && preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
 
   const instructions: Record<typeof kind, string> = {
-    activities: `Pick 3-5 activity categories that best suit a trip to ${dest}.${vibeStr}`,
+    activities: `Pick 3-5 activity categories that best suit a trip to ${dest}.${vibeStr}${
+      preferences.vibes.includes("great_food")
+        ? ` They picked Food-Forward Travel as a vibe, so make sure "Guided Food Tour" and/or "Food Experiences" is one of your picks.`
+        : ""
+    }`,
     vibes: `Pick 2-4 trip vibes that best suit a trip to ${dest}.`,
     lodging: `Pick the lodging type(s) (usually just 1), exactly one star-rating tier, and 2-4 amenities that best suit a trip to ${dest}.${budgetStr}${vibeStr}`,
   };

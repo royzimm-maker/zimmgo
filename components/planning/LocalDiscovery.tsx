@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   Music, Sparkles, Smartphone, ChevronDown, ChevronUp,
-  ExternalLink, MapPin, Bus, Ticket, BookMarked,
+  ExternalLink, MapPin, Bus, Ticket, Heart,
 } from "lucide-react";
 import { getLocalDiscovery } from "@/lib/data/localDiscovery";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -130,7 +130,7 @@ function SceneTab({
                         className="text-slate-300 hover:text-brand-500 transition-colors"
                         title="Save to Wanderlog"
                       >
-                        <BookMarked size={11} />
+                        <Heart size={11} />
                       </button>
                     )}
                   </div>
@@ -172,7 +172,7 @@ function SceneTab({
                         className="text-slate-300 hover:text-brand-500 transition-colors"
                         title="Save to Wanderlog"
                       >
-                        <BookMarked size={11} />
+                        <Heart size={11} />
                       </button>
                     )}
                   </div>

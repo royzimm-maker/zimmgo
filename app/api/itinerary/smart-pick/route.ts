@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { SMART_PICK_TOOL } from "@/lib/ai/tools";
-import { buildHotelPickPrompt, buildSchedulePickPrompt, buildPreferencePickPrompt } from "@/lib/ai/prompts";
+import { buildHotelPickPrompt, buildSchedulePickPrompt, buildPreferencePickPrompt, buildActivitiesForCityPickPrompt } from "@/lib/ai/prompts";
 import type { SmartPickKind, SmartPickRequestBody, SmartPickResponse } from "@/types/smartPick";
 
 const PREFERENCE_KINDS = new Set<SmartPickKind>(["activities", "vibes", "lodging"]);
@@ -15,6 +15,8 @@ export async function POST(request: NextRequest) {
       ? buildHotelPickPrompt(body.city ?? "", preferences, body.hotels ?? [])
       : kind === "schedule"
       ? buildSchedulePickPrompt(body.city ?? "", preferences, body.days ?? [], body.activities ?? [], body.restaurants ?? [])
+      : kind === "activities_for_city"
+      ? buildActivitiesForCityPickPrompt(body.city ?? "", preferences, body.activities ?? [])
       : PREFERENCE_KINDS.has(kind)
       ? buildPreferencePickPrompt(kind as "activities" | "vibes" | "lodging", preferences, body.candidates ?? [])
       : null;

@@ -129,35 +129,37 @@ export function PlanningFlow() {
             <X size={16} />
           </Button>
         </div>
-        {latestItinerary ? (
-          <div ref={splitContainerRef} className="flex flex-1 flex-col min-h-0">
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <ChatPanel />
-            </div>
-            {/* Drag handle — resizes the split between chat and Wanderlog.
-                The larger transparent hit area makes it easy to grab without
-                needing pixel-perfect precision on the thin visible bar. */}
-            <div
-              onPointerDown={handleDragStart}
-              onPointerMove={handleDragMove}
-              onPointerUp={handleDragEnd}
-              role="separator"
-              aria-orientation="horizontal"
-              aria-label="Resize chat and Wanderlog panels"
-              className="relative shrink-0 cursor-row-resize touch-none border-t border-slate-200 bg-slate-50 hover:bg-brand-100 transition-colors"
-            >
-              <div className="absolute inset-x-0 -top-1.5 -bottom-1.5" />
-              <div className="mx-auto my-0.5 h-1 w-8 rounded-full bg-slate-300" />
-            </div>
-            <div style={{ height: wanderlogHeight }} className="shrink-0 overflow-hidden">
-              <WanderlogPanel itinerary={latestItinerary} />
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-hidden">
+        {/* ChatPanel stays in the same position in the tree across both
+            branches below — otherwise React unmounts/remounts it (and loses
+            any in-progress typed message) the instant latestItinerary flips
+            from null to truthy, i.e. exactly when generation finishes. */}
+        <div ref={splitContainerRef} className="flex flex-1 flex-col min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <ChatPanel />
           </div>
-        )}
+          {latestItinerary && (
+            <>
+              {/* Drag handle — resizes the split between chat and Wanderlog.
+                  The larger transparent hit area makes it easy to grab without
+                  needing pixel-perfect precision on the thin visible bar. */}
+              <div
+                onPointerDown={handleDragStart}
+                onPointerMove={handleDragMove}
+                onPointerUp={handleDragEnd}
+                role="separator"
+                aria-orientation="horizontal"
+                aria-label="Resize chat and Wanderlog panels"
+                className="relative shrink-0 cursor-row-resize touch-none border-t border-slate-200 bg-slate-50 hover:bg-brand-100 transition-colors"
+              >
+                <div className="absolute inset-x-0 -top-1.5 -bottom-1.5" />
+                <div className="mx-auto my-0.5 h-1 w-8 rounded-full bg-slate-300" />
+              </div>
+              <div style={{ height: wanderlogHeight }} className="shrink-0 overflow-hidden">
+                <WanderlogPanel itinerary={latestItinerary} />
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Mobile chat toggle */}

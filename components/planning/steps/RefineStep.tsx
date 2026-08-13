@@ -14,7 +14,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { X, Sparkles, BookMarked, ArrowRight } from "lucide-react";
+import { X, Sparkles, Heart, ArrowRight } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { fetchSmartPick } from "@/lib/api/smartPick";
@@ -84,7 +84,7 @@ function CardInner({
             className="shrink-0 text-slate-300 hover:text-brand-500 transition-colors"
             title="Save to Wanderlog instead"
           >
-            <BookMarked size={12} />
+            <Heart size={12} />
           </button>
         )}
         {onRemove && (
@@ -123,7 +123,7 @@ function CardInner({
             className="shrink-0 text-slate-300 hover:text-brand-500 transition-colors"
             title="Save to Wanderlog instead"
           >
-            <BookMarked size={12} />
+            <Heart size={12} />
           </button>
         )}
         {onRemove && (

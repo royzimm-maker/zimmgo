@@ -603,6 +603,24 @@ function findRestaurantBase(destination: string): RestaurantSeed[] {
   return resolvePool(destination, RESTAURANT_DB, DESTINATION_ALIASES);
 }
 
+const MICHELIN_WORD_NUMBERS: Record<string, number> = { one: 1, two: 2, three: 3 };
+
+// Restaurants in this mock dataset already carry real Michelin recognition
+// in their description text for major destinations (e.g. "Three Michelin
+// stars", "Bib Gourmand") — pull that out into a structured badge instead of
+// leaving it buried in prose.
+function detectMichelinDistinction(description: string): string | undefined {
+  const lower = description.toLowerCase();
+  if (lower.includes("bib gourmand")) return "Bib Gourmand";
+  const starMatch = lower.match(/(one|two|three)\s+michelin\s+stars?/);
+  if (starMatch) {
+    const n = MICHELIN_WORD_NUMBERS[starMatch[1]];
+    return `${n} Michelin Star${n > 1 ? "s" : ""}`;
+  }
+  if (/michelin[- ]starred|michelin star\b/.test(lower)) return "Michelin Star";
+  return undefined;
+}
+
 export async function searchRestaurants(params: RestaurantSearchParams): Promise<RestaurantOption[]> {
   const base = findRestaurantBase(params.destination);
 
@@ -612,6 +630,14 @@ export async function searchRestaurants(params: RestaurantSearchParams): Promise
   } else if (params.budget_level === "mid") {
     filtered = base.filter((r) => r.tier !== "fine_dining");
   }
+
+  // Within the traveller's budget tier, surface Michelin-recognized picks
+  // first — a real, verifiable distinction rather than just a rating number.
+  filtered = [...filtered].sort((a, b) => {
+    const aMichelin = detectMichelinDistinction(a.description) ? 1 : 0;
+    const bMichelin = detectMichelinDistinction(b.description) ? 1 : 0;
+    return bMichelin - aMichelin || b.rating - a.rating;
+  });
 
   // Seed locations are real neighbourhoods within their pool's home city (or generic
   // placeholders like "City centre" for the default pool). When a nearby city shares
@@ -624,6 +650,7 @@ export async function searchRestaurants(params: RestaurantSearchParams): Promise
     location: fuzzyCityMatch(r.location, params.destination) ? r.location : params.destination,
     playfulCategory: PLAYFUL_LABELS[r.tier],
     priceRange: PRICE_RANGES[r.tier],
+    michelinDistinction: detectMichelinDistinction(r.description),
     imageUrl: `https://picsum.photos/seed/${encodeURIComponent(r.name)}/800/400`,
     bookingUrl: r.tier === "fine_dining" || r.tier === "upscale"
       ? `https://www.opentable.com/s/?term=${encodeURIComponent(r.name + " " + params.destination)}`

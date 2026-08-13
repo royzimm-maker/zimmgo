@@ -80,6 +80,8 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
   }, [stepIdx]);
   const [pickingHotel, setPickingHotel] = useState(false);
   const [hotelPickReasons, setHotelPickReasons] = useState<Record<string, string>>({});
+  const [pickingActivities, setPickingActivities] = useState(false);
+  const [activityPickReasons, setActivityPickReasons] = useState<Record<string, string>>({});
 
   const step = steps[stepIdx];
   const stage = step.stage;
@@ -123,6 +125,21 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
       setPickingHotel(false);
     }
   }
+  async function handleSmartPickActivities() {
+    setPickingActivities(true);
+    try {
+      const data = await fetchSmartPick({ kind: "activities_for_city", city: currentCity, preferences, activities: activitiesForCity });
+      for (const pick of data.picks) {
+        if (!(preferences.selectedActivityIds ?? []).includes(pick.id)) toggleSelectedActivity(pick.id);
+      }
+      setActivityPickReasons((prev) => ({ ...prev, [currentCity]: data.summary }));
+    } catch {
+      // Silently fail — the picker UI is still there as a fallback
+    } finally {
+      setPickingActivities(false);
+    }
+  }
+
   // Highest-rated first, so capping to the preview count always surfaces the best options.
   const restaurantsForCity = useMemo(
     () => (itinerary.restaurants ?? [])
@@ -255,7 +272,11 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                 className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
               >
                 <Sparkles size={14} />
-                {pickingHotel ? "ZiGy is choosing…" : `Let ZiGy choose for ${currentCity}`}
+                {pickingHotel
+                  ? "ZiGy is choosing…"
+                  : hotelPickReasons[currentCity]
+                  ? `Re-pick the hotel for ${currentCity} with ZiGy`
+                  : `Let ZiGy choose the hotel for ${currentCity}`}
               </button>
               {hotelPickReasons[currentCity] && (
                 <div className="rounded-lg bg-brand-50 px-3 py-2 -mt-1">
@@ -317,6 +338,30 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
         {stage === "activities" && (
           activitiesForCity.length > 0 ? (
             <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={handleSmartPickActivities}
+                disabled={pickingActivities}
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
+              >
+                <Sparkles size={14} />
+                {pickingActivities
+                  ? "ZiGy is choosing…"
+                  : activityPickReasons[currentCity]
+                  ? `Re-pick activities for ${currentCity} with ZiGy`
+                  : `Let ZiGy choose activities for ${currentCity}`}
+              </button>
+              {activityPickReasons[currentCity] && (
+                <div className="rounded-lg bg-brand-50 px-3 py-2 -mt-1">
+                  <p className="text-xs text-brand-600">
+                    <Sparkles size={11} className="inline mr-1" />
+                    {activityPickReasons[currentCity]}
+                  </p>
+                  <p className="mt-1 text-[10px] text-brand-400">
+                    You can still adjust these below — nothing here is locked in.
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {visibleActivities.map((a) => (
                   <ActivityCard

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookMarked, ChevronDown, ChevronUp, X, Plus } from "lucide-react";
+import { Heart, ChevronDown, ChevronUp, X, Plus } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { GeneratedItinerary } from "@/types/trip";
 
@@ -38,12 +38,12 @@ export function Wanderlog({ itinerary }: Props) {
         className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <BookMarked size={15} className="text-brand-500 shrink-0" />
+          <Heart size={15} className="text-brand-500 shrink-0" />
           <div className="min-w-0">
             <span className="text-sm font-semibold text-slate-800">ZiGy&apos;s Wanderlog</span>
             {!open && (
               <p className="text-[11px] text-slate-400 truncate">
-                Your save-for-later list — bookmark any restaurant or activity to keep it without scheduling it.
+                Your save-for-later list — heart any restaurant or activity to keep it without scheduling it.
               </p>
             )}
           </div>
@@ -59,7 +59,7 @@ export function Wanderlog({ itinerary }: Props) {
       {open && (
         <div className="border-t border-slate-100 px-4 py-3">
           <p className="text-xs text-slate-500 mb-3">
-            A save-for-later list, separate from your day-by-day plan. Tap the <BookMarked size={10} className="inline -mt-0.5" /> bookmark on any restaurant or activity to add it here instead of scheduling it — good for backups, "if we have time" ideas, or things you want to remember without committing to a day. Been already? Leave yourself a note for next time.
+            A save-for-later list, separate from your day-by-day plan. Tap the <Heart size={10} className="inline -mt-0.5" /> heart on any restaurant or activity to add it here instead of scheduling it — good for backups, "if we have time" ideas, or things you want to remember without committing to a day. Been already? Leave yourself a note for next time.
           </p>
 
           {items.length > 0 && (

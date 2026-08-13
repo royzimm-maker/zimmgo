@@ -237,6 +237,10 @@ export interface RestaurantOption {
   menuUrl?: string;
   isBeliPick?: boolean;
   beliNote?: string;
+  // Detected from Michelin Guide recognition mentioned in the source
+  // description (e.g. "One Michelin star", "Bib Gourmand") — surfaced as
+  // its own badge instead of leaving it buried in prose.
+  michelinDistinction?: string;
 }
 
 export interface ItineraryDay {
