@@ -233,6 +233,13 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
               selectedFlightId={preferences.selectedFlight?.id}
               onSelect={(f) => setSelectedFlight(preferences.selectedFlight?.id === f.id ? null : f)}
             />
+          ) : preferences.dates?.type === "exact" && preferences.dates.skipFlightSearch ? (
+            <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50 px-4 py-6 text-center">
+              <p className="text-sm text-amber-800">Flight search was skipped for this trip.</p>
+              <p className="text-xs text-amber-700 mt-1">
+                Your dates are further out than airlines typically open bookings for — check back closer to your trip to add flights.
+              </p>
+            </div>
           ) : (
             <EmptyState label="flight options" />
           )

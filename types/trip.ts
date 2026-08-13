@@ -79,6 +79,11 @@ export interface DatePreference {
   endDate?: string;
   flexibleMonth?: string; // e.g. "2025-06"
   flexibleDuration?: number; // days
+  // True when the traveller explicitly chose to proceed with a trip further
+  // out than airlines typically open bookings (~11 months) — itinerary
+  // generation skips flight search entirely rather than searching a date
+  // no real airline would have fares for yet.
+  skipFlightSearch?: boolean;
 }
 
 export interface LodgingPreference {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Shuffle } from "lucide-react";
+import { Calendar, Shuffle, Info } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SimpleDatePicker } from "@/components/ui/SimpleDatePicker";
 import { cn } from "@/lib/utils";
@@ -34,9 +34,17 @@ export function DatesStep() {
   // users west of UTC in the evening (blocking same-day departures).
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  // Max bookable date: 11 months out (airline booking window)
-  const maxDateObj = new Date(now.getFullYear(), now.getMonth() + 11, now.getDate());
-  const maxDate = `${maxDateObj.getFullYear()}-${String(maxDateObj.getMonth() + 1).padStart(2, "0")}-${String(maxDateObj.getDate()).padStart(2, "0")}`;
+  // Airlines typically don't open bookings beyond ~11 months out, so flight
+  // search past this point would just be querying a date no real airline
+  // has fares for yet. Dates beyond it are still selectable — the trip can
+  // still be planned end-to-end — flight search just gets skipped for it.
+  const flightWindowMonths = 11;
+  const flightMaxObj = new Date(now.getFullYear(), now.getMonth() + flightWindowMonths, now.getDate());
+  const maxDate = `${flightMaxObj.getFullYear()}-${String(flightMaxObj.getMonth() + 1).padStart(2, "0")}-${String(flightMaxObj.getDate()).padStart(2, "0")}`;
+  // Hard limit on how far out a trip can be planned at all — generous, just
+  // guards against fat-fingering a year far in the future.
+  const hardMaxObj = new Date(now.getFullYear() + 2, now.getMonth(), now.getDate());
+  const hardMaxDate = `${hardMaxObj.getFullYear()}-${String(hardMaxObj.getMonth() + 1).padStart(2, "0")}-${String(hardMaxObj.getDate()).padStart(2, "0")}`;
   const [startDate, setStartDate] = useState(existing?.startDate?.slice(0, 10) ?? "");
   const [endDate,   setEndDate  ] = useState(existing?.endDate?.slice(0, 10) ?? "");
   const [flexMonth, setFlexMonth] = useState(existing?.flexibleMonth ?? MONTHS[0].value);
@@ -61,10 +69,14 @@ export function DatesStep() {
     }
   }
 
+  // Flexible-month picks are already capped to the flight-booking window
+  // (see MONTHS), so only exact dates can land beyond it.
+  const isBeyondFlightWindow = mode === "exact" && !!startDate && startDate > maxDate;
+
   function handleContinue() {
     const pref: DatePreference =
       mode === "exact"
-        ? { type: "exact", startDate, endDate }
+        ? { type: "exact", startDate, endDate, skipFlightSearch: isBeyondFlightWindow }
         : { type: "flexible", flexibleMonth: flexMonth, flexibleDuration: duration };
     setDates(pref);
   }
@@ -97,21 +109,36 @@ export function DatesStep() {
       </div>
 
       {mode === "exact" ? (
-        <div className="grid grid-cols-2 gap-4">
-          <SimpleDatePicker
-            label="Departure"
-            value={startDate}
-            onChange={(val) => handleStartDateChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>)}
-            min={today}
-            max={maxDate}
-          />
-          <SimpleDatePicker
-            label="Return"
-            value={endDate}
-            onChange={(val) => setEndDate(val)}
-            min={startDate || today}
-            max={maxDate}
-          />
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-4">
+            <SimpleDatePicker
+              label="Departure"
+              value={startDate}
+              onChange={(val) => handleStartDateChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>)}
+              min={today}
+              max={hardMaxDate}
+              softMax={maxDate}
+            />
+            <SimpleDatePicker
+              label="Return"
+              value={endDate}
+              onChange={(val) => setEndDate(val)}
+              min={startDate || today}
+              max={hardMaxDate}
+              softMax={maxDate}
+            />
+          </div>
+          {isBeyondFlightWindow && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <Info size={15} className="text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800 leading-relaxed">
+                Airlines typically don&apos;t open bookings this far ahead — usually about {flightWindowMonths} months out.
+                We&apos;ll skip flight search for now so it isn&apos;t querying dates no airline has fares for yet, but
+                you can still plan everything else (hotels, restaurants, activities) and add flights once they&apos;re
+                bookable closer to your trip.
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-5">

@@ -9,7 +9,11 @@ interface Props {
   value: string; // YYYY-MM-DD or ""
   onChange: (val: string) => void;
   min: string; // YYYY-MM-DD
-  max: string; // YYYY-MM-DD
+  max: string; // YYYY-MM-DD — hard limit, still selectable up to here
+  // Dates beyond this (but within max) stay selectable — just styled
+  // distinctly, since they're past the window airlines typically have
+  // fares open for, not actually invalid to plan around.
+  softMax?: string;
 }
 
 const DOW = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -24,9 +28,10 @@ function toYMD(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function SimpleDatePicker({ label, value, onChange, min, max }: Props) {
+export function SimpleDatePicker({ label, value, onChange, min, max, softMax }: Props) {
   const minDate = parseYMD(min)!;
   const maxDate = parseYMD(max)!;
+  const softMaxDate = softMax ? parseYMD(softMax) : null;
   const selectedDate = parseYMD(value);
 
   const [viewYear, setViewYear] = useState(() => (selectedDate ?? minDate).getFullYear());
@@ -100,6 +105,7 @@ export function SimpleDatePicker({ label, value, onChange, min, max }: Props) {
             const dateStr = toYMD(date);
             const isSelected = dateStr === value;
             const isDisabled = date < minDate || date > maxDate;
+            const isBeyondSoftMax = !isDisabled && !!softMaxDate && date > softMaxDate;
             const isToday = dateStr === todayStr;
 
             return (
@@ -108,12 +114,15 @@ export function SimpleDatePicker({ label, value, onChange, min, max }: Props) {
                 type="button"
                 disabled={isDisabled}
                 onClick={() => onChange(dateStr)}
+                title={isBeyondSoftMax ? "Past the usual flight-booking window — flight search will be skipped for this date" : undefined}
                 className={cn(
                   "aspect-square flex items-center justify-center text-xs rounded-lg transition-all",
                   isSelected
                     ? "bg-brand-500 text-white font-semibold"
                     : isDisabled
                     ? "text-slate-300 cursor-not-allowed"
+                    : isBeyondSoftMax
+                    ? "text-amber-600 hover:bg-amber-50"
                     : "text-slate-700 hover:bg-brand-50 hover:text-brand-700",
                   isToday && !isSelected && "font-semibold text-brand-500"
                 )}

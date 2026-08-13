@@ -118,15 +118,21 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     parts.push(`Local transport: ${preferences.transportation.join(", ")}.`);
   }
 
+  const skipFlightSearch = preferences.dates?.type === "exact" && preferences.dates.skipFlightSearch;
+
   const returnLegInstruction = preferences.destination?.returnAirport
     ? `For the return leg (open-jaw): call search_flights with origin = arrivalAirport (${preferences.destination.arrivalAirport ?? "destination airport"}) and destination = ${preferences.destination.returnAirport}. Do NOT use the departure airport as the return destination.`
     : `For the return leg: call search_flights with origin = arrivalAirport and destination = departureAirport (standard roundtrip), using the end date.`;
 
+  const flightInstruction = skipFlightSearch
+    ? "Do NOT call search_flights — these travel dates are further out than airlines typically open bookings for, so there are no real fares to search yet. Skip flights entirely and build the rest of the plan (hotels, activities, restaurants, day-by-day schedule) as normal; briefly note in your summary that flights should be booked once they're bookable closer to the trip."
+    : "For flights: call search_flights TWICE — once for the outbound leg (departureAirport → arrivalAirport, using the start date). " +
+      returnLegInstruction + " " +
+      "All flight prices are per person, one-way.";
+
   parts.push(
     "\nPlease use the available tools to search for flights, hotels, and activities, then synthesise everything into a final day-by-day itinerary. " +
-    "For flights: call search_flights TWICE — once for the outbound leg (departureAirport → arrivalAirport, using the start date). " +
-    returnLegInstruction + " " +
-    "All flight prices are per person, one-way. " +
+    flightInstruction + " " +
     "For every day in the itinerary, set the `location` field to the city or region for that day (e.g. \"Rome\", \"Amalfi Coast\", \"Dolomites\"). " +
     "For multi-destination trips: call search_hotels SEPARATELY for EACH destination city — one tool call per city, using the correct city name. " +
     "For multi-destination trips: call search_activities AND search_restaurants SEPARATELY for EACH destination city — one tool call per city. Do NOT call these tools for the departure airport city. " +
