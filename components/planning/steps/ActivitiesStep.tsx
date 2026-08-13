@@ -11,6 +11,7 @@ import { BeliConnect } from "@/components/planning/BeliConnect";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import { getIrrelevantCategories } from "@/lib/data/activityRelevance";
+import { scrollStepToTop } from "@/lib/utils";
 import type { ActivityCategory } from "@/types/trip";
 
 // Exported so ChatPanel can turn a chat-driven update's raw category ids
@@ -20,7 +21,7 @@ export const GENERAL: { id: ActivityCategory; label: string; icon: string; subla
   { id: "guided_food_tour",    label: "Guided Food Tour",    icon: "🍽️", sublabel: "Curated culinary walks with a local expert" },
   { id: "hiking",              label: "Hiking",              icon: "🥾", sublabel: "Trails, peaks, national parks" },
   { id: "skiing",              label: "Skiing",              icon: "⛷️", sublabel: "Downhill, backcountry, snow" },
-  { id: "sailing",             label: "Sailing",             icon: "⛵", sublabel: "Charters, coastal cruising" },
+  { id: "sailing",             label: "Sailing & Boating",   icon: "⛵", sublabel: "Charters, boat excursions, coastal cruising" },
   { id: "food",                label: "Food Experiences",    icon: "🍜", sublabel: "Markets, tastings, restaurants" },
   { id: "diving",              label: "Diving & Snorkel",    icon: "🤿", sublabel: "Reefs, wrecks, marine life" },
   { id: "cycling",             label: "Cycling",             icon: "🚴", sublabel: "Road biking, mountain biking" },
@@ -125,6 +126,7 @@ export function ActivitiesStep() {
   async function handlePromptContinue() {
     if (modeChoice === "manual") setMode("manual");
     else if (modeChoice === "zigy") await handleZigyPick();
+    scrollStepToTop(); // switching views here doesn't remount the step
     return false; // stay on this step — just switches to the picker view
   }
 

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { ArrowLeft, ArrowRight, SkipForward } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, scrollStepToTop } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
 import { ORDERED_STEPS, STEP_META, type StepId } from "@/types/trip";
@@ -38,11 +38,8 @@ export function StepShell({
   const meta  = STEP_META[stepId];
 
   // Scroll to top whenever a new step mounts.
-  // PlanningFlow uses overflow-y-auto on <main>, so we need to scroll that element
-  // rather than the window.
   useEffect(() => {
-    window.scrollTo({ top: 0 });
-    document.querySelector("main")?.scrollTo({ top: 0 });
+    scrollStepToTop();
   }, []);
   const idx   = ORDERED_STEPS.indexOf(stepId);
   const prevId = idx > 0 ? ORDERED_STEPS[idx - 1] : null;

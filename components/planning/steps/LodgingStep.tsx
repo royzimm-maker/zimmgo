@@ -8,7 +8,7 @@ import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
-import { cn } from "@/lib/utils";
+import { cn, scrollStepToTop } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
@@ -256,6 +256,7 @@ export function LodgingStep() {
   async function handlePromptContinue() {
     if (modeChoice === "manual") setMode("manual");
     else if (modeChoice === "zigy") await handleZigyPick();
+    scrollStepToTop(); // switching views here doesn't remount the step
     return false; // stay on this step — just switches to the picker view
   }
 

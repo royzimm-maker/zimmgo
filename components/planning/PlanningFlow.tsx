@@ -35,6 +35,7 @@ const STEP_COMPONENTS: Record<StepId, React.ComponentType> = {
 
 const WANDERLOG_HEIGHT_KEY = "zimmgo-wanderlog-panel-height";
 const DEFAULT_WANDERLOG_HEIGHT = 288; // px — matches the old fixed h-72
+const COLLAPSED_WANDERLOG_HEIGHT = 72; // px — just the header bar
 const MIN_PANEL_HEIGHT = 120; // px — leaves both panels usably tall
 
 export function PlanningFlow() {
@@ -46,14 +47,30 @@ export function PlanningFlow() {
   // the fixed h-72 Wanderlog panel was squeezing the chat window with no
   // way to reclaim that space. Persisted across sessions since this is a
   // one-time layout preference, not per-trip state.
-  const [wanderlogHeight, setWanderlogHeight] = useState(DEFAULT_WANDERLOG_HEIGHT);
+  //
+  // Starts collapsed to just its header: the moment generation finishes,
+  // Wanderlog is empty and ZiGy's chat is what the user actually wants
+  // room for. It expands on its own once something's actually saved there,
+  // unless the user has already set their own height by dragging.
+  const [wanderlogHeight, setWanderlogHeight] = useState(COLLAPSED_WANDERLOG_HEIGHT);
+  const [userResizedWanderlog, setUserResizedWanderlog] = useState(false);
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
 
   useEffect(() => {
     const saved = Number(localStorage.getItem(WANDERLOG_HEIGHT_KEY));
-    if (saved && Number.isFinite(saved)) setWanderlogHeight(saved);
+    if (saved && Number.isFinite(saved)) {
+      setWanderlogHeight(saved);
+      setUserResizedWanderlog(true);
+    }
   }, []);
+
+  const wanderlogItemCount = latestItinerary?.wanderlog?.length ?? 0;
+  useEffect(() => {
+    if (!userResizedWanderlog && wanderlogItemCount > 0) {
+      setWanderlogHeight(DEFAULT_WANDERLOG_HEIGHT);
+    }
+  }, [wanderlogItemCount, userResizedWanderlog]);
 
   const handleDragStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -73,6 +90,7 @@ export function PlanningFlow() {
     if (!draggingRef.current) return;
     draggingRef.current = false;
     e.currentTarget.releasePointerCapture(e.pointerId);
+    setUserResizedWanderlog(true);
     setWanderlogHeight((h) => {
       localStorage.setItem(WANDERLOG_HEIGHT_KEY, String(h));
       return h;

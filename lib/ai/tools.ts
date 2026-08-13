@@ -305,7 +305,7 @@ export const UPDATE_AIRLINE_PREFERENCES_TOOL: Anthropic.Tool = {
     properties: {
       airlines: {
         type: "array",
-        items: { type: "string", enum: ["Delta Air Lines", "United Airlines", "American Airlines", "Emirates", "Singapore Airlines", "Lufthansa", "British Airways", "Air France", "Qatar Airways", "Cathay Pacific"] },
+        items: { type: "string", enum: ["Delta Air Lines", "United Airlines", "American Airlines", "Alaska Airlines", "Emirates", "Singapore Airlines", "Lufthansa", "British Airways", "Air France", "Qatar Airways", "Cathay Pacific"] },
         description: "The traveller's full desired list of preferred airlines. Omit if not changing.",
       },
       alliances: {

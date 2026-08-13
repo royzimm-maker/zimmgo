@@ -6,6 +6,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// PlanningFlow uses overflow-y-auto on <main>, so scrolling the window alone
+// doesn't reset the visible position — both need it. Steps that mount fresh
+// per stepId get this via StepShell already; multi-stage screens (the
+// itinerary review wizard, Refine's city tabs) change internally without
+// remounting, so they call this directly whenever their internal stage/city
+// advances.
+export function scrollStepToTop() {
+  window.scrollTo({ top: 0 });
+  document.querySelector("main")?.scrollTo({ top: 0 });
+}
+
 export function formatCurrency(amount: number, currency = "USD"): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

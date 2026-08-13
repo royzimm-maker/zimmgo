@@ -31,12 +31,14 @@ const AIRLINE_BOOKING_URLS: Record<string, string> = {
   "CX": "https://www.cathaypacific.com/cx/en_US/book-a-trip/flights.html",
   "ITA": "https://www.ita-airways.com/en_us",
   "AZ": "https://www.ita-airways.com/en_us",
+  "AS": "https://www.alaskaair.com/booking/reservation-flights",
 };
 
 const MOCK_AIRLINES = [
   { name: "Delta Air Lines",    code: "DL", alliance: "skyteam"       },
   { name: "United Airlines",    code: "UA", alliance: "star_alliance"  },
   { name: "American Airlines",  code: "AA", alliance: "oneworld"       },
+  { name: "Alaska Airlines",    code: "AS", alliance: "oneworld"       },
   { name: "Singapore Airlines", code: "SQ", alliance: "star_alliance"  },
   { name: "Emirates",           code: "EK", alliance: "none"           },
   { name: "British Airways",    code: "BA", alliance: "oneworld"       },

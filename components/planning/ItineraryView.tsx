@@ -866,8 +866,8 @@ export function RestaurantCard({
                     type="button"
                     onClick={onSelect}
                     title={selected ? "Remove from your day-by-day plan" : "Add to your day-by-day plan"}
-                    className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap transition-colors ${
-                      selected ? "bg-brand-600 text-white" : "border border-slate-200 text-slate-500 hover:border-brand-300 hover:text-brand-600"
+                    className={`flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors ${
+                      selected ? "bg-brand-600 text-white" : "border border-brand-400 bg-brand-50 text-brand-700 hover:bg-brand-100 hover:border-brand-500"
                     }`}
                   >
                     {selected ? <Check size={10} /> : null}

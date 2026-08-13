@@ -14,6 +14,7 @@ const AIRLINES = [
   { name: "Delta Air Lines",   code: "DL", icon: "✈️" },
   { name: "United Airlines",   code: "UA", icon: "✈️" },
   { name: "American Airlines", code: "AA", icon: "✈️" },
+  { name: "Alaska Airlines",   code: "AS", icon: "✈️" },
   { name: "Emirates",          code: "EK", icon: "✈️" },
   { name: "Singapore Airlines",code: "SQ", icon: "✈️" },
   { name: "Lufthansa",         code: "LH", icon: "✈️" },

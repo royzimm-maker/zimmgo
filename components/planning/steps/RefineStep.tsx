@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -18,7 +18,7 @@ import { X, Sparkles, BookMarked, ArrowRight } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { fetchSmartPick } from "@/lib/api/smartPick";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, scrollStepToTop } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityOption, RestaurantOption } from "@/types/trip";
 
@@ -262,6 +262,12 @@ export function RefineStep() {
   const [activeCity, setActiveCity] = useState<string | null>(null);
   const effectiveCity = activeCity ?? cities[0] ?? null;
 
+  // Switching city tabs updates internal state without remounting this step,
+  // so it doesn't scroll back to the top the way a fresh step normally does.
+  useEffect(() => {
+    scrollStepToTop();
+  }, [effectiveCity]);
+
   const allCards = useMemo<CardInfo[]>(() => [
     ...activities.map((a) => ({ cardId: `act-${a.id}`, kind: "activity" as const, activity: a })),
     ...restaurants.map((r) => ({ cardId: `rest-${r.id}`, kind: "restaurant" as const, restaurant: r })),
@@ -486,6 +492,7 @@ export function RefineStep() {
         onContinue={async () => {
           if (modeChoice === "manual") setMode("manual");
           else if (modeChoice === "zigy") await handleAutoPlanAll();
+          scrollStepToTop(); // switching views here doesn't remount the step
           return false; // stay on this step — just switches to the board view
         }}
         subtitle="How do you want to personalize your plan?"

@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, MapPin, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { useExpandablePreview } from "@/lib/hooks/useExpandablePreview";
 import { fetchSmartPick } from "@/lib/api/smartPick";
-import { fuzzyCityMatch } from "@/lib/utils";
+import { fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
 import {
   Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard,
 } from "@/components/planning/ItineraryView";
@@ -71,6 +71,13 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
   }, [cities, perCityStages]);
 
   const [stepIdx, setStepIdx] = useState(0);
+
+  // This wizard advances between stages/cities via internal state, not by
+  // mounting a new component, so the page doesn't scroll back to the top on
+  // its own the way a fresh step normally does.
+  useEffect(() => {
+    scrollStepToTop();
+  }, [stepIdx]);
   const [pickingHotel, setPickingHotel] = useState(false);
   const [hotelPickReasons, setHotelPickReasons] = useState<Record<string, string>>({});
 
