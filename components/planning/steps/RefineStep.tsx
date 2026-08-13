@@ -517,12 +517,16 @@ export function RefineStep() {
   // leaving the user to notice the city tabs on their own — shown even if a
   // few items are still sitting unplaced, since a user who's decided to skip
   // those souldn't be stuck with no nudge to move to the next city.
+  // Suppressed once nothing's left unplaced anywhere in the trip (e.g. right
+  // after "Let ZiGy schedule every city") — there's nothing left to fine-tune,
+  // so nudging through each city's tab just to look at it is pure friction;
+  // "Done — view my plan" is the only action left worth surfacing.
   const activeCityStats = effectiveCity ? cityStats.find((s) => s.city === effectiveCity) : undefined;
   const activeCityIdx = effectiveCity ? cities.indexOf(effectiveCity) : -1;
   const nextCity = activeCityIdx >= 0 && activeCityIdx < cities.length - 1 ? cities[activeCityIdx + 1] : null;
   const activeCityComplete = visibleBank.length === 0;
   const showNextCityPrompt = Boolean(
-    effectiveCity && nextCity && activeCityStats && activeCityStats.total > 0 && activeCityStats.placed > 0
+    bank.length > 0 && effectiveCity && nextCity && activeCityStats && activeCityStats.total > 0 && activeCityStats.placed > 0
   );
 
   return (
