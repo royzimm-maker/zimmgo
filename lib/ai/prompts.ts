@@ -323,7 +323,7 @@ export function buildPreferencePickPrompt(
   const instructions: Record<typeof kind, string> = {
     activities: `Pick 3-5 activity categories that best suit a trip to ${dest}.${vibeStr}${
       preferences.vibes.includes("great_food")
-        ? ` They picked Food-Forward Travel as a vibe, so make sure "Guided Food Tour" and/or "Food Experiences" is one of your picks.`
+        ? ` They picked Food-Forward Travel as a vibe, so make sure "Food Experiences" is one of your picks.`
         : ""
     }`,
     vibes: `Pick 2-4 trip vibes that best suit a trip to ${dest}.`,

@@ -26,7 +26,7 @@ import type { ActivityOption, RestaurantOption } from "@/types/trip";
 const ACTIVITY_EMOJI: Record<string, string> = {
   skiing: "⛷️", hiking: "🥾", sailing: "⛵", food: "🍽️", diving: "🤿",
   cycling: "🚴", cultural: "🏛️", photography: "📸", wellness: "🧘",
-  adventure: "🧗", guided_walking_tour: "🚶", guided_food_tour: "🍜",
+  adventure: "🧗", guided_walking_tour: "🚶",
 };
 
 const RESTAURANT_EMOJI: Record<string, string> = {

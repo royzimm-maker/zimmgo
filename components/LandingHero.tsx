@@ -1,19 +1,11 @@
 "use client";
 
-import { ArrowRight, MapPin, Star, Sparkles } from "lucide-react";
+import { ArrowRight, Star, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/branding/Logo";
+import { TripSwitcher } from "@/components/TripSwitcher";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useRouter } from "next/navigation";
-
-const DESTINATIONS = [
-  { name: "Tokyo",      flag: "🇯🇵" },
-  { name: "Patagonia",  flag: "🏔️" },
-  { name: "Amalfi",     flag: "🇮🇹" },
-  { name: "Iceland",    flag: "🇮🇸" },
-  { name: "Kyoto",      flag: "🇯🇵" },
-  { name: "Morocco",    flag: "🇲🇦" },
-];
 
 // Mirrors ORDERED_STEPS in types/trip.ts
 const STEPS = [
@@ -29,7 +21,7 @@ const STEPS = [
 ];
 
 export function LandingHero() {
-  const { trip, resetTrip, startNewTrip: archiveAndStartNewTrip } = useTripStore();
+  const { trip, savedTrips, resetTrip, startNewTrip: archiveAndStartNewTrip } = useTripStore();
   const router = useRouter();
 
   // A returning visitor who lands here (e.g. via a bookmark, not directly on
@@ -40,6 +32,10 @@ export function LandingHero() {
   // the current trip (so it's resumable later via the trip switcher) rather
   // than discarding it outright.
   const hasProgress = trip.completedSteps.length > 0 || trip.itineraries.length > 0;
+  // Landing here only ever surfaces the *active* trip — anyone with more than
+  // one trip in progress needs a way to jump straight to an older one instead
+  // of always resuming whichever was worked on most recently.
+  const hasMultipleTrips = hasProgress && savedTrips.length > 0;
 
   function startPlanning() {
     if (!hasProgress) resetTrip();
@@ -53,77 +49,68 @@ export function LandingHero() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Beta banner — matches the plan page's beta banner exactly */}
-      <div className="bg-amber-50 border-b border-amber-200 px-4 py-1.5 text-center">
-        <p className="text-xs text-amber-700">
-          <span className="inline-flex items-center gap-1 font-semibold mr-1">
+      {/* Nav — carries the beta disclosure as a compact badge instead of a separate strip */}
+      <nav className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
+        <Logo size={64} showTagline />
+        <div className="flex items-center gap-3">
+          {hasMultipleTrips && <TripSwitcher label="My Saved Trips" />}
+          <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 sm:inline-flex">
             <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Beta</span>
+            Early prototype — not live booking data
           </span>
-          ZimmGo is an early prototype — recommendations are illustrative and not live booking data.
-        </p>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-        <Logo size={34} />
-        <button
-          onClick={startPlanning}
-          className="text-sm text-slate-500 hover:text-slate-900 transition-colors"
-        >
-          Start planning →
-        </button>
+        </div>
       </nav>
+      <p className="border-b border-amber-100 bg-amber-50/60 px-4 py-1 text-center text-[11px] text-amber-700 sm:hidden">
+        <span className="font-bold uppercase tracking-wide">Beta</span> · Early prototype, not live booking data
+      </p>
 
       {/* Hero */}
-      <div className="mx-auto max-w-4xl px-6 pt-16 pb-24 text-center">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5">
-          <Sparkles size={14} className="text-brand-600" />
-          <span className="text-xs font-medium text-brand-700">AI-powered travel planning</span>
-        </div>
-
-        <h1 className="text-balance text-5xl font-bold text-slate-900 leading-tight sm:text-6xl">
+      <div className="mx-auto max-w-4xl px-6 pt-8 pb-8 text-center">
+        <h1 className="text-balance text-4xl font-bold text-slate-900 leading-tight sm:text-5xl">
           Plan trips like a{" "}
           <span className="bg-gradient-to-r from-brand-600 to-sage-600 bg-clip-text text-transparent">
             seasoned traveller
           </span>
         </h1>
 
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-500 leading-relaxed">
+        <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-500 leading-relaxed">
           ZimmGo acts as your personal AI travel advisor — guiding you step-by-step from
           destination to a complete day-by-day itinerary, with curated flights, hotels, and
           experiences matched to your taste and budget.
         </p>
 
-        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <Button size="lg" onClick={startPlanning} className="px-8">
-            {hasProgress ? "Continue planning your trip" : "Start planning your trip"}
-            <ArrowRight size={16} />
-          </Button>
-          {hasProgress ? (
-            <button
-              type="button"
-              onClick={startNewTrip}
-              className="text-sm text-slate-400 hover:text-slate-600 transition-colors underline underline-offset-2"
-            >
-              Start a new trip instead
-            </button>
-          ) : (
+        {hasProgress ? (
+          <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Button size="lg" onClick={startPlanning} className="px-8">
+              Pick up where you left off
+              <ArrowRight size={16} />
+            </Button>
+            <Button size="lg" variant="outline" onClick={startNewTrip} className="px-8">
+              Start a new trip
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-6 flex flex-col items-center gap-4">
+            <Button size="lg" onClick={startPlanning} className="px-8">
+              Start planning your trip
+              <ArrowRight size={16} />
+            </Button>
             <p className="text-sm text-slate-400">Free · No sign-up required</p>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Progress steps preview */}
-        <div className="mt-16 flex items-center justify-center gap-1 overflow-x-auto pb-2">
+        <div className="mt-8 flex flex-wrap items-start justify-center gap-x-1 gap-y-4">
           {STEPS.map((step, idx) => (
             <div key={step.label} className="flex items-center">
-              <div className="flex shrink-0 flex-col items-center gap-1">
+              <div className="flex w-14 shrink-0 flex-col items-center gap-1">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-base">
                   {step.icon}
                 </div>
                 <span className="text-[10px] text-slate-400">{step.label}</span>
               </div>
               {idx < STEPS.length - 1 && (
-                <div className="mx-1 h-px w-4 bg-slate-200 shrink-0" />
+                <div className="mx-1 hidden h-px w-4 bg-slate-200 shrink-0 sm:block" />
               )}
             </div>
           ))}
@@ -133,28 +120,8 @@ export function LandingHero() {
         </p>
       </div>
 
-      {/* Popular destinations */}
-      <div className="border-t border-slate-200 bg-white py-12 px-6">
-        <p className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
-          Popular destinations
-        </p>
-        <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-3">
-          {DESTINATIONS.map((d) => (
-            <button
-              key={d.name}
-              onClick={startPlanning}
-              className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition-all hover:border-brand-400 hover:text-brand-700"
-            >
-              <span>{d.flag}</span>
-              <MapPin size={12} className="text-slate-400" />
-              {d.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Social proof */}
-      <div className="border-t border-slate-200 py-10 px-6 text-center">
+      <div className="border-t border-slate-200 py-5 px-6 text-center">
         <div className="flex items-center justify-center gap-1 mb-2">
           {[1,2,3,4,5].map((i) => (
             <Star key={i} size={14} className="fill-amber-400 text-amber-400" />
@@ -167,7 +134,7 @@ export function LandingHero() {
       </div>
 
       {/* Powered by Claude */}
-      <div className="border-t border-slate-200 py-5 px-6 text-center">
+      <div className="border-t border-slate-200 py-3 px-6 text-center">
         <p className="text-xs text-slate-400 flex items-center justify-center gap-2">
           <Sparkles size={11} className="text-slate-400" />
           Powered by{" "}

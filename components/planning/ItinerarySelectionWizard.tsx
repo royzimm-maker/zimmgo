@@ -41,7 +41,7 @@ interface WizardStep {
 }
 
 export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
-  const { trip, setSelectedFlight, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity, setItineraryFlights } = useTripStore();
+  const { trip, setSelectedFlight, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity, setItineraryFlights, goToStep } = useTripStore();
   const preferences = trip.preferences;
 
   const [searchingFlights, setSearchingFlights] = useState(false);
@@ -106,6 +106,26 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
   const stage = step.stage;
   const currentCity = step.city ?? cities[0];
   const currentCityIdx = cities.indexOf(currentCity);
+
+  // Auto-run the same search a user would otherwise have to click "Search
+  // for flights" to trigger, whenever the itinerary landed here with none
+  // (e.g. the AI's search_flights call came back empty). Only fires once per
+  // itinerary — a failed attempt leaves flightSearchError set, which blocks
+  // re-firing so it doesn't retry-loop against a real backend error.
+  const [autoSearchedFlightsFor, setAutoSearchedFlightsFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (stage !== "flights") return;
+    if (itinerary.flights.length > 0) return;
+    if (autoSearchedFlightsFor === itinerary.id) return;
+    if (searchingFlights || flightSearchError) return;
+    const dates = preferences.dates;
+    if (dates?.type !== "exact" || !dates.startDate || !dates.endDate || dates.skipFlightSearch) return;
+    if (!preferences.destination?.departureAirport || !preferences.destination?.arrivalAirport) return;
+
+    setAutoSearchedFlightsFor(itinerary.id);
+    handleSearchFlights();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, itinerary.id, itinerary.flights.length, preferences.dates, preferences.destination]);
 
   const totalSteps = steps.length;
   const currentStep = stepIdx + 1;
@@ -287,9 +307,26 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                 error={flightSearchError}
               />
             </div>
+          ) : preferences.dates?.type !== "exact" ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+              <p className="text-sm text-slate-500">Flight search needs exact travel dates.</p>
+              <p className="text-xs text-slate-400 mt-1">
+                You picked a flexible date window — go back to Dates and lock in exact travel dates to see flight options.
+              </p>
+              <button
+                type="button"
+                onClick={() => goToStep("dates")}
+                className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
+              >
+                <ArrowLeft size={14} />
+                Go to Dates
+              </button>
+            </div>
           ) : preferences.destination?.departureAirport && preferences.destination?.arrivalAirport ? (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
-              <p className="text-sm text-slate-500">No specific flight options found yet.</p>
+              <p className="text-sm text-slate-500">
+                {searchingFlights ? "Searching for flights…" : "No specific flight options found yet."}
+              </p>
               <p className="text-xs text-slate-400 mt-1">Ask ZiGy in the chat panel for suggestions, or search again below.</p>
               <SearchFlightsButton onClick={handleSearchFlights} loading={searchingFlights} error={flightSearchError} />
             </div>

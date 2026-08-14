@@ -45,8 +45,7 @@ export type ActivityCategory =
   | "photography"
   | "wellness"
   | "adventure"
-  | "guided_walking_tour"
-  | "guided_food_tour";
+  | "guided_walking_tour";
 
 export type VibeTag =
   | "nightlife"

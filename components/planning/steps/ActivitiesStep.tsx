@@ -18,11 +18,10 @@ import type { ActivityCategory } from "@/types/trip";
 // back into friendly labels for its confirmation banner.
 export const GENERAL: { id: ActivityCategory; label: string; icon: string; sublabel: string }[] = [
   { id: "guided_walking_tour", label: "Guided Walking Tour", icon: "🚶", sublabel: "Expert-led neighbourhood & history walks" },
-  { id: "guided_food_tour",    label: "Guided Food Tour",    icon: "🍽️", sublabel: "Curated culinary walks with a local expert" },
   { id: "hiking",              label: "Hiking",              icon: "🥾", sublabel: "Trails, peaks, national parks" },
   { id: "skiing",              label: "Skiing",              icon: "⛷️", sublabel: "Downhill, backcountry, snow" },
   { id: "sailing",             label: "Sailing & Boating",   icon: "⛵", sublabel: "Charters, boat excursions, coastal cruising" },
-  { id: "food",                label: "Food Experiences",    icon: "🍜", sublabel: "Markets, tastings, restaurants" },
+  { id: "food",                label: "Food Experiences",    icon: "🍜", sublabel: "Guided food tours, markets, tastings, cooking classes" },
   { id: "diving",              label: "Diving & Snorkel",    icon: "🤿", sublabel: "Reefs, wrecks, marine life" },
   { id: "cycling",             label: "Cycling",             icon: "🚴", sublabel: "Road biking, mountain biking" },
   { id: "cultural",            label: "Cultural",            icon: "🏛️", sublabel: "History, arts, local traditions" },

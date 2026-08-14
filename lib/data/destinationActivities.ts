@@ -39,7 +39,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
         ],
       },
       {
-        name: "Athens Food Walk — Culinary Backstreets", emoji: "🥙", category: "guided_food_tour", isSignature: true,
+        name: "Athens Food Walk — Culinary Backstreets", emoji: "🥙", category: "food", isSignature: true,
         description: "The flagship Athens walk hits Monastiraki, Psiri and Koukaki — souvlaki, loukoumades, mezedes and natural wine in locals-only spots.",
         providerWhy: "Culinary Backstreets was founded by food journalists and neighbourhood specialists who were frustrated by tours that took people to tourist-facing venues. Their guides are embedded locals — often food writers, chefs, or restaurant insiders — who take small groups to the places they actually eat at. No placement fees, no tourist menus.",
         guideNote: "Guides are not publicly named in advance (they vary by schedule), but Culinary Backstreets consistently receives top marks specifically for guide knowledge and authenticity in independent reviews. You can read past participant reviews on their site and on TripAdvisor.",
@@ -71,7 +71,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
         ],
       },
       {
-        name: "Istanbul Food Walk — Culinary Backstreets", emoji: "🍢", category: "guided_food_tour", isSignature: true,
+        name: "Istanbul Food Walk — Culinary Backstreets", emoji: "🍢", category: "food", isSignature: true,
         description: "Culinary Backstreets pioneered the neighbourhood food walk in Istanbul — their Beyoğlu and Balık Ekmek walks are widely regarded as the gold standard for eating like a local.",
         providerWhy: "Culinary Backstreets has operated in Istanbul since 2009 — longer than almost any other food tour company in the city. Their Istanbul team has included Turkish food journalists and chefs who built personal relationships with vendors before ever running tours. They explicitly do not charge restaurants for inclusion, so every stop is a genuine recommendation.",
         guideNote: "Guide names are not listed in advance, but Culinary Backstreets publishes detailed editorial about each of their walks on their website, which gives a clear sense of what the guide knows. Reviews on TripAdvisor and their own site frequently cite guide expertise as the defining element.",
@@ -92,7 +92,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
     keywords: ["japan", "tokyo", "kyoto", "osaka", "hiroshima", "nara"],
     activities: [
       {
-        name: "Tsukiji Market Food Walk — Culinary Backstreets", emoji: "🍣", category: "guided_food_tour", isSignature: true,
+        name: "Tsukiji Market Food Walk — Culinary Backstreets", emoji: "🍣", category: "food", isSignature: true,
         description: "Goes far beyond the outer market — guides with deep chef connections take you into the stalls that supply Tokyo's best restaurants.",
         providerWhy: "Culinary Backstreets' Tokyo team includes food writers and chefs with long-standing relationships in the professional kitchen world. Their access to specific vendors inside the market and in surrounding Tsukiji and Toyosu goes beyond what a general tour operator can offer — these are contacts built over years of editorial work, not commission arrangements.",
         guideNote: "Specific guide assignment is not listed in advance. Culinary Backstreets publishes profiles and editorial features about their Tokyo guides on their website — reading these beforehand gives a clear sense of the expertise you'll be travelling with.",
@@ -135,7 +135,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
         ],
       },
       {
-        name: "Paris Market & Bistro Walk — Culinary Backstreets", emoji: "🥐", category: "guided_food_tour", isSignature: true,
+        name: "Paris Market & Bistro Walk — Culinary Backstreets", emoji: "🥐", category: "food", isSignature: true,
         description: "Takes you through the Marché d'Aligre and surrounding bistros — the market Parisians actually shop at, not the tourist version.",
         providerWhy: "Culinary Backstreets' Paris team includes French food journalists and restaurant insiders who have spent years writing about the city's neighbourhood eating culture. Their walks deliberately avoid the famous markets and instead focus on the authentic daily food infrastructure of Paris — venues with no financial relationship with tour operators.",
         guideNote: "As with all Culinary Backstreets tours, specific guide names are not listed in advance. Their Paris guides are profiled in editorial features on the website, and independently reviewed on TripAdvisor, where the Paris walk consistently receives 5-star ratings.",
@@ -179,7 +179,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
         ],
       },
       {
-        name: "Naples Street Food Walk — Culinary Backstreets", emoji: "🍕", category: "guided_food_tour", isSignature: true,
+        name: "Naples Street Food Walk — Culinary Backstreets", emoji: "🍕", category: "food", isSignature: true,
         description: "Digs into friggitorie, pizzerie and pastry shops that visitors walk straight past — the real Neapolitan eating culture, not the tourist strip.",
         providerWhy: "Culinary Backstreets' Naples walk is run by local food journalists and writers who have covered Neapolitan food culture for years. Naples presents a particular challenge for food tours because the best eating is often hidden in residential areas with no signage — their team's local knowledge is genuinely difficult to replicate from a guidebook.",
         guideNote: "Culinary Backstreets does not name guides in advance, but detailed editorial about the walk and its stops is published on their website. Independent reviews consistently describe guides as knowledgeable insiders rather than professional tour guides.",
@@ -190,7 +190,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
         ],
       },
       {
-        name: "Florence Art & Markets — Eating Europe", emoji: "🖼️", category: "guided_food_tour",
+        name: "Florence Art & Markets — Eating Europe", emoji: "🖼️", category: "food",
         description: "Combines the Mercato Centrale with a guided walk through the Oltrarno — pecorino, lampredotto and Chianti included.",
         providerWhy: "Eating Europe has operated food tours across major European cities for over a decade. Their Florence programme is specifically designed around the working food culture of the Oltrarno district, which remains more local than the tourist-heavy centre. They vet all stops for quality and consistency.",
         guideNote: "Eating Europe lists their guide team on their website and provides transparent booking information. Their guides typically have backgrounds in food writing, hospitality, or culinary arts.",
@@ -222,7 +222,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
         ],
       },
       {
-        name: "Marrakech Food Walk — Culinary Backstreets", emoji: "🫕", category: "guided_food_tour", isSignature: true,
+        name: "Marrakech Food Walk — Culinary Backstreets", emoji: "🫕", category: "food", isSignature: true,
         description: "Covers the souks at dawn, a traditional harira breakfast and the city's best bastilla — stops chosen entirely outside the tourist menus.",
         providerWhy: "Culinary Backstreets' Marrakech walks are designed around the premise that the best Moroccan food in Marrakech is almost never found in the Djemaa el-Fna area. Their team identifies venues that serve the working local population — foundouks, neighbourhood ovens, and family kitchens — and builds relationships with them over time before including them in tours.",
         guideNote: "As with all Culinary Backstreets operations, guide names are not listed in advance. Their Marrakech editorial on the website explains the walk's philosophy and stops in detail. Independent reviews on TripAdvisor describe guides as 'genuine food insiders' rather than tourist industry professionals.",
@@ -254,7 +254,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
         ],
       },
       {
-        name: "Queens & Brooklyn Food Walk — Culinary Backstreets", emoji: "🥯", category: "guided_food_tour", isSignature: true,
+        name: "Queens & Brooklyn Food Walk — Culinary Backstreets", emoji: "🥯", category: "food", isSignature: true,
         description: "Goes deep into the outer borough food scenes — Flushing dim sum, Jackson Heights curry row, Bed-Stuy Caribbean — areas Manhattan-focused food tours never reach.",
         providerWhy: "Culinary Backstreets' New York operation is built around the outer boroughs specifically because that is where the authentic immigrant food culture lives. Their team includes food writers and restaurant journalists who cover NYC food professionally — the stops are based on genuine editorial judgement, not commercial partnerships.",
         guideNote: "Culinary Backstreets publishes detailed editorial about their New York walks on their website, which gives a strong sense of guide expertise and stop selection. Independent reviews on TripAdvisor and Yelp consistently cite guides as the standout element.",

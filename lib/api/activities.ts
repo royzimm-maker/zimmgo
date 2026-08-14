@@ -5,6 +5,7 @@
 import { v4 as uuid } from "uuid";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
 import { resolvePool } from "@/lib/api/poolLookup";
+import { getActivitiesForDestination, type DestinationActivity } from "@/lib/data/destinationActivities";
 import type { ActivityOption } from "@/types/trip";
 
 interface ActivitySearchParams {
@@ -57,7 +58,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
   ],
   naples: [
     { name: "Pompeii ruins guided tour",      category: "cultural",     duration: "4h",   price: 70,  rating: 9.6, reviewCount: 9800,  isLocalFavorite: false, description: "Walk the frozen streets of Pompeii with an archaeologist guide who brings 79 AD back into focus." },
-    { name: "Naples pizza-making class",      category: "guided_food_tour", duration: "2.5h", price: 55, rating: 9.4, reviewCount: 3100, isLocalFavorite: true, description: "Learn true Neapolitan dough technique from a family that's been making pizza since the 1950s." },
+    { name: "Naples pizza-making class",      category: "food", duration: "2.5h", price: 55, rating: 9.4, reviewCount: 3100, isLocalFavorite: true, description: "Learn true Neapolitan dough technique from a family that's been making pizza since the 1950s." },
     { name: "Napoli Sotterranea underground tour", category: "cultural", duration: "2h",  price: 35,  rating: 9.2, reviewCount: 4200,  isLocalFavorite: true,  description: "Descend into the Greco-Roman aqueducts and WWII bomb shelters beneath the chaotic streets above." },
     { name: "Capri boat day trip",            category: "sailing",      duration: "Full day", price: 120, rating: 9.5, reviewCount: 6100, isLocalFavorite: false, description: "Blue Grotto, the Faraglioni rocks, and a swim stop off Capri's cliffs — the classic Bay of Naples excursion." },
   ],
@@ -76,12 +77,12 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
   sicily: [
     { name: "Valley of the Temples sunset tour", category: "cultural", duration: "3h", price: 65, rating: 9.5, reviewCount: 5200, isLocalFavorite: false, description: "Agrigento's Doric temples glow gold at sunset — a UNESCO site with a fraction of Rome's crowds." },
     { name: "Mount Etna guided hike & wine tasting", category: "adventure", duration: "6h", price: 95, rating: 9.6, reviewCount: 3800, isLocalFavorite: true, description: "Trek the black lava trails of Europe's most active volcano, then taste wine grown in its mineral-rich soil." },
-    { name: "Palermo street food market tour", category: "guided_food_tour", duration: "3h", price: 55, rating: 9.4, reviewCount: 4100, isLocalFavorite: true, description: "Ballarò and Vucciria markets — arancini, panelle, and the famous (not for the faint-hearted) pani ca meusa." },
+    { name: "Palermo street food market tour", category: "food", duration: "3h", price: 55, rating: 9.4, reviewCount: 4100, isLocalFavorite: true, description: "Ballarò and Vucciria markets — arancini, panelle, and the famous (not for the faint-hearted) pani ca meusa." },
     { name: "Taormina & Isola Bella boat trip", category: "sailing", duration: "4h", price: 80, rating: 9.3, reviewCount: 2600, isLocalFavorite: false, description: "Sail beneath Taormina's clifftop theatre to the turquoise coves of Isola Bella nature reserve." },
   ],
   bologna: [
-    { name: "Bologna food & market walking tour", category: "guided_food_tour", duration: "3h", price: 70, rating: 9.5, reviewCount: 3400, isLocalFavorite: true, description: "Quadrilatero market stalls, a mortadella tasting, and the parmesan and balsamic history that built this city's food fame." },
-    { name: "Fresh pasta-making class with a sfoglina", category: "guided_food_tour", duration: "3h", price: 75, rating: 9.6, reviewCount: 2100, isLocalFavorite: true, description: "Learn tagliatelle and tortellini from an actual Bolognese grandmother in her home kitchen." },
+    { name: "Bologna food & market walking tour", category: "food", duration: "3h", price: 70, rating: 9.5, reviewCount: 3400, isLocalFavorite: true, description: "Quadrilatero market stalls, a mortadella tasting, and the parmesan and balsamic history that built this city's food fame." },
+    { name: "Fresh pasta-making class with a sfoglina", category: "food", duration: "3h", price: 75, rating: 9.6, reviewCount: 2100, isLocalFavorite: true, description: "Learn tagliatelle and tortellini from an actual Bolognese grandmother in her home kitchen." },
     { name: "Ferrari Museum & balsamic vinegar day trip", category: "cultural", duration: "Full day", price: 110, rating: 9.2, reviewCount: 1800, isLocalFavorite: false, description: "Maranello's Ferrari collection paired with a traditional acetaia tasting 25-year balsamic straight from the barrel." },
     { name: "Le Due Torri & portico rooftop climb", category: "cultural", duration: "1.5h", price: 25, rating: 8.9, reviewCount: 4100, isLocalFavorite: false, description: "Climb the leaning Asinelli Tower for the best rooftop view in Emilia-Romagna, then walk the world's longest portico." },
   ],
@@ -93,7 +94,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
   ],
   cinque: [
     { name: "Sentiero Azzurro hike through all five villages", category: "hiking", duration: "Full day", price: 45, rating: 9.7, reviewCount: 4800, isLocalFavorite: true, description: "The classic blue trail linking Monterosso to Riomaggiore along the cliffs — buy the Cinque Terre Card for trail access." },
-    { name: "Vernazza harbour swim & pesto-making class", category: "guided_food_tour", duration: "3h", price: 65, rating: 9.4, reviewCount: 2100, isLocalFavorite: true, description: "Swim in Vernazza's tiny harbour, then learn real Ligurian pesto from a local — mortar and pestle, no shortcuts." },
+    { name: "Vernazza harbour swim & pesto-making class", category: "food", duration: "3h", price: 65, rating: 9.4, reviewCount: 2100, isLocalFavorite: true, description: "Swim in Vernazza's tiny harbour, then learn real Ligurian pesto from a local — mortar and pestle, no shortcuts." },
     { name: "Cinque Terre coastal boat tour", category: "sailing", duration: "4h", price: 85, rating: 9.6, reviewCount: 3600, isLocalFavorite: false, description: "See all five villages from the water — the only angle that shows why they're called the 'five lands'." },
     { name: "Manarola sunset photography walk", category: "photography", duration: "2h", price: 40, rating: 9.5, reviewCount: 1400, isLocalFavorite: false, description: "The most photographed village in Liguria at golden hour, with a guide who knows the quiet vantage points." },
   ],
@@ -106,14 +107,14 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
   madrid: [
     { name: "Prado Museum skip-the-line guided tour", category: "cultural", duration: "3h", price: 75, rating: 9.5, reviewCount: 8200, isLocalFavorite: false, description: "Velázquez, Goya, and Bosch with an art historian guide who cuts through the crowds and the audio-guide clichés." },
     { name: "Retiro Park & Royal Palace walking tour", category: "guided_walking_tour", duration: "3h", price: 45, rating: 9.0, reviewCount: 3400, isLocalFavorite: false, description: "Madrid's green lung and the largest working royal palace in Europe, paired in one manageable afternoon." },
-    { name: "Tapas crawl in La Latina",           category: "guided_food_tour", duration: "3h", price: 65, rating: 9.4, reviewCount: 4600, isLocalFavorite: true, description: "Cava Baja's tapas bars the way madrileños actually do it — standing room, jamón, and vermouth on tap." },
+    { name: "Tapas crawl in La Latina",           category: "food", duration: "3h", price: 65, rating: 9.4, reviewCount: 4600, isLocalFavorite: true, description: "Cava Baja's tapas bars the way madrileños actually do it — standing room, jamón, and vermouth on tap." },
     { name: "Mercado de San Miguel food hall visit", category: "food", duration: "2h", price: 30, rating: 8.8, reviewCount: 9800, isLocalFavorite: false, description: "A glass-walled 1916 market hall turned upscale tapas bazaar — touristy but genuinely excellent, right off Plaza Mayor." },
   ],
   seville: [
     { name: "Real Alcázar & Santa Cruz quarter tour", category: "cultural", duration: "3h", price: 65, rating: 9.5, reviewCount: 5600, isLocalFavorite: false, description: "The oldest royal palace still in use in Europe — Mudéjar architecture that inspired parts of Game of Thrones' Dorne." },
     { name: "Flamenco show in Triana",            category: "cultural", duration: "1.5h", price: 40, rating: 9.3, reviewCount: 4200, isLocalFavorite: true, description: "Flamenco's actual birthplace neighbourhood, across the river from the tourist zone — raw and unpolished in the best way." },
     { name: "Seville Cathedral & Giralda tower climb", category: "cultural", duration: "2h", price: 35, rating: 9.2, reviewCount: 6100, isLocalFavorite: false, description: "The world's largest Gothic cathedral, with a ramp (not stairs) to the top of the Giralda for panoramic city views." },
-    { name: "Tapas crawl through Santa Cruz & Alfalfa", category: "guided_food_tour", duration: "3h", price: 55, rating: 9.4, reviewCount: 3100, isLocalFavorite: true, description: "Hop between family-run bars for salmorejo, croquetas, and sherry the way sevillanos have for generations." },
+    { name: "Tapas crawl through Santa Cruz & Alfalfa", category: "food", duration: "3h", price: 55, rating: 9.4, reviewCount: 3100, isLocalFavorite: true, description: "Hop between family-run bars for salmorejo, croquetas, and sherry the way sevillanos have for generations." },
   ],
   // Kept as a fallback for a bare "Spain" search — already pure Barcelona
   // content, and the "barcelona": "spain" alias correctly routes Barcelona
@@ -139,7 +140,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
   thessaloniki: [
     { name: "White Tower & waterfront promenade walk", category: "guided_walking_tour", duration: "2h", price: 30, rating: 8.8, reviewCount: 1400, isLocalFavorite: false, description: "Thessaloniki's Ottoman-era landmark tower, plus the long seafront promenade locals actually walk every evening." },
     { name: "Ano Poli old town & Byzantine walls tour", category: "cultural", duration: "2.5h", price: 40, rating: 9.1, reviewCount: 1100, isLocalFavorite: true, description: "The hillside old town above the modern grid — Byzantine churches, city walls, and views over the Thermaic Gulf." },
-    { name: "Modiano Market food tour",            category: "guided_food_tour", duration: "3h", price: 55, rating: 9.3, reviewCount: 1900, isLocalFavorite: true, description: "Thessaloniki's historic covered market — bougatsa, souvlaki, and the city's famously good street food scene." },
+    { name: "Modiano Market food tour",            category: "food", duration: "3h", price: 55, rating: 9.3, reviewCount: 1900, isLocalFavorite: true, description: "Thessaloniki's historic covered market — bougatsa, souvlaki, and the city's famously good street food scene." },
     { name: "Vergina royal tombs day trip",        category: "cultural", duration: "Full day", price: 90, rating: 9.0, reviewCount: 700, isLocalFavorite: false, description: "The gold-filled tomb of Philip II of Macedon, Alexander the Great's father — one of Greece's great archaeological finds." },
   ],
   // Kept as a fallback for a bare "Greece" search with no specific city —
@@ -188,7 +189,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Glasgow mural trail & street art walk", category: "guided_walking_tour", duration: "2h", price: 30, rating: 9.0, reviewCount: 1600, isLocalFavorite: true, description: "The City Centre Mural Trail — dozens of large-scale street art pieces most visitors walk straight past." },
     { name: "Kelvingrove Art Gallery & Museum tour", category: "cultural", duration: "2h", price: 25, rating: 9.1, reviewCount: 3400, isLocalFavorite: false, description: "A Victorian red-sandstone museum with everything from a Spitfire to Dalí — free entry, genuinely excellent collection." },
     { name: "Glasgow whisky & gin tasting",         category: "food",     duration: "2h",  price: 55,  rating: 9.2, reviewCount: 1400, isLocalFavorite: true, description: "Scotland's other whisky city — a guided tasting through Lowland and Highland drams in a West End bar." },
-    { name: "West End & Ashton Lane food crawl",    category: "guided_food_tour", duration: "2.5h", price: 45, rating: 8.9, reviewCount: 1100, isLocalFavorite: true, description: "Glasgow's leafy, studenty West End — cobbled Ashton Lane's bars and the city's best casual food scene." },
+    { name: "West End & Ashton Lane food crawl",    category: "food", duration: "2.5h", price: 45, rating: 8.9, reviewCount: 1100, isLocalFavorite: true, description: "Glasgow's leafy, studenty West End — cobbled Ashton Lane's bars and the city's best casual food scene." },
   ],
   // Kept as a fallback for a bare "UK" search — London and Edinburgh above
   // now get their own clean pools (this pool previously mixed both
@@ -208,8 +209,64 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
   ],
 };
 
+// Reasonable duration/price estimates by category — destinationActivities.ts's
+// curated picks are real, named experiences (with a real operator's site to
+// book through) but weren't collected with duration/price attached, so we
+// fill in the same kind of illustrative estimate the rest of this mock pool
+// already uses.
+const SIGNATURE_ESTIMATE: Record<string, { duration: string; price: number }> = {
+  guided_walking_tour: { duration: "3h", price: 60 },
+  food:                { duration: "3h", price: 65 },
+  sailing:             { duration: "Full day", price: 150 },
+  cultural:            { duration: "2.5h", price: 45 },
+  adventure:           { duration: "4h", price: 140 },
+  wellness:            { duration: "2h", price: 70 },
+  hiking:              { duration: "5h", price: 40 },
+  cycling:             { duration: "3h", price: 45 },
+  photography:         { duration: "3h", price: 90 },
+  diving:              { duration: "Full day", price: 130 },
+  skiing:              { duration: "Full day", price: 120 },
+};
+
+function signatureToActivityOption(a: DestinationActivity): Partial<ActivityOption> {
+  const estimate = SIGNATURE_ESTIMATE[a.category] ?? { duration: "3h", price: 70 };
+  const provider = a.alternatives?.[0];
+  return {
+    name: a.name,
+    category: a.category,
+    duration: estimate.duration,
+    price: estimate.price,
+    rating: 9.6,
+    reviewCount: 1500,
+    isLocalFavorite: true,
+    description: a.description,
+    bookingUrl: provider ? `https://${provider.url}` : undefined,
+  };
+}
+
 function findActivityBase(destination: string): Partial<ActivityOption>[] {
-  return resolvePool(destination, ACTIVITY_POOLS, DESTINATION_ALIASES);
+  const base = resolvePool(destination, ACTIVITY_POOLS, DESTINATION_ALIASES);
+
+  // getActivitiesForDestination groups by region/country keyword (its "italy"
+  // entry covers Rome, Naples, Florence, Venice and Amalfi together), but this
+  // is called per-city — querying "Rome" would otherwise pull in Naples's food
+  // walk as a Rome recommendation. Keep only entries that actually name-check
+  // this specific city (in the name or description), so a broad region match
+  // doesn't leak another city's picks into this one's pool.
+  const city = destination.toLowerCase().trim();
+  const signature = getActivitiesForDestination(destination).filter(
+    (a) => city && (a.name.toLowerCase().includes(city) || a.description.toLowerCase().includes(city))
+  );
+  if (!signature.length) return base;
+
+  // Curated signature picks lead the pool (isSignature ones first) so a
+  // destination with genuinely good, named options for a category — a real
+  // food-tour operator, a specific art walk — surfaces those ahead of the
+  // generic mock listings, instead of getting buried among them.
+  const sorted = [...signature].sort((x, y) => Number(!!y.isSignature) - Number(!!x.isSignature));
+  const converted = sorted.map(signatureToActivityOption);
+  const seen = new Set(converted.map((c) => c.name));
+  return [...converted, ...base.filter((b) => !seen.has(b.name))];
 }
 
 export async function searchActivities(params: ActivitySearchParams): Promise<ActivityOption[]> {
@@ -244,6 +301,6 @@ export async function searchActivities(params: ActivitySearchParams): Promise<Ac
     isLocalFavorite: a.isLocalFavorite!,
     description: a.description!,
     location: params.destination,
-    bookingUrl: `https://www.getyourguide.com/s/?q=${encodeURIComponent(a.name + " " + params.destination)}`,
+    bookingUrl: a.bookingUrl ?? `https://www.getyourguide.com/s/?q=${encodeURIComponent(a.name + " " + params.destination)}`,
   }));
 }

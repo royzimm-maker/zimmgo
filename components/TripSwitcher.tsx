@@ -33,7 +33,14 @@ function dateLabel(trip: Trip): string | null {
   return null;
 }
 
-export function TripSwitcher() {
+interface TripSwitcherProps {
+  // Overrides the trigger button's label (defaults to the active trip's
+  // name). The landing page has no "current trip" context to display, so it
+  // passes a generic label instead.
+  label?: string;
+}
+
+export function TripSwitcher({ label }: TripSwitcherProps) {
   const { trip, savedTrips, switchToTrip, startNewTrip, deleteTrip } = useTripStore();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -81,7 +88,7 @@ export function TripSwitcher() {
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition-colors max-w-[180px]"
       >
-        <span className="truncate">{trip.name}</span>
+        <span className="truncate">{label ?? trip.name}</span>
         <ChevronDown size={13} className="shrink-0 text-slate-400" />
       </button>
 

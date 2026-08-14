@@ -57,7 +57,7 @@ function buildPackingList(preferences: TripPreferences, itinerary: GeneratedItin
   if (activities.some((a) => a === "wellness")) {
     activityGear.push("Yoga mat (or check hotel)", "Workout clothes", "Flip flops for spa/pool");
   }
-  if (activities.some((a) => a === "food" || a === "guided_food_tour")) {
+  if (activities.some((a) => a === "food")) {
     activityGear.push("Antacids (you will eat a lot)", "Loose-fit trousers for feast days");
   }
 

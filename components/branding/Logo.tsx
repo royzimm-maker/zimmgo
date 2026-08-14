@@ -1,8 +1,11 @@
 import Image from "next/image";
 
 // Real ZimmGo logo assets (exported from ChatGPT, transparent PNGs) —
-// /public/logo-mark.png is the pin+plane icon alone, /public/logo-full.png
-// is the full lockup (icon + "ZimmGo" wordmark + tagline).
+// /public/logo-mark.png is the pin+plane icon alone. /public/logo-full.png
+// is the original vertically-stacked export (icon + "ZimmGo" wordmark +
+// tagline) with the tagline baked in too small to read at UI sizes, so
+// /public/logo-lockup.png is a cropped version (icon + wordmark only, 694x496)
+// for anywhere the tagline needs to be its own readable text instead.
 
 interface LogoMarkProps {
   size?: number;
@@ -28,21 +31,33 @@ interface LogoProps {
   className?: string;
 }
 
+// Icon+wordmark lockup's natural aspect ratio (694x496).
+const LOCKUP_ASPECT = 694 / 496;
+
 export function Logo({ size = 40, showTagline = false, className }: LogoProps) {
-  // Full lockup's natural aspect ratio (1536x1024) — used to size the
-  // wordmark image proportionally to the requested icon size.
-  const width = Math.round(size * 3.75);
   const height = size;
+  const width = Math.round(size * LOCKUP_ASPECT);
 
   return (
-    <Image
-      src="/logo-full.png"
-      alt="ZimmGo — Adventure made easy."
-      width={width}
-      height={height}
-      className={`${showTagline ? "" : "-mb-1"} ${className ?? ""}`}
-      style={{ objectFit: "contain", height: showTagline ? "auto" : height }}
-      priority
-    />
+    <div className={`inline-flex items-center gap-3 ${className ?? ""}`}>
+      <Image
+        src="/logo-lockup.png"
+        alt="ZimmGo"
+        width={width}
+        height={height}
+        style={{ objectFit: "contain", height, width }}
+        priority
+      />
+      {showTagline && (
+        <span
+          className="whitespace-nowrap font-semibold uppercase tracking-wide text-slate-600"
+          style={{ fontSize: Math.max(11, Math.round(size * 0.22)) }}
+        >
+          Adventure
+          <br />
+          Made Easy
+        </span>
+      )}
+    </div>
   );
 }

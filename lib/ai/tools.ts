@@ -257,7 +257,7 @@ export const UPDATE_ACTIVITY_PREFERENCES_TOOL: Anthropic.Tool = {
         type: "array",
         items: { type: "string" },
         description:
-          "The traveller's full desired list of activities — category ids from: guided_walking_tour, guided_food_tour, hiking, skiing, sailing, food, diving, cycling, cultural, photography, wellness, adventure, plus free text for anything that doesn't fit those (e.g. \"Surfing\", \"Bird watching\"). Carry forward their existing selections unless they're clearly replacing them.",
+          "The traveller's full desired list of activities — category ids from: guided_walking_tour, hiking, skiing, sailing, food, diving, cycling, cultural, photography, wellness, adventure, plus free text for anything that doesn't fit those (e.g. \"Surfing\", \"Bird watching\"). Carry forward their existing selections unless they're clearly replacing them.",
       },
       reply: { type: "string", description: "A short, friendly confirmation message naming exactly what changed." },
     },
