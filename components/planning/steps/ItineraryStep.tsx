@@ -1,20 +1,45 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, Trophy, CheckCircle2 } from "lucide-react";
+import { RefreshCw, Trophy, CheckCircle2, CalendarDays, MapPin } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ItineraryView } from "@/components/planning/ItineraryView";
 import { ItinerarySelectionWizard } from "@/components/planning/ItinerarySelectionWizard";
 import { useTripStore } from "@/lib/store/tripStore";
-import { extractApiErrorMessage } from "@/lib/utils";
+import { extractApiErrorMessage, parseLocalDate } from "@/lib/utils";
 import type { GeneratedItinerary } from "@/types/trip";
+
+// Sourced from the generated days themselves, not the raw preferences — the
+// AI sometimes extends a too-short date range to actually cover every
+// destination (see buildItineraryPrompt), so `days` is what ZiGy actually
+// came up with, which may differ from what was originally typed in.
+function tripDateRangeLabel(days: GeneratedItinerary["days"]): string | null {
+  if (!days.length) return null;
+  const start = parseLocalDate(days[0].date);
+  const end = parseLocalDate(days[days.length - 1].date);
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  const startLabel = start.toLocaleDateString("en-US", opts);
+  const endLabel = end.toLocaleDateString("en-US", sameYear ? opts : { ...opts, year: "numeric" });
+  return `${startLabel} – ${endLabel}, ${end.getFullYear()}`;
+}
+
+function tripDestinationsLabel(days: GeneratedItinerary["days"]): string | null {
+  const seen: string[] = [];
+  for (const d of days) {
+    if (d.location && !seen.includes(d.location)) seen.push(d.location);
+  }
+  return seen.length ? seen.join(" → ") : null;
+}
 
 export function ItineraryStep() {
   const { trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep, markItineraryReviewed } = useTripStore();
   const latest = trip.itineraries[trip.itineraries.length - 1] ?? null;
   const isPersonalized = Boolean(latest?.finalizedPlan);
+  const dateRangeLabel = latest ? tripDateRangeLabel(latest.days) : null;
+  const destinationsLabel = latest ? tripDestinationsLabel(latest.days) : null;
 
   const [error, setError] = useState<string | null>(null);
   const [showPicksBanner, setShowPicksBanner] = useState(false);
@@ -120,6 +145,25 @@ export function ItineraryStep() {
             </Button>
             <p className="text-[10px] text-slate-400 pr-1">Rebuilds everything from scratch</p>
           </div>
+        </div>
+      )}
+
+      {/* Dates & destinations ZiGy landed on — the first concrete facts a
+          user should see once the itinerary unlocks, before flights/hotels. */}
+      {latest && !showPicksBanner && (dateRangeLabel || destinationsLabel) && (
+        <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          {dateRangeLabel && (
+            <div className="flex items-center gap-2">
+              <CalendarDays size={16} className="text-brand-500 shrink-0" />
+              <span className="text-sm font-medium text-slate-700">{dateRangeLabel}</span>
+            </div>
+          )}
+          {destinationsLabel && (
+            <div className="flex items-center gap-2">
+              <MapPin size={16} className="text-brand-500 shrink-0" />
+              <span className="text-sm font-medium text-slate-700">{destinationsLabel}</span>
+            </div>
+          )}
         </div>
       )}
 

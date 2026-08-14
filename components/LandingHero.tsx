@@ -53,7 +53,7 @@ export function LandingHero() {
       <nav className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
         <Logo size={64} showTagline />
         <div className="flex items-center gap-3">
-          {hasMultipleTrips && <TripSwitcher label="My Saved Trips" />}
+          {hasMultipleTrips && <TripSwitcher />}
           <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 sm:inline-flex">
             <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Beta</span>
             Early prototype — not live booking data
