@@ -17,7 +17,7 @@ import {
 import { X, Sparkles, Heart, ArrowRight, Hotel, UtensilsCrossed, Star, CalendarDays, CheckCircle2, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { fetchSmartPick } from "@/lib/api/smartPick";
-import { formatCurrency, formatDate, scrollStepToTop } from "@/lib/utils";
+import { formatCurrency, formatDate, fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityOption, RestaurantOption } from "@/types/trip";
 
@@ -230,7 +230,7 @@ function DroppableContainer({
 // ─── Main RefineStep ──────────────────────────────────────────────────────────
 
 export function RefineStep() {
-  const { trip, goToStep, saveFinalizedPlan, addWanderlogItem } = useTripStore();
+  const { trip, goToStep, saveFinalizedPlan, addWanderlogItem, setSelectedHotelForCity } = useTripStore();
   const itinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
   const activities = useMemo<ActivityOption[]>(
@@ -384,13 +384,39 @@ export function RefineStep() {
     setBank((prev) => prev.filter((id) => id !== cardId));
   }
 
+  // "Let ZiGy arrange {city}" only used to handle day-by-day scheduling of
+  // already-picked restaurants/activities — it left a hotel gap completely
+  // untouched even though the same "Where things stand" panel right above it
+  // calls that gap out ("No hotel picked yet"). Fill it in here too, the same
+  // way the flights/hotels/restaurants/activities wizard's smart-pick does.
+  async function pickHotelIfNeeded(city: string): Promise<void> {
+    if (trip.preferences.selectedHotelsByCity?.[city]) return;
+    const airbnbOnly = Boolean(
+      trip.preferences.lodging?.types?.length && trip.preferences.lodging.types.every((t) => t === "airbnb")
+    );
+    if (airbnbOnly) return;
+    const cityHotels = (itinerary?.hotels ?? []).filter((h) => fuzzyCityMatch(h.city ?? h.location, city));
+    if (!cityHotels.length) return;
+
+    const data = await fetchSmartPick({ kind: "hotel", city, preferences: trip.preferences, hotels: cityHotels });
+    const pick = data.picks[0];
+    const hotel = pick && cityHotels.find((h) => h.id === pick.id);
+    if (hotel) setSelectedHotelForCity(city, hotel);
+  }
+
   async function arrangeCity(city: string): Promise<void> {
     const cityDays = days.filter((d) => !d.location || locationsMatch(d.location, city));
     const cityBankIds = bank.filter((id) => {
       const loc = getCardLocation(id);
       return !loc || getCardCity(id) === city;
     });
-    if (cityBankIds.length === 0) return;
+
+    const hotelPromise = pickHotelIfNeeded(city);
+
+    if (cityBankIds.length === 0) {
+      await hotelPromise;
+      return;
+    }
 
     const cityActivities = cityBankIds
       .map((id) => cardMap[id]?.activity)
@@ -399,14 +425,17 @@ export function RefineStep() {
       .map((id) => cardMap[id]?.restaurant)
       .filter((r): r is RestaurantOption => Boolean(r));
 
-    const data = await fetchSmartPick({
-      kind: "schedule",
-      city,
-      preferences: trip.preferences,
-      days: cityDays,
-      activities: cityActivities,
-      restaurants: cityRestaurants,
-    });
+    const [data] = await Promise.all([
+      fetchSmartPick({
+        kind: "schedule",
+        city,
+        preferences: trip.preferences,
+        days: cityDays,
+        activities: cityActivities,
+        restaurants: cityRestaurants,
+      }),
+      hotelPromise,
+    ]);
 
     const validDayNums = new Set(cityDays.map((d) => d.dayNumber));
     const toPlace = data.picks.filter(

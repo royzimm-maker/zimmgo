@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles, User, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
+import { Send, User, CheckCircle2 } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
-import { LogoMark } from "@/components/branding/Logo";
 import { cn } from "@/lib/utils";
 import { GENERAL as ACTIVITY_CATEGORIES } from "@/components/planning/steps/ActivitiesStep";
 import { VIBES } from "@/components/planning/steps/VibeStep";
@@ -75,6 +75,18 @@ function summarizeAirlineUpdate(u: AirlineUpdatePayload): string {
   if (u.cabinClasses?.length) parts.push(`Cabin → ${u.cabinClasses.map((c) => CABIN_LABELS[c] ?? c).join(", ")}`);
   if (u.preferNonstop !== undefined) parts.push(u.preferNonstop ? "Nonstop preferred" : "Connections OK");
   return parts.length ? `Updated flights: ${parts.join(" · ")}` : "Updated flight preferences";
+}
+
+function ZigyAvatar({ size = 20 }: { size?: number }) {
+  return (
+    <Image
+      src="/zigy-avatar.png"
+      alt="ZiGy"
+      width={size}
+      height={size}
+      className="rounded-full object-cover"
+    />
+  );
 }
 
 const STARTER_PROMPTS = [
@@ -221,8 +233,8 @@ export function ChatPanel() {
       {/* Header */}
       <div className="shrink-0 border-b border-slate-200 px-4 py-3 hidden lg:block">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100">
-            <LogoMark size={20} />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 overflow-hidden">
+            <ZigyAvatar size={32} />
           </div>
           <p className="text-sm font-semibold text-slate-800">
             I&rsquo;m ZiGy, your personal AI travel advisor.
@@ -292,7 +304,7 @@ export function ChatPanel() {
             {/* Avatar */}
             <div
               className={cn(
-                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full mt-0.5",
+                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full mt-0.5 overflow-hidden",
                 msg.role === "user"
                   ? "bg-slate-200 text-slate-600"
                   : "bg-brand-100 text-brand-600"
@@ -300,7 +312,7 @@ export function ChatPanel() {
             >
               {msg.role === "user"
                 ? <User size={11} />
-                : <Sparkles size={11} />
+                : <ZigyAvatar size={24} />
               }
             </div>
 
@@ -332,8 +344,8 @@ export function ChatPanel() {
         {/* Typing indicator */}
         {loading && (
           <div className="flex gap-2 animate-fade-up">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600 mt-0.5">
-              <Sparkles size={11} />
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600 mt-0.5 overflow-hidden">
+              <ZigyAvatar size={24} />
             </div>
             <div className="flex items-center gap-1 rounded-xl rounded-tl-sm bg-slate-100 px-3 py-2.5">
               {[0, 1, 2].map((i) => (
