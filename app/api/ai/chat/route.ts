@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL } from "@/lib/ai/client";
 import { buildChatSystemPrompt } from "@/lib/ai/prompts";
 import {
@@ -52,6 +53,9 @@ interface AirlineUpdateToolInput {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, { bucket: "chat", limit: 20, windowMs: 5 * 60_000 });
+  if (limited) return limited;
+
   try {
     const { message, history, preferences, itineraryContext, stepContext }: ChatRequest = await request.json();
 

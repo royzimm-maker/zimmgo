@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { SMART_PICK_TOOL } from "@/lib/ai/tools";
 import { buildHotelPickPrompt, buildSchedulePickPrompt, buildPreferencePickPrompt, buildActivitiesForCityPickPrompt } from "@/lib/ai/prompts";
@@ -7,6 +8,9 @@ import type { SmartPickKind, SmartPickRequestBody, SmartPickResponse } from "@/t
 const PREFERENCE_KINDS = new Set<SmartPickKind>(["activities", "vibes", "lodging"]);
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, { bucket: "smart-pick", limit: 30, windowMs: 5 * 60_000 });
+  if (limited) return limited;
+
   try {
     const body: SmartPickRequestBody = await request.json();
     const { kind, preferences } = body;

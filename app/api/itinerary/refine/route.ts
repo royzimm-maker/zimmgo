@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL } from "@/lib/ai/client";
 import type { TripPreferences } from "@/types/trip";
 
@@ -10,6 +11,9 @@ interface RefineBody {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, { bucket: "itinerary-refine", limit: 20, windowMs: 5 * 60_000 });
+  if (limited) return limited;
+
   try {
     const body = await request.json() as RefineBody;
     const { question, contextItem, contextType, preferences } = body;
