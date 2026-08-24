@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, Trophy, CheckCircle2, CalendarDays, MapPin, Pencil, Minus, Plus, X } from "lucide-react";
+import Image from "next/image";
+import { RefreshCw, CheckCircle2, CalendarDays, MapPin, Pencil, Minus, Plus, X } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ItineraryView } from "@/components/planning/ItineraryView";
 import { ItinerarySelectionWizard } from "@/components/planning/ItinerarySelectionWizard";
+import { VisaRequirements } from "@/components/planning/VisaRequirements";
 import { useTripStore } from "@/lib/store/tripStore";
 import { cn, extractApiErrorMessage, formatDate, groupItineraryDaysByLocation, parseLocalDate } from "@/lib/utils";
+import { getVisaRequirementsForTrip } from "@/lib/data/visaRequirements";
 import type { GeneratedItinerary } from "@/types/trip";
 
 // Sourced from the generated days themselves, not the raw preferences — the
@@ -27,7 +30,7 @@ function tripDateRangeLabel(days: GeneratedItinerary["days"]): string | null {
 }
 
 export function ItineraryStep() {
-  const { trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep, markItineraryReviewed, setCityNights } = useTripStore();
+  const { trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep, markItineraryReviewed, setCityNights, setDates } = useTripStore();
   const latest = trip.itineraries[trip.itineraries.length - 1] ?? null;
   const isPersonalized = Boolean(latest?.finalizedPlan);
   const dateRangeLabel = latest ? tripDateRangeLabel(latest.days) : null;
@@ -37,11 +40,17 @@ export function ItineraryStep() {
   // ended up with zero days is still editable, not silently missing.
   const cityList = trip.preferences.destination?.cities?.filter(Boolean) ?? [];
   const totalDays = latest?.days.length ?? 0;
+  const visaRequired = getVisaRequirementsForTrip(trip.preferences.destination).some((e) => e.visa.required);
+  const visaBlocked = visaRequired && !trip.preferences.visaAcknowledged;
 
   const [error, setError] = useState<string | null>(null);
   const [showPicksBanner, setShowPicksBanner] = useState(false);
   const [editingSplit, setEditingSplit] = useState(false);
   const [draftCounts, setDraftCounts] = useState<Record<string, number>>({});
+  const [editingDates, setEditingDates] = useState(false);
+  const [draftStart, setDraftStart] = useState("");
+  const [draftEnd, setDraftEnd] = useState("");
+  const [dateError, setDateError] = useState<string | null>(null);
 
   async function generate() {
     setGenerating(true);
@@ -83,7 +92,30 @@ export function ItineraryStep() {
       counts[city] = legs.find((l) => l.location === city)?.dayCount ?? evenShare;
     }
     setDraftCounts(counts);
+    setEditingDates(false);
     setEditingSplit(true);
+  }
+
+  // Same idea as the day-split editor, but for the overall date range —
+  // available here too, not just on the flexible-dates confirm screen in
+  // the review wizard, so shifting dates never means leaving this step and
+  // re-clicking through everything to get back.
+  function openDateEditor() {
+    setDraftStart(latest?.days[0]?.date ?? trip.preferences.dates?.startDate ?? "");
+    setDraftEnd(latest?.days[latest.days.length - 1]?.date ?? trip.preferences.dates?.endDate ?? "");
+    setDateError(null);
+    setEditingSplit(false);
+    setEditingDates(true);
+  }
+
+  function saveDatesAndRebuild() {
+    if (!draftStart || !draftEnd || draftStart > draftEnd) {
+      setDateError("Enter a valid range — the end date needs to be after the start date.");
+      return;
+    }
+    setDates({ ...trip.preferences.dates, type: "exact", startDate: draftStart, endDate: draftEnd });
+    setEditingDates(false);
+    generate();
   }
 
   function adjustDraftCount(city: string, delta: number) {
@@ -127,7 +159,7 @@ export function ItineraryStep() {
     <StepShell
       stepId="itinerary"
       continueLabel={isPersonalized ? "Update my schedule" : "Review & fine-tune my plan"}
-      continueDisabled={!latest}
+      continueDisabled={!latest || visaBlocked}
       onContinue={() => goToStep("refine")}
       // "Skip" would go to the same next step ("refine") as the primary
       // button above — a second button for the same destination is just
@@ -148,8 +180,14 @@ export function ItineraryStep() {
 
       {/* Unlock celebration */}
       {latest && !showPicksBanner && (
-        <div className="mb-5 flex items-center gap-3 rounded-xl bg-gradient-to-r from-brand-50 to-sage-50 border border-brand-100 px-4 py-3">
-          <Trophy size={20} className="text-brand-500 shrink-0" />
+        <div className="mb-5 flex items-center gap-4 rounded-xl bg-gradient-to-r from-brand-50 to-sage-50 border border-brand-100 px-4 py-3">
+          <Image
+            src="/zigy-memories-avatar.png"
+            alt=""
+            width={64}
+            height={64}
+            className="shrink-0 rounded-full object-cover ring-2 ring-white shadow-sm"
+          />
           <div>
             <p className="text-sm font-semibold text-brand-700">
               {isPersonalized ? "Itinerary scheduled!" : "Itinerary unlocked!"}
@@ -187,13 +225,52 @@ export function ItineraryStep() {
                 <span className="text-sm font-medium text-slate-700">{dateRangeLabel}</span>
               </div>
             )}
-            {legs.length > 1 && !editingSplit && (
-              <Button variant="ghost" size="sm" onClick={openSplitEditor} className="ml-auto text-slate-500 -my-1">
-                <Pencil size={12} />
-                Adjust days per city
-              </Button>
-            )}
+            <div className="ml-auto flex items-center gap-1">
+              {!editingDates && (
+                <Button variant="ghost" size="sm" onClick={openDateEditor} className="text-slate-500 -my-1">
+                  <Pencil size={12} />
+                  Adjust dates
+                </Button>
+              )}
+              {legs.length > 1 && !editingSplit && (
+                <Button variant="ghost" size="sm" onClick={openSplitEditor} className="text-slate-500 -my-1">
+                  <Pencil size={12} />
+                  Adjust days per city
+                </Button>
+              )}
+            </div>
           </div>
+
+          {/* Date-range editor */}
+          {editingDates && (
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <p className="text-xs font-semibold text-slate-700 mb-2.5">Adjust your travel dates</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="date"
+                  value={draftStart}
+                  onChange={(e) => { setDraftStart(e.target.value); setDateError(null); }}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                <span className="text-slate-400 text-xs">to</span>
+                <input
+                  type="date"
+                  value={draftEnd}
+                  onChange={(e) => { setDraftEnd(e.target.value); setDateError(null); }}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              {dateError && <p className="mt-2 text-xs text-red-600">{dateError}</p>}
+              <div className="mt-3 flex items-center justify-between">
+                <button type="button" onClick={() => setEditingDates(false)} className="text-xs text-slate-500 hover:text-slate-700">
+                  Cancel
+                </button>
+                <Button variant="primary" size="sm" onClick={saveDatesAndRebuild} loading={isGenerating}>
+                  Save & rebuild
+                </Button>
+              </div>
+            </div>
+          )}
 
           {legs.length > 0 && (
             <div className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-2 pt-2.5 border-t border-slate-100">
@@ -268,6 +345,14 @@ export function ItineraryStep() {
         </div>
       )}
 
+      {/* Visa requirements — shown as soon as the itinerary lands, and gates
+          Continue below when any destination on this trip requires one. */}
+      {latest && !showPicksBanner && (
+        <div className="mb-5">
+          <VisaRequirements preferences={trip.preferences} />
+        </div>
+      )}
+
       {/* Loading state */}
       {isGenerating && !latest && <GeneratingProgress />}
 
@@ -288,6 +373,7 @@ export function ItineraryStep() {
           key={latest.id}
           itinerary={latest}
           onComplete={() => markItineraryReviewed(latest.id)}
+          onRegenerate={generate}
         />
       )}
       {latest && latest.reviewCompleted && (

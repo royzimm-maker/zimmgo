@@ -79,6 +79,7 @@ interface TripState {
   setAvoidLongQueues: (value: boolean) => void;
   setDayTripRequested: (value: boolean) => void;
   setCityNights: (nights: Record<string, number> | undefined) => void;
+  setVisaAcknowledged: (value: boolean) => void;
   setTransportation: (modes: TransportMode[]) => void;
 
   // Itinerary
@@ -432,6 +433,15 @@ export const useTripStore = create<TripState>()(
           trip: {
             ...s.trip,
             preferences: { ...s.trip.preferences, dayTripRequested },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setVisaAcknowledged: (visaAcknowledged) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, visaAcknowledged },
             updatedAt: new Date().toISOString(),
           },
         })),
