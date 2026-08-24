@@ -16,6 +16,8 @@ export default function PlanPage() {
             <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Beta</span>
           </span>
           {" "}ZimmGo is an early prototype — recommendations are illustrative and not live booking data.
+          {" "}
+          <a href="/privacy" className="underline hover:text-amber-900">Privacy</a>
         </p>
       </div>
 

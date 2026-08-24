@@ -148,6 +148,11 @@ export function LandingHero() {
           </a>
           {" "}· Built with the Anthropic API
         </p>
+        <p className="mt-1.5 text-xs">
+          <a href="/privacy" className="text-slate-400 hover:text-slate-600 transition-colors">
+            Privacy
+          </a>
+        </p>
       </div>
     </main>
   );
