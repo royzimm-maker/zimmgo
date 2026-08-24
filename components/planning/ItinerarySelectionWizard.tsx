@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, MapPin, Sparkles, Search, AlertCircle } from "lucide-react";
+import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, Sparkles, Search, AlertCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { useExpandablePreview } from "@/lib/hooks/useExpandablePreview";
 import { fetchSmartPick } from "@/lib/api/smartPick";
 import { fetchFlightSearch } from "@/lib/api/searchFlights";
-import { fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
+import { cn, fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
 import {
   Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard,
 } from "@/components/planning/ItineraryView";
@@ -80,12 +80,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
   );
 
   const steps = useMemo<WizardStep[]>(() => {
-    const list: WizardStep[] = [{ stage: "flights", city: null }];
+    // Road trips / other no-flight itineraries skip the flights review
+    // entirely — there's nothing to search or select.
+    const list: WizardStep[] = preferences.noFlightsNeeded ? [] : [{ stage: "flights", city: null }];
     for (const city of cities) {
       for (const stage of perCityStages) list.push({ stage, city });
     }
     return list;
-  }, [cities, perCityStages]);
+  }, [cities, perCityStages, preferences.noFlightsNeeded]);
 
   const [stepIdx, setStepIdx] = useState(0);
 
@@ -105,7 +107,6 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
   const step = steps[stepIdx];
   const stage = step.stage;
   const currentCity = step.city ?? cities[0];
-  const currentCityIdx = cities.indexOf(currentCity);
 
   // Auto-run the same search a user would otherwise have to click "Search
   // for flights" to trigger, whenever the itinerary landed here with none
@@ -127,9 +128,25 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, itinerary.id, itinerary.flights.length, preferences.dates, preferences.destination]);
 
-  const totalSteps = steps.length;
-  const currentStep = stepIdx + 1;
   const canGoBack = stepIdx > 0;
+
+  // Consecutive steps sharing a city (or the leading flights step) clustered
+  // together, so the progress bar visually groups by destination instead of
+  // reading as one flat, undifferentiated row of ticks.
+  const stepGroups = useMemo(() => {
+    const groups: { key: string; idxs: number[] }[] = [];
+    steps.forEach((s, i) => {
+      const key = s.city ?? "__flights__";
+      const last = groups[groups.length - 1];
+      if (last && last.key === key) last.idxs.push(i);
+      else groups.push({ key, idxs: [i] });
+    });
+    return groups;
+  }, [steps]);
+
+  const cityStepIdxsCurrent = steps.reduce<number[]>((acc, s, idx) => (s.city === currentCity ? [...acc, idx] : acc), []);
+  const cityStagePosition = cityStepIdxsCurrent.indexOf(stepIdx) + 1;
+  const cityStageTotal = cityStepIdxsCurrent.length;
 
   function goNext() {
     if (stepIdx < steps.length - 1) {
@@ -242,30 +259,65 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
     ? "Finish review"
     : nextStep.city !== step.city
     ? `Continue to ${nextStep.city}`
-    : `Continue to ${STAGE_META[nextStep.stage].label}`;
+    : `Continue to ${STAGE_META[nextStep.stage].label} in ${nextStep.city}`;
 
   return (
     <div className="flex flex-col gap-5">
       {/* Progress header */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-brand-500">
-            Reviewing your picks — {currentStep} of {totalSteps}
-          </p>
-          {stage !== "flights" && cities.length > 1 && (
-            <span className="flex items-center gap-1 text-xs text-slate-400">
-              <MapPin size={11} /> {currentCityIdx + 1} of {cities.length} cities
-            </span>
-          )}
-        </div>
-        <div className="flex gap-1.5">
-          {steps.map((s, i) => (
-            <div
-              key={i}
-              className={`h-1.5 flex-1 rounded-full ${
-                i < stepIdx ? "bg-brand-500" : i === stepIdx ? "bg-brand-300" : "bg-slate-100"
-              }`}
-            />
+        {/* City breadcrumb — which destinations are fully reviewed, which is
+            current, and which are still ahead. Completed cities jump back to
+            re-check picks; upcoming ones aren't clickable yet since their
+            content hasn't been reached. */}
+        {cities.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1 mb-2.5">
+            {cities.map((city, i) => {
+              const cityStepIdxs = steps.reduce<number[]>((acc, s, idx) => (s.city === city ? [...acc, idx] : acc), []);
+              const cityFirstIdx = cityStepIdxs[0];
+              const cityLastIdx = cityStepIdxs[cityStepIdxs.length - 1];
+              const isDone = stepIdx > cityLastIdx;
+              const isCurrent = stepIdx >= cityFirstIdx && stepIdx <= cityLastIdx;
+              const isVisited = stepIdx >= cityFirstIdx;
+              return (
+                <div key={city} className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={!isVisited || isCurrent}
+                    onClick={() => setStepIdx(cityFirstIdx)}
+                    className={cn(
+                      "flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors",
+                      isDone
+                        ? "bg-sage-50 text-sage-700 hover:bg-sage-100"
+                        : isCurrent
+                        ? "bg-brand-500 text-white"
+                        : "bg-slate-100 text-slate-400"
+                    )}
+                  >
+                    {isDone && <Check size={10} />}
+                    {city}
+                  </button>
+                  {i < cities.length - 1 && <ArrowRight size={9} className="text-slate-300 shrink-0" />}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-brand-500">
+          {stage === "flights" ? "Flights" : `${currentCity} — step ${cityStagePosition} of ${cityStageTotal}`}
+        </p>
+        <div className="flex items-center gap-2.5">
+          {stepGroups.map((g) => (
+            <div key={g.key} className="flex flex-1 gap-1.5">
+              {g.idxs.map((i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 flex-1 rounded-full ${
+                    i < stepIdx ? "bg-brand-500" : i === stepIdx ? "bg-brand-300" : "bg-slate-100"
+                  }`}
+                />
+              ))}
+            </div>
           ))}
         </div>
         {stage !== "flights" && (cityRecap.hotel || cityRecap.restaurantCount > 0 || cityRecap.activityCount > 0) && (
@@ -331,7 +383,20 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
               <SearchFlightsButton onClick={handleSearchFlights} loading={searchingFlights} error={flightSearchError} />
             </div>
           ) : (
-            <EmptyState label="flight options" />
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+              <p className="text-sm text-slate-500">Flight search needs a departure airport.</p>
+              <p className="text-xs text-slate-400 mt-1">
+                You haven't set where you're flying from yet — add it on the Flights step to see options here.
+              </p>
+              <button
+                type="button"
+                onClick={() => goToStep("airlines")}
+                className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
+              >
+                <ArrowLeft size={14} />
+                Go to Flights
+              </button>
+            </div>
           )
         )}
 
@@ -348,9 +413,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                 {pickingHotel
                   ? "ZiGy is choosing…"
                   : hotelPickReasons[currentCity]
-                  ? `Re-pick the hotel for ${currentCity} with ZiGy`
+                  ? "Ask ZiGy to pick a different hotel"
                   : `Let ZiGy choose the hotel for ${currentCity}`}
               </button>
+              {hotelPickReasons[currentCity] && !pickingHotel && (
+                <p className="-mt-2 text-[11px] text-slate-400 text-center">
+                  This swaps your current hotel below for a new ZiGy pick — you can still change it manually after.
+                </p>
+              )}
               {hotelPickError && (
                 <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 -mt-1">
                   <AlertCircle size={13} className="text-red-500 shrink-0 mt-0.5" />
@@ -427,9 +497,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                 {pickingActivities
                   ? "ZiGy is choosing…"
                   : activityPickReasons[currentCity]
-                  ? `Re-pick activities for ${currentCity} with ZiGy`
+                  ? "Ask ZiGy for more picks"
                   : `Let ZiGy choose activities for ${currentCity}`}
               </button>
+              {activityPickReasons[currentCity] && !pickingActivities && (
+                <p className="-mt-2 text-[11px] text-slate-400 text-center">
+                  This adds more ZiGy picks on top of what's already selected below — it won't remove anything.
+                </p>
+              )}
               {activityPickError && (
                 <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 -mt-1">
                   <AlertCircle size={13} className="text-red-500 shrink-0 mt-0.5" />

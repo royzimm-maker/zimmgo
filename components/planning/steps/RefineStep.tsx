@@ -57,6 +57,7 @@ function CardInner({
   overlay?: boolean;
 }) {
   const { activity, restaurant } = info;
+  const { trip } = useTripStore();
 
   const base = overlay
     ? "flex items-center gap-2 rounded-lg border px-2.5 py-2 shadow-2xl ring-2 select-none"
@@ -72,7 +73,7 @@ function CardInner({
           <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
             {activity.location && <span className="font-medium text-brand-600 truncate">{activity.location}</span>}
             {activity.duration && <span>{activity.duration}</span>}
-            {activity.price > 0 && <span>{formatCurrency(activity.price)}</span>}
+            {activity.price > 0 && <span>{formatCurrency(activity.price, trip.preferences.preferredCurrency)}</span>}
           </div>
         </div>
         {onSave && (
@@ -296,6 +297,12 @@ export function RefineStep() {
   const [arrangeSummaries, setArrangeSummaries] = useState<Record<string, string>>({});
   const [arrangeError, setArrangeError] = useState<string | null>(null);
   const [autoPlanCities, setAutoPlanCities] = useState<Set<string>>(new Set());
+  // "Let ZiGy schedule every city" already covered every destination in one
+  // shot — once that's happened, the per-city "move on to {nextCity}" nudge
+  // below is misleading (it implies a sequential walk-through the user never
+  // asked for). Swaps that nudge for a single trip-wide message instead.
+  // Resets if the user goes back to arranging one city at a time by hand.
+  const [bulkArranged, setBulkArranged] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -460,6 +467,7 @@ export function RefineStep() {
     if (!effectiveCity) return;
     setArranging(true);
     setArrangeError(null);
+    setBulkArranged(false);
     try {
       await arrangeCity(effectiveCity);
     } catch (e: unknown) {
@@ -475,6 +483,7 @@ export function RefineStep() {
   async function handleAutoPlanAll() {
     setArranging(true);
     setArrangeError(null);
+    setBulkArranged(true);
     setAutoPlanCities(new Set(cities));
     try {
       const results = await Promise.allSettled(
@@ -673,26 +682,41 @@ export function RefineStep() {
         </div>
       )}
 
-      {/* Prompt to move to the next city — always available once you've placed
-          something here, not just once every last item is placed, so leaving
-          a few items unplaced on purpose doesn't strand you without a nudge. */}
-      {showNextCityPrompt && (
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-sage-200 bg-sage-50 px-3 py-2.5">
+      {/* Once "Let ZiGy schedule every city" has run, every destination was
+          already handled in one shot — a "move on to {nextCity}" nudge would
+          misleadingly imply a sequential walk-through the user never asked
+          for, so it's replaced with a single trip-wide message instead. */}
+      {bulkArranged ? (
+        <div className="mb-4 rounded-lg border border-sage-200 bg-sage-50 px-3 py-2.5">
           <p className="text-xs text-sage-700">
-            {activeCityComplete ? (
-              <><span className="font-semibold">{effectiveCity} is all set!</span> Ready to fine-tune {nextCity}?</>
-            ) : (
-              <>{effectiveCity} looks good — move on to {nextCity} whenever you're ready.</>
-            )}
+            <span className="font-semibold">ZiGy has arranged every city.</span>{" "}
+            {bank.length > 0
+              ? "A few items didn't fit and are still sitting unplaced below — drag them in if you'd like, or leave them and review your plan whenever you're ready."
+              : "Review your plan below, then finalize whenever you're ready."}
           </p>
-          <button
-            type="button"
-            onClick={() => setActiveCity(nextCity)}
-            className="shrink-0 flex items-center gap-1 rounded-md bg-sage-600 text-white px-3 py-1.5 text-xs font-semibold hover:bg-sage-700 transition-colors"
-          >
-            Next: {nextCity} <ArrowRight size={12} />
-          </button>
         </div>
+      ) : (
+        /* Prompt to move to the next city — always available once you've placed
+           something here, not just once every last item is placed, so leaving
+           a few items unplaced on purpose doesn't strand you without a nudge. */
+        showNextCityPrompt && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-sage-200 bg-sage-50 px-3 py-2.5">
+            <p className="text-xs text-sage-700">
+              {activeCityComplete ? (
+                <><span className="font-semibold">{effectiveCity} is all set!</span> Ready to fine-tune {nextCity}?</>
+              ) : (
+                <>{effectiveCity} looks good — move on to {nextCity} whenever you're ready.</>
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveCity(nextCity)}
+              className="shrink-0 flex items-center gap-1 rounded-md bg-sage-600 text-white px-3 py-1.5 text-xs font-semibold hover:bg-sage-700 transition-colors"
+            >
+              Next: {nextCity} <ArrowRight size={12} />
+            </button>
+          </div>
+        )
       )}
 
       {/* Let ZiGy auto-arrange the active city's unplaced items across its days */}
