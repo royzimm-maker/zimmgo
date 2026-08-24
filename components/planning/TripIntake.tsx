@@ -13,7 +13,7 @@ import type { ParseFullTripResult } from "@/app/api/trip/parse-full/route";
 
 const BUDGET_TIERS = new Set<BudgetRange>(["under_500", "500_750", "750_1000", "1000_plus"]);
 
-const EXAMPLE_PLACEHOLDER = `e.g. "We're two people flying into Rome, landing Tuesday 13 October 2026 at 14:30, and leaving Saturday 17 October in the morning. Mid budget. We want the main sights without queueing for hours, one day outside the city, and one of us is vegetarian."`;
+const EXAMPLE_PLACEHOLDER = `e.g. "We're a family of four flying out of Chicago to Tokyo and Kyoto for the cherry blossoms in late March — about 10 days, comfortable but not extravagant budget. We love food experiences and cultural sights, want to skip long ticket lines where we can, and would love one day trip outside the city. One of us is vegetarian and gluten-free."`;
 
 function labelFor(list: { id: string; label: string }[], id: string): string {
   return list.find((x) => x.id === id)?.label ?? id;
@@ -71,6 +71,10 @@ export function TripIntake({ onBack }: { onBack: () => void }) {
       routingNote: routeUsable
         ? `${routing.suggestedRoute}\n\nWhy this works: ${routing.routingWhy}`
         : undefined,
+      flightsObviouslyRequired: parsed.flightsObviouslyRequired,
+      seasonalNote: parsed.seasonalNote,
+      seasonalWindowStartMonth: parsed.seasonalNote ? parsed.seasonalWindowStartMonth : undefined,
+      seasonalWindowEndMonth: parsed.seasonalNote ? parsed.seasonalWindowEndMonth : undefined,
     };
     store.setDestination(dest);
     store.completeStep("destination");
