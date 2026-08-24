@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapPin, X, Clock, Car, Wand2 } from "lucide-react";
+import Image from "next/image";
+import { MapPin, X, Clock, Car, Wand2, ChevronDown, ChevronUp } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { TripIntake } from "@/components/planning/TripIntake";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -84,7 +85,16 @@ export function DestinationStep() {
   // Read localStorage after mount only — reading it in the initializer would run
   // during SSR too (where it's unavailable), causing a hydration mismatch.
   const [history, setHistory] = useState<string[]>([]);
-  useEffect(() => setHistory(readHistory()), []);
+  // Collapsed by default once there's real history to show (returning users
+  // already know where to look) — open by default for a brand-new user, who
+  // has nothing else to go on yet. Still just a starting point; either kind
+  // of user can toggle it themselves.
+  const [showInspiration, setShowInspiration] = useState(false);
+  useEffect(() => {
+    const h = readHistory();
+    setHistory(h);
+    setShowInspiration(h.length === 0);
+  }, []);
 
   function handleFreeTextChange(value: string) {
     setFreeText(value);
@@ -111,6 +121,10 @@ export function DestinationStep() {
     let cities = parseCitiesFromText(text);
     let displayName = text;
     let likelyRoadTrip = false;
+    let flightsObviouslyRequired = false;
+    let seasonalNote: string | undefined;
+    let seasonalWindowStartMonth: number | undefined;
+    let seasonalWindowEndMonth: number | undefined;
     if (!POPULAR.includes(text)) {
       setParsing(true);
       try {
@@ -120,10 +134,19 @@ export function DestinationStep() {
           body: JSON.stringify({ text }),
         });
         if (!res.ok) throw new Error(await res.text());
-        const data: { cities: string[]; displayName: string; likelyRoadTrip?: boolean } = await res.json();
+        const data: {
+          cities: string[]; displayName: string; likelyRoadTrip?: boolean; flightsObviouslyRequired?: boolean;
+          seasonalNote?: string; seasonalWindowStartMonth?: number; seasonalWindowEndMonth?: number;
+        } = await res.json();
         if (data.cities?.length) cities = data.cities;
         if (data.displayName?.trim()) displayName = data.displayName;
         likelyRoadTrip = data.likelyRoadTrip === true;
+        flightsObviouslyRequired = data.flightsObviouslyRequired === true;
+        seasonalNote = data.seasonalNote?.trim() || undefined;
+        if (seasonalNote) {
+          seasonalWindowStartMonth = data.seasonalWindowStartMonth;
+          seasonalWindowEndMonth = data.seasonalWindowEndMonth;
+        }
       } catch {
         // Fall back to the regex heuristic — better than blocking the user entirely
       } finally {
@@ -153,6 +176,10 @@ export function DestinationStep() {
       routingNote: routeUsable
         ? `${routing.suggestedRoute}\n\nWhy this works: ${routing.routingWhy}`
         : undefined,
+      flightsObviouslyRequired,
+      seasonalNote,
+      seasonalWindowStartMonth,
+      seasonalWindowEndMonth,
     };
     setDestination(dest);
 
@@ -199,9 +226,19 @@ export function DestinationStep() {
 
       {/* ── Free-text destination input ── */}
       <div className="mb-5">
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">
-          Where do you dream of going?
-        </label>
+        <div className="flex items-center gap-3 mb-1.5">
+          <label className="flex-1 text-sm font-medium text-slate-700">
+            Where do you dream of going?
+          </label>
+          <Image
+            src="/zigy-dreaming.png"
+            alt=""
+            width={112}
+            height={85}
+            className="shrink-0 select-none pointer-events-none"
+            priority={false}
+          />
+        </div>
         <div className="relative">
           <textarea
             rows={3}
@@ -259,54 +296,70 @@ export function DestinationStep() {
         </div>
       )}
 
-      {/* ── Recent searches — only shown before user types anything ── */}
-      {!freeText.trim() && history.length > 0 && (
-        <div className="mb-5">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-            <Clock size={10} />
-            Recent searches
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {history.map((h) => (
-              <button
-                key={h}
-                type="button"
-                onClick={() => handleFreeTextChange(h)}
-                className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-left text-xs text-slate-600 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 transition-all group"
-              >
-                <Clock size={11} className="text-slate-300 group-hover:text-brand-400 shrink-0" />
-                <span className="truncate flex-1">{h}</span>
-                <span className="text-[10px] text-slate-300 group-hover:text-brand-300 shrink-0">tap to edit</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Popular quick-picks — only shown before user types anything ── */}
+      {/* ── Recent searches + quick picks — merged under one disclosure so a
+          returning user with history isn't staring at ~17 rows by default;
+          only shown before the user types anything. ── */}
       {!freeText.trim() && (
         <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
-            Quick picks — tap to fill
-          </p>
-          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-            {POPULAR.map((label) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => handleFreeTextChange(label)}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-xs font-medium transition-all",
-                  freeText === label
-                    ? "border-brand-500 bg-brand-50 text-brand-700"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                )}
-              >
-                <MapPin size={11} className="text-brand-400 shrink-0" />
-                {label}
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowInspiration((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 py-1 text-xs font-semibold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            Need inspiration?
+            {showInspiration ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+
+          {showInspiration && (
+            <div className="mt-3 flex flex-col gap-4">
+              {history.length > 0 && (
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-300 flex items-center gap-1.5">
+                    <Clock size={10} />
+                    Recent searches
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {history.map((h) => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => handleFreeTextChange(h)}
+                        className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-left text-xs text-slate-600 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 transition-all group"
+                      >
+                        <Clock size={11} className="text-slate-300 group-hover:text-brand-400 shrink-0" />
+                        <span className="truncate flex-1">{h}</span>
+                        <span className="text-[10px] text-slate-300 group-hover:text-brand-300 shrink-0">tap to edit</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-300">
+                  Quick picks — tap to fill
+                </p>
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  {POPULAR.map((label) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => handleFreeTextChange(label)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-xs font-medium transition-all",
+                        freeText === label
+                          ? "border-brand-500 bg-brand-50 text-brand-700"
+                          : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                      )}
+                    >
+                      <MapPin size={11} className="text-brand-400 shrink-0" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </StepShell>
