@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, Heart, Calendar, List, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { formatCurrency, formatDate, pairFlights, groupByLocation } from "@/lib/utils";
+import { formatCurrency, formatDate, pairFlights, groupByLocation, groupItineraryDaysByLocation } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { TripGlance } from "@/components/planning/TripGlance";
@@ -65,14 +65,13 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
       "=".repeat(title.length),
       "",
       itinerary.aiSummary,
-      "",
-      "FLIGHTS",
-      "-------",
-      ...itinerary.flights.map((f) => `• ${f.airline} — ${f.origin} → ${f.destination} — ${formatCurrency(f.price)}/pp`),
+      ...(itinerary.flights.length
+        ? ["", "FLIGHTS", "-------", ...itinerary.flights.map((f) => `• ${f.airline} — ${f.origin} → ${f.destination} — ${formatCurrency(f.price, preferences.preferredCurrency)}/pp`)]
+        : []),
       "",
       "HOTELS",
       "------",
-      ...itinerary.hotels.map((h) => `• ${h.name} — ${h.location} — ${formatCurrency(h.pricePerNight)}/night`),
+      ...itinerary.hotels.map((h) => `• ${h.name} — ${h.location} — ${formatCurrency(h.pricePerNight, preferences.preferredCurrency)}/night`),
       ...(itinerary.restaurants?.length
         ? ["", "WHERE TO EAT", "------------", ...itinerary.restaurants.map((r) => `• ${r.name} — ${r.cuisine}, ${r.priceRange} — ${r.location}`)]
         : []),
@@ -153,7 +152,7 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Days" value={`${itinerary.days.length}`} icon={<Clock size={14} />} />
-        <StatCard label="Est. total" value={formatCurrency(itinerary.totalEstimatedCost)} icon={<Star size={14} />} />
+        <StatCard label="Est. total" value={formatCurrency(itinerary.totalEstimatedCost, preferences.preferredCurrency)} icon={<Star size={14} />} />
         <StatCard label="Activities" value={`${itinerary.activities.length}`} icon={<MapPin size={14} />} />
       </div>
 
@@ -395,15 +394,18 @@ function buildItineraryClipboardHtml(
     .map((p) => `<p style="margin:0 0 10px;line-height:1.5;">${markdownBoldToHtml(p)}</p>`)
     .join("");
 
-  const flightsHtml = list(
-    itinerary.flights.map(
-      (f) => `<strong>${escapeHtml(f.airline)}</strong> — ${escapeHtml(f.origin)} → ${escapeHtml(f.destination)} — ${escapeHtml(formatCurrency(f.price))}/pp`
-    )
-  );
+  const flightsHtml = itinerary.flights.length
+    ? heading("Flights") +
+      list(
+        itinerary.flights.map(
+          (f) => `<strong>${escapeHtml(f.airline)}</strong> — ${escapeHtml(f.origin)} → ${escapeHtml(f.destination)} — ${escapeHtml(formatCurrency(f.price, preferences.preferredCurrency))}/pp`
+        )
+      )
+    : "";
 
   const hotelsHtml = list(
     itinerary.hotels.map(
-      (h) => `<strong>${escapeHtml(h.name)}</strong> — ${escapeHtml(h.location)} — ${escapeHtml(formatCurrency(h.pricePerNight))}/night`
+      (h) => `<strong>${escapeHtml(h.name)}</strong> — ${escapeHtml(h.location)} — ${escapeHtml(formatCurrency(h.pricePerNight, preferences.preferredCurrency))}/night`
     )
   );
 
@@ -439,7 +441,7 @@ function buildItineraryClipboardHtml(
       <h1 style="font-size:22px;font-weight:800;margin:0 0 4px;color:#0f172a;">${escapeHtml(title)}</h1>
       <hr style="border:none;border-top:2px solid #e2e8f0;margin:8px 0 16px;" />
       ${summaryHtml}
-      ${heading("Flights")}${flightsHtml}
+      ${flightsHtml}
       ${heading("Hotels")}${hotelsHtml}
       ${restaurantsHtml}
       ${heading("Day-by-Day Itinerary")}${daysHtml}
@@ -512,18 +514,7 @@ function RichText({ text, className = "" }: { text: string; className?: string }
 // ─── Destination summary (replaces inaccurate map) ────────────────────────────
 
 function DestinationSummary({ itinerary, preferences }: { itinerary: GeneratedItinerary; preferences: import("@/types/trip").TripPreferences }) {
-  // Group days by location
-  const locationGroups: { location: string; dates: string[]; dayCount: number }[] = [];
-  for (const day of itinerary.days) {
-    const loc = day.location ?? preferences.destination?.displayName ?? "Unknown";
-    const last = locationGroups[locationGroups.length - 1];
-    if (last && last.location === loc) {
-      last.dates.push(day.date);
-      last.dayCount++;
-    } else {
-      locationGroups.push({ location: loc, dates: [day.date], dayCount: 1 });
-    }
-  }
+  const locationGroups = groupItineraryDaysByLocation(itinerary.days, preferences.destination?.displayName ?? "Unknown");
 
   const dep = preferences.destination?.departureAirport;
   const arr = preferences.destination?.arrivalAirport;
@@ -633,6 +624,8 @@ export function FlightPairList({
   onSelect: (f: FlightOption) => void;
 }) {
   const pairs = pairFlights(flights, arrivalAirport);
+  const { trip } = useTripStore();
+  const currency = trip.preferences.preferredCurrency;
 
   return (
     <div className="flex flex-col gap-3">
@@ -658,12 +651,12 @@ export function FlightPairList({
                 </div>
                 {ret && (
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Out {formatCurrency(o.price)}/pp + Return {formatCurrency(ret.price)}/pp
+                    Out {formatCurrency(o.price, currency)}/pp + Return {formatCurrency(ret.price, currency)}/pp
                   </p>
                 )}
               </div>
               <div className="text-right shrink-0">
-                <p className="font-bold text-slate-900 text-sm">{formatCurrency(roundtripPp)}</p>
+                <p className="font-bold text-slate-900 text-sm">{formatCurrency(roundtripPp, currency)}</p>
                 <p className="text-[10px] text-slate-400">roundtrip/pp</p>
               </div>
             </div>
@@ -713,6 +706,7 @@ export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelO
   };
   const icon = hotel.ratingSource ? (sourceIcon[hotel.ratingSource] ?? "⭐") : "⭐";
   const tierLabel = (HOTEL_TIER[hotel.stars] ?? HOTEL_TIER[4]).label;
+  const { trip } = useTripStore();
 
   return (
     <div
@@ -769,7 +763,7 @@ export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelO
         </div>
         <div className="text-right shrink-0">
           <p className="font-bold text-slate-900 text-sm">
-            {formatCurrency(hotel.pricePerNight)}<span className="font-normal text-xs text-slate-400">/night</span>
+            {formatCurrency(hotel.pricePerNight, trip.preferences.preferredCurrency)}<span className="font-normal text-xs text-slate-400">/night</span>
           </p>
           <p className="text-xs text-slate-500 mt-0.5">
             <span className="font-medium text-sage-600">{hotel.rating}/10</span>
@@ -1055,6 +1049,7 @@ export function ActivityCard({
   selected?: boolean;
   onSelect?: () => void;
 }) {
+  const { trip } = useTripStore();
   return (
     <Card padding="sm" selected={selected}>
       <div className="flex items-start justify-between gap-2">
@@ -1100,7 +1095,7 @@ export function ActivityCard({
             )}
           </div>
           <div>
-            <p className="font-bold text-slate-900 text-sm">{formatCurrency(activity.price)}</p>
+            <p className="font-bold text-slate-900 text-sm">{formatCurrency(activity.price, trip.preferences.preferredCurrency)}</p>
             {activity.bookingUrl && (
               <a href={activity.bookingUrl} target="_blank" rel="noreferrer"
                 className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 justify-end mt-0.5">

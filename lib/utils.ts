@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { FlightOption } from "@/types/trip";
+import { convertFromUsd } from "@/lib/currency";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -17,12 +18,17 @@ export function scrollStepToTop() {
   document.querySelector("main")?.scrollTo({ top: 0 });
 }
 
+// `amount` is always the USD source value stored on the option/estimate
+// (see lib/currency.ts) — pass a `currency` code to convert-and-format into
+// a traveller's preferred display currency. Omitting it keeps the existing
+// USD-in, USD-out behavior every pre-existing call site relies on.
 export function formatCurrency(amount: number, currency = "USD"): string {
+  const converted = convertFromUsd(amount, currency);
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(converted);
 }
 
 // `new Date("2026-08-12")` parses as UTC midnight, but reading it back with
@@ -104,6 +110,34 @@ export function extractApiErrorMessage(raw: string): string {
   } catch {
     return raw;
   }
+}
+
+export interface ItineraryLeg {
+  location: string;
+  dates: string[];
+  dayCount: number;
+}
+
+// Groups consecutive itinerary days by location — unlike groupByLocation
+// below, a repeated location that isn't consecutive (rare, but possible)
+// stays as separate legs, since that's what an actual day-by-day trip looks
+// like (visiting the same city twice on non-adjacent days is two legs, not one).
+export function groupItineraryDaysByLocation(
+  days: { date: string; location?: string }[],
+  fallbackLocation: string
+): ItineraryLeg[] {
+  const legs: ItineraryLeg[] = [];
+  for (const day of days) {
+    const loc = day.location ?? fallbackLocation;
+    const last = legs[legs.length - 1];
+    if (last && last.location === loc) {
+      last.dates.push(day.date);
+      last.dayCount++;
+    } else {
+      legs.push({ location: loc, dates: [day.date], dayCount: 1 });
+    }
+  }
+  return legs;
 }
 
 /** Group an array of items by location, preserving first-seen order. */

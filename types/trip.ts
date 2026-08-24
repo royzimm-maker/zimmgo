@@ -83,6 +83,14 @@ export interface DatePreference {
   // generation skips flight search entirely rather than searching a date
   // no real airline would have fares for yet.
   skipFlightSearch?: boolean;
+  // Desired local arrival time for the outbound flight (24h "HH:MM"), e.g.
+  // "14:30" — flight search biases generated options toward this, and the
+  // day-by-day plan treats day 1 as a partial day around it.
+  preferredArrivalTime?: string;
+  // Desired time-of-day for the return flight's departure — same idea as
+  // preferredArrivalTime but coarser, since travellers usually think of the
+  // trip's last day in terms of "morning flight" rather than an exact time.
+  preferredDepartureTimeOfDay?: "morning" | "afternoon" | "evening";
 }
 
 export interface LodgingPreference {
@@ -148,9 +156,36 @@ export interface TripPreferences {
   selectedRestaurantIds?: string[]; // restaurants the traveller picked in for their plan (vs. just Wanderlog-saved)
   selectedActivityIds?: string[];   // activities the traveller picked in for their plan (vs. just Wanderlog-saved)
   airlinePrefs?: AirlinePreference;
+  // Road trips and other no-flight itineraries — set on the Flights step
+  // when the traveller says they're driving. Suppresses the departure-
+  // airport requirement and skips flight search entirely.
+  noFlightsNeeded?: boolean;
   reviewSourcePref?: ReviewSourcePreference; // how hotel/restaurant/activity ratings are sourced
   beliPref?: BeliPreference; // optional Beli account to weight restaurant picks toward
   transportation: TransportMode[];
+  // ISO 4217 code, e.g. "EUR" — all displayed prices are converted to this
+  // from their USD source value (see lib/currency.ts). Undefined = USD.
+  preferredCurrency?: string;
+  // Free-form dietary tags (e.g. "vegetarian", "gluten-free") plus optional
+  // free-text notes — passed to ZiGy's restaurant/activity reasoning and
+  // itinerary prompts so meal suggestions actually account for them.
+  dietaryRestrictions?: string[];
+  dietaryNotes?: string;
+  // Sightseeing pace preference — when true, ZiGy favors skip-the-line/
+  // early-access/reserved-entry options over general-admission ones for the
+  // main sights, instead of treating that as incidental copy in the listing.
+  avoidLongQueues?: boolean;
+  // Traveller explicitly wants one day of the itinerary given over to an
+  // out-of-town excursion (e.g. "one day outside the city") — instructs the
+  // generator to include a "Full day" day-trip activity rather than keeping
+  // every day inside the main destination.
+  dayTripRequested?: boolean;
+  // User-adjusted day allocation per destination city, keyed by the exact
+  // city string from destination.cities — set from the itinerary step's leg
+  // editor to override however the AI split the days by default. Values
+  // must sum to the same total day count as the current itinerary; the
+  // generator is instructed to match this split exactly.
+  cityNights?: Record<string, number>;
 }
 
 // ─── Neighborhood option ──────────────────────────────────────────────────────
