@@ -184,8 +184,24 @@ export const PARSE_DESTINATION_TOOL: Anthropic.Tool = {
         type: "boolean",
         description: "True ONLY if the traveller explicitly said they're driving/road-tripping (e.g. \"road trip\", \"driving up\", \"drive from Seattle\"). Never infer this from the destination or place names alone — a false positive would wrongly suppress flight search for someone who needs it. Default false when in doubt.",
       },
+      flightsObviouslyRequired: {
+        type: "boolean",
+        description: "True ONLY when it's unambiguous that flying (not driving) is required to reach this trip — crossing an ocean, an island region not reachable by road/bridge, or clearly intercontinental travel (e.g. \"Scandinavia with a stopover in Iceland\", \"Japan and Thailand\"). False whenever driving is plausible or it's genuinely ambiguous — never guess. Mutually exclusive with likelyRoadTrip; never set both true.",
+      },
+      seasonalNote: {
+        type: "string",
+        description: "A short, plain-English heads-up on timing — ONLY if the traveller mentioned a season-dependent draw with a well-established best-viewing window (e.g. Northern Lights, cherry blossoms, monsoon season, ski season). E.g. \"Northern Lights are typically visible late September through early April.\" Omit entirely if nothing like this was mentioned, or if the timing isn't a genuinely well-known pattern — don't invent one.",
+      },
+      seasonalWindowStartMonth: {
+        type: "number",
+        description: "1-12, the month the window in seasonalNote typically starts (e.g. 9 for September). Required together with seasonalNote — set both or neither.",
+      },
+      seasonalWindowEndMonth: {
+        type: "number",
+        description: "1-12, the month the window in seasonalNote typically ends (e.g. 4 for April). Can be less than seasonalWindowStartMonth if the window wraps around the new year. Required together with seasonalNote — set both or neither.",
+      },
     },
-    required: ["cities", "displayName", "likelyRoadTrip"],
+    required: ["cities", "displayName", "likelyRoadTrip", "flightsObviouslyRequired"],
   },
 };
 
@@ -210,6 +226,10 @@ export const PARSE_FULL_TRIP_TOOL: Anthropic.Tool = {
       },
       displayName: { type: "string", description: "A short, clean human-readable label for this trip, e.g. \"Rome, Italy\"." },
       likelyRoadTrip: { type: "boolean", description: "True ONLY if the traveller explicitly said they're driving/road-tripping. Default false when in doubt." },
+      flightsObviouslyRequired: { type: "boolean", description: "True ONLY when it's unambiguous that flying is required — crossing an ocean, an island region, clearly intercontinental travel. False whenever driving is plausible or genuinely ambiguous. Mutually exclusive with likelyRoadTrip." },
+      seasonalNote: { type: "string", description: "A short heads-up on timing — ONLY if the traveller mentioned a season-dependent draw with a well-established best-viewing window (Northern Lights, cherry blossoms, monsoon season, ski season). Omit if nothing like this was mentioned or the pattern isn't well-known." },
+      seasonalWindowStartMonth: { type: "number", description: "1-12, the month the seasonalNote window typically starts. Required together with seasonalNote — set both or neither." },
+      seasonalWindowEndMonth: { type: "number", description: "1-12, the month the seasonalNote window typically ends. Can be less than seasonalWindowStartMonth if it wraps the new year. Required together with seasonalNote — set both or neither." },
       departureAirport: { type: "string", description: "The traveller's departure city or airport, ONLY if explicitly stated (e.g. \"flying from Boston\", \"we're in JFK\"). Omit if not stated — do not guess a home airport." },
       travelers: { type: "number", description: "Number of people on the trip, only if stated (e.g. \"we're two people\", \"a family of four\")." },
       dates: {
@@ -253,7 +273,7 @@ export const PARSE_FULL_TRIP_TOOL: Anthropic.Tool = {
         description: "A friendly 1-2 sentence recap of the whole trip as understood, written for the traveller to confirm at a glance, e.g. \"A 4-night trip to Rome for two, mid-budget, landing Tue Oct 13 at 14:30 — main sights without long queues, one day trip, and one vegetarian traveller.\"",
       },
     },
-    required: ["cities", "displayName", "likelyRoadTrip", "summary"],
+    required: ["cities", "displayName", "likelyRoadTrip", "flightsObviouslyRequired", "summary"],
   },
 };
 

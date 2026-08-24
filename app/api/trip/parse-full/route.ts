@@ -8,6 +8,10 @@ export interface ParseFullTripResult {
   cities: string[];
   displayName: string;
   likelyRoadTrip: boolean;
+  flightsObviouslyRequired: boolean;
+  seasonalNote?: string;
+  seasonalWindowStartMonth?: number;
+  seasonalWindowEndMonth?: number;
   departureAirport?: string;
   travelers?: number;
   dates?: {

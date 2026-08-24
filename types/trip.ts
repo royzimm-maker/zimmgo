@@ -70,6 +70,26 @@ export interface Destination {
   returnAirport?: string;      // return to a different airport (open-jaw), e.g. "MXP" for fly-in FCO / fly-out MXP
   arrivalAirport?: string;     // suggested gateway airport IATA code
   routingNote?: string;        // suggested routing with reasoning
+  // True only when it's unambiguous that flights (not driving) are required —
+  // crossing an ocean, an island region, intercontinental travel. Set by the
+  // AI at parse time (see PARSE_DESTINATION_TOOL / PARSE_FULL_TRIP_TOOL);
+  // mutually exclusive with a road-trip detection. Used to hide the "I'm
+  // driving — no flights needed" toggle on the Flights step when offering it
+  // would just be confusing.
+  flightsObviouslyRequired?: boolean;
+  // Set by the AI at parse time when the traveller mentioned a season-
+  // dependent draw with a well-known best-viewing window (Northern Lights,
+  // cherry blossoms, monsoon season, ski season, etc.) — a short plain-
+  // English heads-up, not a hard constraint. Shown on the Dates step so it's
+  // visible exactly when the decision it's relevant to gets made. Omitted
+  // when nothing like this was mentioned.
+  seasonalNote?: string;
+  // Machine-readable form of the same window, 1-12 — set together with
+  // seasonalNote so the Dates step can default the flexible-month picker
+  // into the window and warn when picked dates fall outside it. May wrap
+  // the new year (e.g. startMonth 9, endMonth 4 for Sept through April).
+  seasonalWindowStartMonth?: number;
+  seasonalWindowEndMonth?: number;
 }
 
 export interface DatePreference {
@@ -186,6 +206,11 @@ export interface TripPreferences {
   // must sum to the same total day count as the current itinerary; the
   // generator is instructed to match this split exactly.
   cityNights?: Record<string, number>;
+  // True once the traveller has checked the "I understand" box on the
+  // itinerary step's visa requirements notice — only meaningful (and only
+  // required to proceed) when getVisaRequirementsForTrip found at least one
+  // country that needs a visa. See lib/data/visaRequirements.ts.
+  visaAcknowledged?: boolean;
 }
 
 // ─── Neighborhood option ──────────────────────────────────────────────────────

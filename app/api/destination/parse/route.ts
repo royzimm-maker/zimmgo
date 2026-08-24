@@ -8,6 +8,10 @@ interface ParseDestinationResult {
   cities: string[];
   displayName: string;
   likelyRoadTrip: boolean;
+  flightsObviouslyRequired: boolean;
+  seasonalNote?: string;
+  seasonalWindowStartMonth?: number;
+  seasonalWindowEndMonth?: number;
 }
 
 export async function POST(request: NextRequest) {
