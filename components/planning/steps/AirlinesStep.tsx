@@ -43,9 +43,22 @@ export function AirlinesStep() {
   const existing   = trip.preferences.airlinePrefs;
   const destination = trip.preferences.destination;
 
+  // Set at destination-parse time when flying is unmistakably required
+  // (crossing an ocean, an island region, intercontinental travel) — offering
+  // a "no flights needed" toggle in that case would just be confusing.
+  const flightsObviouslyRequired = destination?.flightsObviouslyRequired ?? false;
+
   // Road trips and other no-flight itineraries — skips the departure-airport
   // requirement below entirely and tells the AI not to search for flights.
-  const [noFlights, setNoFlights] = useState(trip.preferences.noFlightsNeeded ?? false);
+  const [noFlights, setNoFlights] = useState((trip.preferences.noFlightsNeeded ?? false) && !flightsObviouslyRequired);
+
+  // Defensive: if the destination was edited into something that obviously
+  // needs flights while "no flights needed" was already set from an earlier
+  // state, don't leave that stale preference silently in place.
+  useEffect(() => {
+    if (flightsObviouslyRequired && noFlights) setNoFlights(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flightsObviouslyRequired]);
 
   // ── Departure airport ──────────────────────────────────────────────────────
   // Falls back to the remembered default from a previous trip when this trip
@@ -193,30 +206,34 @@ export function AirlinesStep() {
     >
       <div className="flex flex-col gap-6">
 
-        {/* ── Road trip / no flights ── */}
-        <button
-          type="button"
-          onClick={() => setNoFlights((v) => !v)}
-          className={cn(
-            "flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
-            noFlights ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
-          )}
-        >
-          <span className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-            noFlights ? "bg-sage-500 text-white" : "bg-slate-100 text-slate-500"
-          )}>
-            {noFlights ? <Check size={16} /> : <Car size={16} />}
-          </span>
-          <div className="flex-1">
-            <p className={cn("font-semibold text-sm", noFlights ? "text-sage-800" : "text-slate-800")}>
-              I&rsquo;m driving — no flights needed
-            </p>
-            <p className={cn("text-xs mt-0.5", noFlights ? "text-sage-700" : "text-slate-500")}>
-              Road trips and other no-flight itineraries — skips flight search entirely.
-            </p>
-          </div>
-        </button>
+        {/* ── Road trip / no flights — omitted entirely (not even a
+            "flights needed" notice) when flightsObviouslyRequired, rather
+            than replacing it with a statement nobody asked to see. ── */}
+        {!flightsObviouslyRequired && (
+          <button
+            type="button"
+            onClick={() => setNoFlights((v) => !v)}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
+              noFlights ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
+            )}
+          >
+            <span className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+              noFlights ? "bg-sage-500 text-white" : "bg-slate-100 text-slate-500"
+            )}>
+              {noFlights ? <Check size={16} /> : <Car size={16} />}
+            </span>
+            <div className="flex-1">
+              <p className={cn("font-semibold text-sm", noFlights ? "text-sage-800" : "text-slate-800")}>
+                I&rsquo;m driving — no flights needed
+              </p>
+              <p className={cn("text-xs mt-0.5", noFlights ? "text-sage-700" : "text-slate-500")}>
+                Road trips and other no-flight itineraries — skips flight search entirely.
+              </p>
+            </div>
+          </button>
+        )}
 
         {noFlights && (
           <p className="-mt-3 text-xs text-slate-400">
