@@ -40,6 +40,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Trastevere street food walk",    category: "food",         duration: "2.5h", price: 75,  rating: 9.3, reviewCount: 8400,  isLocalFavorite: true,  description: "Explore Rome's most authentic neighbourhood: supplì, fried artichokes, and a glass of house white." },
     { name: "Vatican Museums & Sistine Chapel",category: "cultural",    duration: "3h",   price: 85,  rating: 9.4, reviewCount: 45000, isLocalFavorite: false, description: "Reserved-entry tour that gets you in before the crowds. The ceiling is even more staggering in person." },
     { name: "Vespa tour of the old city",     category: "guided_walking_tour", duration: "3h", price: 120, rating: 9.6, reviewCount: 3200, isLocalFavorite: true,  description: "See the city the Roman way — on the back of a Vespa with a local guide." },
+    { name: "Tivoli day trip: Villa d'Este & Hadrian's Villa", category: "cultural", duration: "Full day", price: 95, rating: 9.4, reviewCount: 3900, isLocalFavorite: false, description: "Renaissance fountains at Villa d'Este and the sprawling ruins of an emperor's retreat, an hour outside Rome with none of the city's crowds." },
   ],
   // Direct pool-key match beats the shared DESTINATION_ALIASES entry
   // ("florence" → "italy"), so a Florence search resolves here instead of
@@ -67,6 +68,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Milan fashion district shopping walk", category: "guided_walking_tour", duration: "2h", price: 40, rating: 8.8, reviewCount: 1800, isLocalFavorite: true, description: "The Quadrilatero della Moda with a stylist guide who knows which showrooms let walk-ins browse." },
     { name: "Duomo rooftop terraces",         category: "cultural",     duration: "1.5h", price: 35,  rating: 9.4, reviewCount: 8700,  isLocalFavorite: false, description: "Walk among the cathedral's marble spires with the Alps visible on a clear day." },
     { name: "Aperitivo crawl in Navigli",     category: "food",         duration: "3h",   price: 50,  rating: 9.1, reviewCount: 2600,  isLocalFavorite: true,  description: "Milan invented the aperitivo — hop between canal-side bars for spritz and the free buffet that comes with it." },
+    { name: "Lake Como day trip",             category: "cultural",     duration: "Full day", price: 90, rating: 9.5, reviewCount: 3600, isLocalFavorite: false, description: "Bellagio's lakefront promenade and a boat crossing to Varenna's pastel houses — the classic escape from Milan, under an hour by train." },
   ],
   amalfi: [
     { name: "Amalfi Coast boat trip",         category: "sailing",      duration: "6h",   price: 140, rating: 9.7, reviewCount: 4800, isLocalFavorite: true,  description: "Private boat along the clifftop towns — Ravello, Positano, Praiano — with swimming stops in hidden coves." },
@@ -109,12 +111,14 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Retiro Park & Royal Palace walking tour", category: "guided_walking_tour", duration: "3h", price: 45, rating: 9.0, reviewCount: 3400, isLocalFavorite: false, description: "Madrid's green lung and the largest working royal palace in Europe, paired in one manageable afternoon." },
     { name: "Tapas crawl in La Latina",           category: "food", duration: "3h", price: 65, rating: 9.4, reviewCount: 4600, isLocalFavorite: true, description: "Cava Baja's tapas bars the way madrileños actually do it — standing room, jamón, and vermouth on tap." },
     { name: "Mercado de San Miguel food hall visit", category: "food", duration: "2h", price: 30, rating: 8.8, reviewCount: 9800, isLocalFavorite: false, description: "A glass-walled 1916 market hall turned upscale tapas bazaar — touristy but genuinely excellent, right off Plaza Mayor." },
+    { name: "Toledo day trip: imperial city tour", category: "cultural", duration: "Full day", price: 85, rating: 9.5, reviewCount: 4200, isLocalFavorite: false, description: "Spain's former capital on a hilltop bend of the Tagus — Gothic cathedral, El Greco, and a skyline barely changed since the Middle Ages, less than an hour from Madrid." },
   ],
   seville: [
     { name: "Real Alcázar & Santa Cruz quarter tour", category: "cultural", duration: "3h", price: 65, rating: 9.5, reviewCount: 5600, isLocalFavorite: false, description: "The oldest royal palace still in use in Europe — Mudéjar architecture that inspired parts of Game of Thrones' Dorne." },
     { name: "Flamenco show in Triana",            category: "cultural", duration: "1.5h", price: 40, rating: 9.3, reviewCount: 4200, isLocalFavorite: true, description: "Flamenco's actual birthplace neighbourhood, across the river from the tourist zone — raw and unpolished in the best way." },
     { name: "Seville Cathedral & Giralda tower climb", category: "cultural", duration: "2h", price: 35, rating: 9.2, reviewCount: 6100, isLocalFavorite: false, description: "The world's largest Gothic cathedral, with a ramp (not stairs) to the top of the Giralda for panoramic city views." },
     { name: "Tapas crawl through Santa Cruz & Alfalfa", category: "food", duration: "3h", price: 55, rating: 9.4, reviewCount: 3100, isLocalFavorite: true, description: "Hop between family-run bars for salmorejo, croquetas, and sherry the way sevillanos have for generations." },
+    { name: "Ronda & white villages day trip", category: "photography", duration: "Full day", price: 95, rating: 9.5, reviewCount: 2600, isLocalFavorite: false, description: "A town split by a 100-metre gorge, plus the whitewashed pueblos blancos on the way — Andalusia's most dramatic day out from Seville." },
   ],
   // Kept as a fallback for a bare "Spain" search — already pure Barcelona
   // content, and the "barcelona": "spain" alias correctly routes Barcelona
@@ -130,6 +134,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Athens food and market crawl",       category: "food",     duration: "3h",  price: 70,  rating: 9.3, reviewCount: 2900, isLocalFavorite: true,  description: "Central Market, a century-old souvlaki counter, and a family bakery locals queue for at dawn." },
     { name: "Plaka & Anafiotika sunset walk",      category: "guided_walking_tour", duration: "2h", price: 45, rating: 9.1, reviewCount: 2400, isLocalFavorite: true, description: "The village-like alleys beneath the Acropolis, built by Cycladic islanders in the 1800s — Athens's prettiest, least touristy corner." },
     { name: "National Archaeological Museum tour", category: "cultural", duration: "2.5h", price: 50, rating: 8.9, reviewCount: 1800, isLocalFavorite: false, description: "The world's best collection of ancient Greek art, walked through with a guide who turns statues back into stories." },
+    { name: "Delphi day trip: Oracle of Apollo", category: "cultural", duration: "Full day", price: 100, rating: 9.5, reviewCount: 3300, isLocalFavorite: false, description: "The sanctuary the ancient world considered its center, on a mountainside above the Gulf of Corinth — a full day out from Athens with a guide who separates myth from archaeology." },
   ],
   santorini: [
     { name: "Santorini caldera sunset sailing",    category: "sailing",  duration: "5h",  price: 130, rating: 9.7, reviewCount: 4100, isLocalFavorite: false, description: "Catamaran around the volcanic caldera with swimming stops and a barbecue dinner as the sun drops behind the cliffs." },
@@ -178,6 +183,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Borough Market & Southwark food crawl", category: "food",  duration: "3h",  price: 75,  rating: 9.3, reviewCount: 3100, isLocalFavorite: true,  description: "London's oldest food market plus the backstreet pie shops and cheesemongers locals actually shop at." },
     { name: "British Museum & Rosetta Stone tour",  category: "cultural", duration: "2.5h", price: 40, rating: 9.2, reviewCount: 6800, isLocalFavorite: false, description: "The Rosetta Stone, Egyptian mummies, and the Parthenon marbles — free entry, but a guide makes sense of the scale." },
     { name: "West End theatre show with backstage tour", category: "cultural", duration: "3h", price: 90, rating: 9.0, reviewCount: 2100, isLocalFavorite: false, description: "A matinee ticket to a long-running West End show, paired with a backstage look at how London theatre actually runs." },
+    { name: "Stonehenge & Bath day trip", category: "cultural", duration: "Full day", price: 110, rating: 9.4, reviewCount: 8100, isLocalFavorite: false, description: "The prehistoric stone circle at sunrise-quiet hours, then the Roman baths and Georgian crescents of Bath — a full day out of the city that still gets you back for dinner." },
   ],
   edinburgh: [
     { name: "Edinburgh Old Town ghost & vaults tour", category: "cultural", duration: "2h", price: 45, rating: 9.0, reviewCount: 6700, isLocalFavorite: false, description: "The underground vaults beneath South Bridge, with the city's genuinely unsettling history rather than jump-scares." },
@@ -190,6 +196,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Kelvingrove Art Gallery & Museum tour", category: "cultural", duration: "2h", price: 25, rating: 9.1, reviewCount: 3400, isLocalFavorite: false, description: "A Victorian red-sandstone museum with everything from a Spitfire to Dalí — free entry, genuinely excellent collection." },
     { name: "Glasgow whisky & gin tasting",         category: "food",     duration: "2h",  price: 55,  rating: 9.2, reviewCount: 1400, isLocalFavorite: true, description: "Scotland's other whisky city — a guided tasting through Lowland and Highland drams in a West End bar." },
     { name: "West End & Ashton Lane food crawl",    category: "food", duration: "2.5h", price: 45, rating: 8.9, reviewCount: 1100, isLocalFavorite: true, description: "Glasgow's leafy, studenty West End — cobbled Ashton Lane's bars and the city's best casual food scene." },
+    { name: "Loch Lomond & The Trossachs day trip", category: "hiking", duration: "Full day", price: 85, rating: 9.4, reviewCount: 2900, isLocalFavorite: true, description: "Scotland's largest loch and the 'Highlands in miniature' national park, under an hour from the city — the easiest way to see the Highlands without a multi-day trip." },
   ],
   // Kept as a fallback for a bare "UK" search — London and Edinburgh above
   // now get their own clean pools (this pool previously mixed both

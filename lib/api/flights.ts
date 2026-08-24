@@ -15,6 +15,26 @@ interface FlightSearchParams {
   preferred_airlines?: string[];
   nonstop_only?: boolean;
   lowest_fare_mode?: boolean;
+  preferred_arrival_time?: string; // "HH:MM", 24h
+  preferred_departure_time_of_day?: "morning" | "afternoon" | "evening";
+}
+
+const DEPARTURE_TIME_OF_DAY_RANGE: Record<"morning" | "afternoon" | "evening", [number, number]> = {
+  morning: [6, 11],
+  afternoon: [12, 17],
+  evening: [18, 22],
+};
+
+// Clusters each generated option's minutes-since-midnight within ±45min of
+// the requested time, instead of the usual wide random spread — so a stated
+// time preference ("landing at 14:30") actually has something close to it to
+// pick from, rather than being silently ignored by the mock generator.
+function timeNear(hhmm: string, idx: number): { h: number; m: number } {
+  const [baseH, baseM] = hhmm.split(":").map(Number);
+  const baseMinutes = baseH * 60 + baseM;
+  const jitter = [0, -20, 25, -40][idx % 4];
+  const total = Math.max(0, Math.min(23 * 60 + 59, baseMinutes + jitter));
+  return { h: Math.floor(total / 60), m: total % 60 };
 }
 
 // Realistic mock data keyed by destination region
@@ -82,14 +102,24 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
 
   const basePrice = lowestFare ? randomInt(300, 900) : randomInt(600, 2400);
 
-  const results = airlines.map((airline, idx) => ({
+  const results = airlines.map((airline, idx) => {
+    let departureHM = { h: randomInt(6, 14), m: [0, 15, 30, 45][idx % 4] };
+    if (params.preferred_departure_time_of_day) {
+      const [lo, hi] = DEPARTURE_TIME_OF_DAY_RANGE[params.preferred_departure_time_of_day];
+      departureHM = { h: randomInt(lo, hi), m: [0, 15, 30, 45][idx % 4] };
+    }
+    const arrivalHM = params.preferred_arrival_time
+      ? timeNear(params.preferred_arrival_time, idx)
+      : { h: randomInt(14, 23), m: [0, 30][idx % 2] };
+
+    return {
     id: uuid(),
     airline: airline.name,
     flightNumber: `${airline.code}${randomInt(100, 999)}`,
     origin: params.origin,
     destination: params.destination,
-    departureTime: `${params.departure_date}T${randomInt(6, 14).toString().padStart(2, "0")}:${["00","15","30","45"][idx % 4]}:00`,
-    arrivalTime: `${params.departure_date}T${randomInt(14, 23).toString().padStart(2, "0")}:${["00","30"][idx % 2]}:00`,
+    departureTime: `${params.departure_date}T${departureHM.h.toString().padStart(2, "0")}:${departureHM.m.toString().padStart(2, "0")}:00`,
+    arrivalTime: `${params.departure_date}T${arrivalHM.h.toString().padStart(2, "0")}:${arrivalHM.m.toString().padStart(2, "0")}:00`,
     duration: `${randomInt(9, 17)}h ${randomInt(0, 59)}m`,
     // Nonstop preference applies regardless of lowest-fare mode — the two
     // are independent filters, not mutually exclusive.
@@ -98,7 +128,8 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
     currency: "USD",
     cabinClass: effectiveCabin,
     bookingUrl: AIRLINE_BOOKING_URLS[airline.code] ?? `https://www.google.com/travel/flights`,
-  }));
+    };
+  });
 
   // In lowest-fare mode, sort cheapest first
   return lowestFare ? results.sort((a, b) => a.price - b.price) : results;

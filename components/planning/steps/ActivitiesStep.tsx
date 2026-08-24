@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, AlertCircle } from "lucide-react";
+import { Sparkles, AlertCircle, Timer, MapPinned } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
@@ -11,7 +11,7 @@ import { BeliConnect } from "@/components/planning/BeliConnect";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import { getIrrelevantCategories } from "@/lib/data/activityRelevance";
-import { scrollStepToTop } from "@/lib/utils";
+import { cn, scrollStepToTop } from "@/lib/utils";
 import type { ActivityCategory } from "@/types/trip";
 
 // Exported so ChatPanel can turn a chat-driven update's raw category ids
@@ -31,7 +31,21 @@ export const GENERAL: { id: ActivityCategory; label: string; icon: string; subla
 ];
 
 export function ActivitiesStep() {
-  const { trip, setActivities } = useTripStore();
+  const { trip, setActivities, setAvoidLongQueues, setDayTripRequested } = useTripStore();
+  const [avoidQueues, setAvoidQueues] = useState(trip.preferences.avoidLongQueues ?? false);
+  const [dayTrip, setDayTrip] = useState(trip.preferences.dayTripRequested ?? false);
+
+  function toggleAvoidQueues() {
+    const next = !avoidQueues;
+    setAvoidQueues(next);
+    setAvoidLongQueues(next);
+  }
+
+  function toggleDayTrip() {
+    const next = !dayTrip;
+    setDayTrip(next);
+    setDayTripRequested(next);
+  }
 
   // Don't offer categories that don't fit the destination/season (e.g.
   // skiing for an April Tokyo trip, diving for a Madrid city break) — keeps
@@ -162,6 +176,52 @@ export function ActivitiesStep() {
       continueDisabled={totalSelected === 0}
       subtitle="What kind of experiences do you love? We'll weave these into your itinerary."
     >
+      <button
+        type="button"
+        onClick={toggleAvoidQueues}
+        className={cn(
+          "mb-4 flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
+          avoidQueues ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
+        )}
+      >
+        <span className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+          avoidQueues ? "bg-sage-500 text-white" : "bg-slate-100 text-slate-500"
+        )}>
+          <Timer size={16} />
+        </span>
+        <div className="flex-1">
+          <p className={cn("font-semibold text-sm", avoidQueues ? "text-sage-800" : "text-slate-800")}>
+            Prioritize skip-the-line access
+          </p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            When picking activities, favor early-access and reserved-entry options over general admission — worth it for the main sights, even at a premium.
+          </p>
+        </div>
+      </button>
+      <button
+        type="button"
+        onClick={toggleDayTrip}
+        className={cn(
+          "mb-4 flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
+          dayTrip ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
+        )}
+      >
+        <span className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+          dayTrip ? "bg-sage-500 text-white" : "bg-slate-100 text-slate-500"
+        )}>
+          <MapPinned size={16} />
+        </span>
+        <div className="flex-1">
+          <p className={cn("font-semibold text-sm", dayTrip ? "text-sage-800" : "text-slate-800")}>
+            Include a day trip outside the city
+          </p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Give one day of the itinerary over to a nearby excursion instead of keeping every day in the main destination.
+          </p>
+        </div>
+      </button>
       {modeChoice !== "zigy" && (
         <ModeToggleBanner
           label="Activities for you to choose from — or let ZiGy pick."
