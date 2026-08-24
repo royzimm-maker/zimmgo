@@ -77,7 +77,7 @@ function summarizeAirlineUpdate(u: AirlineUpdatePayload): string {
   return parts.length ? `Updated flights: ${parts.join(" · ")}` : "Updated flight preferences";
 }
 
-function ZigyAvatar({ size = 20 }: { size?: number }) {
+export function ZigyAvatar({ size = 20 }: { size?: number }) {
   return (
     <Image
       src="/zigy-avatar.png"
