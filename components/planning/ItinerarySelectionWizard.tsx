@@ -8,7 +8,7 @@ import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { useExpandablePreview } from "@/lib/hooks/useExpandablePreview";
 import { fetchSmartPick } from "@/lib/api/smartPick";
 import { fetchFlightSearch } from "@/lib/api/searchFlights";
-import { cn, fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
+import { cn, formatDate, fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
 import {
   Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard,
 } from "@/components/planning/ItineraryView";
@@ -17,9 +17,21 @@ import type { GeneratedItinerary } from "@/types/trip";
 interface Props {
   itinerary: GeneratedItinerary;
   onComplete: () => void;
+  // Rebuilds the whole itinerary from the current preferences — passed down
+  // from ItineraryStep (which owns the actual fetch/error-handling) so a
+  // date edit made here can trigger the same rebuild without navigating
+  // away and losing the traveller's place in this wizard.
+  onRegenerate: () => void;
 }
 
 type Stage = "flights" | "hotels" | "restaurants" | "activities";
+
+// "2026-11" -> "November 2026"
+function flexibleMonthLabel(yyyyMm: string): string {
+  const [yr, mo] = yyyyMm.split("-").map(Number);
+  if (!yr || !mo) return yyyyMm;
+  return new Date(yr, mo - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
 
 const RESTAURANT_PREVIEW_COUNT = 3;
 const ACTIVITY_PREVIEW_COUNT = 4;
@@ -40,12 +52,54 @@ interface WizardStep {
   city: string | null;
 }
 
-export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
-  const { trip, setSelectedFlight, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity, setItineraryFlights, goToStep } = useTripStore();
+export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }: Props) {
+  const { trip, setSelectedFlight, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity, setItineraryFlights, setDates, goToStep } = useTripStore();
   const preferences = trip.preferences;
 
   const [searchingFlights, setSearchingFlights] = useState(false);
   const [flightSearchError, setFlightSearchError] = useState<string | null>(null);
+
+  // The itinerary already resolved a flexible date window into real
+  // calendar dates (see buildDays in the generate route — it lands on the
+  // 15th of the chosen month and runs for the chosen duration) before any
+  // of this wizard ever renders. Locking those in as "exact" just updates
+  // the stored preference to match what's already true, so flight search
+  // (which needs real dates) can run — it isn't asking the traveller to
+  // redo anything they haven't already decided.
+  function confirmResolvedDates() {
+    if (!itinerary.days.length) return;
+    setDates({
+      ...preferences.dates,
+      type: "exact",
+      startDate: itinerary.days[0].date,
+      endDate: itinerary.days[itinerary.days.length - 1].date,
+    });
+  }
+
+  // Inline date adjustment, right here, instead of sending the traveller
+  // back to the Dates step — which would mean re-clicking Continue through
+  // every step just to return to where they already were.
+  const [editingDates, setEditingDates] = useState(false);
+  const [draftStart, setDraftStart] = useState("");
+  const [draftEnd, setDraftEnd] = useState("");
+  const [dateError, setDateError] = useState<string | null>(null);
+
+  function openDateEditor() {
+    setDraftStart(itinerary.days[0]?.date ?? "");
+    setDraftEnd(itinerary.days[itinerary.days.length - 1]?.date ?? "");
+    setDateError(null);
+    setEditingDates(true);
+  }
+
+  function saveDatesAndRebuild() {
+    if (!draftStart || !draftEnd || draftStart > draftEnd) {
+      setDateError("Enter a valid range — the end date needs to be after the start date.");
+      return;
+    }
+    setDates({ ...preferences.dates, type: "exact", startDate: draftStart, endDate: draftEnd });
+    setEditingDates(false);
+    onRegenerate();
+  }
 
   async function handleSearchFlights() {
     setSearchingFlights(true);
@@ -360,19 +414,72 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
               />
             </div>
           ) : preferences.dates?.type !== "exact" ? (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
-              <p className="text-sm text-slate-500">Flight search needs exact travel dates.</p>
-              <p className="text-xs text-slate-400 mt-1">
-                You picked a flexible date window — go back to Dates and lock in exact travel dates to see flight options.
-              </p>
-              <button
-                type="button"
-                onClick={() => goToStep("dates")}
-                className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
-              >
-                <ArrowLeft size={14} />
-                Go to Dates
-              </button>
+            <div className="rounded-xl border border-dashed border-brand-200 bg-brand-50/50 px-4 py-6 text-center">
+              {editingDates ? (
+                <>
+                  <p className="text-sm font-medium text-slate-700 mb-3">Adjust your travel dates</p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <input
+                      type="date"
+                      value={draftStart}
+                      onChange={(e) => { setDraftStart(e.target.value); setDateError(null); }}
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                    <span className="text-slate-400 text-xs">to</span>
+                    <input
+                      type="date"
+                      value={draftEnd}
+                      onChange={(e) => { setDraftEnd(e.target.value); setDateError(null); }}
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                  </div>
+                  {dateError && <p className="mt-2 text-xs text-red-600">{dateError}</p>}
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingDates(false)}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveDatesAndRebuild}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+                    >
+                      <Check size={14} />
+                      Save & rebuild
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-slate-700">
+                    ZiGy landed on {formatDate(itinerary.days[0]?.date)} – {formatDate(itinerary.days[itinerary.days.length - 1]?.date)}
+                    {preferences.dates?.flexibleMonth ? ` for your flexible ${flexibleMonthLabel(preferences.dates.flexibleMonth)} window.` : "."}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Confirm these dates to search real flight options, or adjust them first if they don&apos;t work.
+                  </p>
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={openDateEditor}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                    >
+                      Adjust dates
+                    </button>
+                    <button
+                      type="button"
+                      onClick={confirmResolvedDates}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+                    >
+                      <Check size={14} />
+                      Confirm these dates
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ) : preferences.destination?.departureAirport && preferences.destination?.arrivalAirport ? (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
@@ -434,7 +541,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                     {hotelPickReasons[currentCity]}
                   </p>
                   <p className="mt-1 text-[10px] text-brand-400">
-                    You can still adjust this below — nothing here is locked in.
+                    Nothing's locked in — tweak away below!
                   </p>
                 </div>
               )}
@@ -518,7 +625,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete }: Props) {
                     {activityPickReasons[currentCity]}
                   </p>
                   <p className="mt-1 text-[10px] text-brand-400">
-                    You can still adjust these below — nothing here is locked in.
+                    Nothing's locked in — tweak away below!
                   </p>
                 </div>
               )}
