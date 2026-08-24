@@ -541,7 +541,7 @@ export function LodgingStep() {
                       <div className="mt-3 flex items-end justify-between gap-2 pt-2 border-t border-slate-100">
                         <div>
                           <p className="font-bold text-slate-900 text-sm">
-                            {formatCurrency(h.pricePerNight)}<span className="font-normal text-xs text-slate-400">/night</span>
+                            {formatCurrency(h.pricePerNight, trip.preferences.preferredCurrency)}<span className="font-normal text-xs text-slate-400">/night</span>
                           </p>
                           <p className="text-xs text-sage-700 font-medium">{h.rating}/10</p>
                           {h.ratingSource && (

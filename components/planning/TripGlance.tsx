@@ -100,12 +100,12 @@ export function TripGlance({ itinerary, preferences }: Props) {
                       </p>
                       {ret && (
                         <p className="text-[10px] text-slate-400 mt-0.5">
-                          Out: {formatCurrency(outbound.price)}/pp · Return: {formatCurrency(ret.price)}/pp
+                          Out: {formatCurrency(outbound.price, preferences.preferredCurrency)}/pp · Return: {formatCurrency(ret.price, preferences.preferredCurrency)}/pp
                         </p>
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-slate-900">{formatCurrency(roundtripPp)}</p>
+                      <p className="text-sm font-bold text-slate-900">{formatCurrency(roundtripPp, preferences.preferredCurrency)}</p>
                       <p className="text-[10px] text-slate-400">roundtrip/pp</p>
                     </div>
                   </div>
@@ -154,7 +154,7 @@ export function TripGlance({ itinerary, preferences }: Props) {
                   )}
                   {h.name}
                 </span>
-                <span className="text-slate-500">{h.location} · {formatCurrency(h.pricePerNight)}/night</span>
+                <span className="text-slate-500">{h.location} · {formatCurrency(h.pricePerNight, preferences.preferredCurrency)}/night</span>
               </div>
             ))}
           </div>

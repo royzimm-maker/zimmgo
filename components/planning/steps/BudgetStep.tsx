@@ -1,12 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { DollarSign, Minus, Plus } from "lucide-react";
+import { DollarSign, Minus, Plus, Globe2 } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
+import { CURRENCIES } from "@/lib/currency";
 import { BUDGET_LABELS, type BudgetRange } from "@/types/trip";
+
+// ─── Dietary restriction options ───────────────────────────────────────────────
+const DIETARY_OPTIONS = [
+  "Vegetarian", "Vegan", "Pescatarian", "Gluten-free", "Dairy-free",
+  "Halal", "Kosher", "Nut allergy", "Shellfish allergy",
+];
 
 // ─── Lodging tier options ─────────────────────────────────────────────────────
 // Deliberately price-only — no star rating or accommodation style claims here.
@@ -79,9 +86,12 @@ const SPLURGE_RANGES: { min: number; max?: number; label: string }[] = [
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function BudgetStep() {
-  const { trip, setBudget, setBudgetDetails } = useTripStore();
+  const { trip, setBudget, setBudgetDetails, setPreferredCurrency, setDietaryRestrictions, defaultCurrency } = useTripStore();
   const prefs = trip.preferences;
 
+  const [currency, setCurrency] = useState(prefs.preferredCurrency ?? defaultCurrency ?? "USD");
+  const [dietary,      setDietary     ] = useState<string[]>(prefs.dietaryRestrictions ?? []);
+  const [dietaryNotes, setDietaryNotes] = useState(prefs.dietaryNotes ?? "");
   const [travelers,    setTravelers   ] = useState(prefs.travelers ?? 2);
   const [rooms,        setRooms       ] = useState(prefs.rooms ?? 1);
   const [lodgingTiers, setLodgingTiers] = useState<BudgetRange[]>(prefs.budgetRanges ?? []);
@@ -113,6 +123,10 @@ export function BudgetStep() {
   function toggleTier(id: BudgetRange) {
     setLodgingTiers((prev) => prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]);
     setErrors((e) => ({ ...e, night: undefined }));
+  }
+
+  function toggleDietary(label: string) {
+    setDietary((prev) => prev.includes(label) ? prev.filter((d) => d !== label) : [...prev, label]);
   }
 
   function handleContinue() {
@@ -156,6 +170,8 @@ export function BudgetStep() {
 
     if (Object.keys(errs).length) { setErrors(errs); return false; }
 
+    setPreferredCurrency(currency !== "USD" ? currency : undefined);
+    setDietaryRestrictions(dietary, dietaryNotes.trim() || undefined);
     setBudget(lodgingTiers);
     setBudgetDetails({
       travelers,
@@ -183,6 +199,26 @@ export function BudgetStep() {
       subtitle="Tell us about your group and spending comfort — we'll tailor every recommendation."
     >
       <div className="flex flex-col gap-8">
+
+        {/* ── Section 0: Display currency ── */}
+        <div>
+          <p className="mb-1 text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+            <Globe2 size={14} className="text-slate-400" />
+            Display currency
+          </p>
+          <p className="mb-3 text-xs text-slate-400">
+            Every price we show gets converted to this — handy for planning in the currency you actually spend.
+          </p>
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.code} — {c.name} ({c.symbol})</option>
+            ))}
+          </select>
+        </div>
 
         {/* ── Section 1: Travellers & Rooms ── */}
         <div>
@@ -346,6 +382,40 @@ export function BudgetStep() {
               </div>
             )}
             {errors.food && <p className="mt-1 text-xs text-red-500">{errors.food}</p>}
+          </div>
+
+          {/* Dietary restrictions */}
+          <div className="mt-4">
+            <p className="mb-1 text-sm font-semibold text-slate-700">
+              Dietary restrictions <span className="font-normal text-slate-400">(optional)</span>
+            </p>
+            <p className="mb-2 text-xs text-slate-400">
+              ZiGy will factor these into every restaurant and activity recommendation.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {DIETARY_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => toggleDietary(opt)}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
+                    dietary.includes(opt)
+                      ? "border-brand-500 bg-brand-50 text-brand-700"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={dietaryNotes}
+              onChange={(e) => setDietaryNotes(e.target.value)}
+              rows={2}
+              placeholder={`Anything else we should know? e.g. "severe peanut allergy" or "avoiding spicy food"`}
+              className="mt-2 w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
           </div>
         </div>
 
