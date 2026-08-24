@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapPin, X, Clock } from "lucide-react";
+import { MapPin, X, Clock, Car, Wand2 } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
+import { TripIntake } from "@/components/planning/TripIntake";
 import { useTripStore } from "@/lib/store/tripStore";
 import { getFilteredRoutingSuggestion } from "@/lib/data/airportRouting";
 import type { Destination } from "@/types/trip";
@@ -64,11 +65,22 @@ function parseCitiesFromText(text: string): string[] {
 }
 
 export function DestinationStep() {
-  const { trip, setDestination } = useTripStore();
+  const { trip, setDestination, setNoFlightsNeeded, completeStep, goToStep } = useTripStore();
   const saved = trip.preferences.destination;
+
+  // Only offer the one-shot intake on a genuinely untouched trip — once any
+  // step is complete or a destination is set, the step-by-step wizard is
+  // already the active mode and switching would just clobber real progress.
+  const isFreshTrip = trip.completedSteps.length === 0 && !saved?.cities?.length;
+  const [showIntake, setShowIntake] = useState(false);
 
   const [freeText, setFreeText] = useState(saved?.freeText ?? saved?.displayName ?? "");
   const [parsing, setParsing] = useState(false);
+  // Set when the destination parse detects explicit driving language (e.g.
+  // "road trip", "driving up") — held for an explicit yes/no instead of
+  // silently assuming, since a wrong guess here would wrongly suppress
+  // flight search for someone who actually needs it.
+  const [roadTripPrompt, setRoadTripPrompt] = useState(false);
   // Read localStorage after mount only — reading it in the initializer would run
   // during SSR too (where it's unavailable), causing a hydration mismatch.
   const [history, setHistory] = useState<string[]>([]);
@@ -98,6 +110,7 @@ export function DestinationStep() {
     // since the regex heuristic only handles that one specific shape.
     let cities = parseCitiesFromText(text);
     let displayName = text;
+    let likelyRoadTrip = false;
     if (!POPULAR.includes(text)) {
       setParsing(true);
       try {
@@ -107,9 +120,10 @@ export function DestinationStep() {
           body: JSON.stringify({ text }),
         });
         if (!res.ok) throw new Error(await res.text());
-        const data: { cities: string[]; displayName: string } = await res.json();
+        const data: { cities: string[]; displayName: string; likelyRoadTrip?: boolean } = await res.json();
         if (data.cities?.length) cities = data.cities;
         if (data.displayName?.trim()) displayName = data.displayName;
+        likelyRoadTrip = data.likelyRoadTrip === true;
       } catch {
         // Fall back to the regex heuristic — better than blocking the user entirely
       } finally {
@@ -141,9 +155,28 @@ export function DestinationStep() {
         : undefined,
     };
     setDestination(dest);
+
+    // Only interrupt with the road-trip question the first time — once the
+    // traveller has answered it (here or on the Flights step), respect that
+    // and don't ask again.
+    if (likelyRoadTrip && useTripStore.getState().trip.preferences.noFlightsNeeded === undefined) {
+      setRoadTripPrompt(true);
+      return false;
+    }
+  }
+
+  function confirmRoadTrip(isRoadTrip: boolean) {
+    setNoFlightsNeeded(isRoadTrip);
+    setRoadTripPrompt(false);
+    completeStep("destination");
+    goToStep("dates");
   }
 
   const canContinue = freeText.trim().length > 0;
+
+  if (showIntake) {
+    return <TripIntake onBack={() => setShowIntake(false)} />;
+  }
 
   return (
     <StepShell
@@ -153,6 +186,17 @@ export function DestinationStep() {
       continueLoading={parsing}
       subtitle="Tell us where you want to go — the more detail the better."
     >
+      {isFreshTrip && (
+        <button
+          type="button"
+          onClick={() => setShowIntake(true)}
+          className="mb-5 flex w-full items-center gap-2 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-3 py-2.5 text-left text-xs font-medium text-brand-700 hover:bg-brand-50 transition-colors"
+        >
+          <Wand2 size={13} className="shrink-0" />
+          Or, describe your whole trip in one go — dates, budget, dietary needs and all — and skip the wizard
+        </button>
+      )}
+
       {/* ── Free-text destination input ── */}
       <div className="mb-5">
         <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -181,6 +225,39 @@ export function DestinationStep() {
           Be as specific or as vague as you like — we&apos;ll work with it.
         </p>
       </div>
+
+      {/* ── Road trip confirmation — shown once, only when the destination
+          parse detected explicit driving language ("road trip", "driving").
+          Held for an explicit answer rather than assumed silently. ── */}
+      {roadTripPrompt && (
+        <div className="mb-5 flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600">
+            <Car size={16} />
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-brand-800">Sounds like a road trip — no flights needed?</p>
+            <p className="mt-0.5 text-xs text-brand-600">
+              We&apos;ll skip flight search and build your plan around hotels, activities, and getting around by road. You can change this later on the Flights step.
+            </p>
+            <div className="mt-2.5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => confirmRoadTrip(true)}
+                className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors"
+              >
+                Yes, no flights
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmRoadTrip(false)}
+                className="rounded-md border border-brand-300 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50 transition-colors"
+              >
+                No, I&apos;ll need flights
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Recent searches — only shown before user types anything ── */}
       {!freeText.trim() && history.length > 0 && (
