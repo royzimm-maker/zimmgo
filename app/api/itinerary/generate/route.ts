@@ -15,6 +15,7 @@ import { groupByLocation, parseLocalDate } from "@/lib/utils";
 import { estimateTripBudget } from "@/lib/budget";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
+import { rateLimit } from "@/lib/rateLimit";
 
 // Generation can take several agentic tool-call rounds against the real
 // Anthropic API — without this the platform's default function timeout
@@ -75,6 +76,11 @@ async function dispatchTool(
 }
 
 export async function POST(request: NextRequest) {
+  // Full itinerary generation is the most expensive route here — several
+  // agentic tool-call rounds per request — so it gets the tightest limit.
+  const limited = rateLimit(request, { bucket: "itinerary-generate", limit: 8, windowMs: 10 * 60_000 });
+  if (limited) return limited;
+
   try {
     const body = await request.json() as { tripId: string; preferences: TripPreferences };
     const { tripId, preferences } = body;
@@ -371,6 +377,21 @@ function buildDays(
   const cities = preferences.destination?.cities?.filter(Boolean) ?? [];
   const themes = generateThemes(numDays, preferences);
 
+  // The traveller can manually rebalance how many days go to each city (the
+  // itinerary step's leg editor) — that override must actually change which
+  // city each day lands on, not just be described to the AI, since this
+  // function assigns `location` deterministically and ignores the AI's own
+  // day-by-day output entirely. Only trust it when it exactly accounts for
+  // every city and the full day count; otherwise fall back to even division.
+  const nights = preferences.cityNights;
+  const nightsValid = !!nights
+    && cities.length > 0
+    && cities.every((c) => Number.isInteger(nights[c]) && nights[c] > 0)
+    && cities.reduce((sum, c) => sum + nights[c], 0) === numDays;
+  const dayLocations: string[] | null = nightsValid
+    ? cities.flatMap((c) => Array(nights![c]).fill(c))
+    : null;
+
   // Days assigned to the same city so far, in order — used below to rotate
   // through that city's activities/restaurants instead of repeating day 1's
   // pick, without pulling in another city's content.
@@ -383,8 +404,12 @@ function buildDays(
     // UTC first, which would shift the date again in positive-offset zones.
     const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-    // Distribute cities evenly across days; fall back to full destination name
-    const location = cities.length > 1
+    // Use the traveller's manual day split when it's valid; otherwise
+    // distribute cities evenly across days. Falls back to full destination
+    // name for a single-city trip.
+    const location = dayLocations
+      ? dayLocations[i]
+      : cities.length > 1
       ? cities[Math.floor((i / numDays) * cities.length)]
       : (cities[0] ?? dest);
 

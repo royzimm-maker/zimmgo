@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, Trophy, CheckCircle2, CalendarDays, MapPin } from "lucide-react";
+import { RefreshCw, Trophy, CheckCircle2, CalendarDays, MapPin, Pencil, Minus, Plus, X } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ItineraryView } from "@/components/planning/ItineraryView";
 import { ItinerarySelectionWizard } from "@/components/planning/ItinerarySelectionWizard";
 import { useTripStore } from "@/lib/store/tripStore";
-import { extractApiErrorMessage, parseLocalDate } from "@/lib/utils";
+import { cn, extractApiErrorMessage, formatDate, groupItineraryDaysByLocation, parseLocalDate } from "@/lib/utils";
 import type { GeneratedItinerary } from "@/types/trip";
 
 // Sourced from the generated days themselves, not the raw preferences — the
@@ -26,32 +26,36 @@ function tripDateRangeLabel(days: GeneratedItinerary["days"]): string | null {
   return `${startLabel} – ${endLabel}, ${end.getFullYear()}`;
 }
 
-function tripDestinationsLabel(days: GeneratedItinerary["days"]): string | null {
-  const seen: string[] = [];
-  for (const d of days) {
-    if (d.location && !seen.includes(d.location)) seen.push(d.location);
-  }
-  return seen.length ? seen.join(" → ") : null;
-}
-
 export function ItineraryStep() {
-  const { trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep, markItineraryReviewed } = useTripStore();
+  const { trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep, markItineraryReviewed, setCityNights } = useTripStore();
   const latest = trip.itineraries[trip.itineraries.length - 1] ?? null;
   const isPersonalized = Boolean(latest?.finalizedPlan);
   const dateRangeLabel = latest ? tripDateRangeLabel(latest.days) : null;
-  const destinationsLabel = latest ? tripDestinationsLabel(latest.days) : null;
+  const legs = latest ? groupItineraryDaysByLocation(latest.days, trip.preferences.destination?.displayName ?? "Unknown") : [];
+  // cityList is the canonical, ordered set of legs (from the Destination
+  // step) — used for the editor instead of `legs` so a city that somehow
+  // ended up with zero days is still editable, not silently missing.
+  const cityList = trip.preferences.destination?.cities?.filter(Boolean) ?? [];
+  const totalDays = latest?.days.length ?? 0;
 
   const [error, setError] = useState<string | null>(null);
   const [showPicksBanner, setShowPicksBanner] = useState(false);
+  const [editingSplit, setEditingSplit] = useState(false);
+  const [draftCounts, setDraftCounts] = useState<Record<string, number>>({});
 
   async function generate() {
     setGenerating(true);
     setError(null);
     try {
+      // Read fresh from the store rather than the closed-over `trip` — this
+      // gets called immediately after saving a day-split edit, and a stale
+      // closure would regenerate against the preferences from before that
+      // edit landed.
+      const current = useTripStore.getState().trip;
       const res = await fetch("/api/itinerary/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tripId: trip.id, preferences: trip.preferences }),
+        body: JSON.stringify({ tripId: current.id, preferences: current.preferences }),
       });
       if (!res.ok) throw new Error(extractApiErrorMessage(await res.text()));
       const data: GeneratedItinerary = await res.json();
@@ -70,6 +74,30 @@ export function ItineraryStep() {
     } finally {
       setGenerating(false);
     }
+  }
+
+  function openSplitEditor() {
+    const counts: Record<string, number> = {};
+    const evenShare = cityList.length ? Math.max(1, Math.round(totalDays / cityList.length)) : 0;
+    for (const city of cityList) {
+      counts[city] = legs.find((l) => l.location === city)?.dayCount ?? evenShare;
+    }
+    setDraftCounts(counts);
+    setEditingSplit(true);
+  }
+
+  function adjustDraftCount(city: string, delta: number) {
+    setDraftCounts((prev) => ({ ...prev, [city]: Math.max(1, (prev[city] ?? 1) + delta) }));
+  }
+
+  const draftTotal = Object.values(draftCounts).reduce((a, b) => a + b, 0);
+  const draftValid = draftTotal === totalDays;
+
+  function saveSplitAndRebuild() {
+    if (!draftValid) return;
+    setCityNights(draftCounts);
+    setEditingSplit(false);
+    generate();
   }
 
   const autoStartRef = useRef(false);
@@ -150,18 +178,91 @@ export function ItineraryStep() {
 
       {/* Dates & destinations ZiGy landed on — the first concrete facts a
           user should see once the itinerary unlocks, before flights/hotels. */}
-      {latest && !showPicksBanner && (dateRangeLabel || destinationsLabel) && (
-        <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
-          {dateRangeLabel && (
-            <div className="flex items-center gap-2">
-              <CalendarDays size={16} className="text-brand-500 shrink-0" />
-              <span className="text-sm font-medium text-slate-700">{dateRangeLabel}</span>
+      {latest && !showPicksBanner && (dateRangeLabel || legs.length > 0) && (
+        <div className="mb-5 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            {dateRangeLabel && (
+              <div className="flex items-center gap-2">
+                <CalendarDays size={16} className="text-brand-500 shrink-0" />
+                <span className="text-sm font-medium text-slate-700">{dateRangeLabel}</span>
+              </div>
+            )}
+            {legs.length > 1 && !editingSplit && (
+              <Button variant="ghost" size="sm" onClick={openSplitEditor} className="ml-auto text-slate-500 -my-1">
+                <Pencil size={12} />
+                Adjust days per city
+              </Button>
+            )}
+          </div>
+
+          {legs.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-2 pt-2.5 border-t border-slate-100">
+              {legs.map((leg, i) => (
+                <div key={`${leg.location}-${i}`} className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5">
+                    <MapPin size={12} className="text-brand-500 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-slate-700 leading-tight">{leg.location}</p>
+                      <p className="text-[10px] text-slate-400 leading-tight">
+                        {formatDate(leg.dates[0])}
+                        {leg.dayCount > 1 && `–${formatDate(leg.dates[leg.dates.length - 1])}`}
+                        {" · "}{leg.dayCount} day{leg.dayCount !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  {i < legs.length - 1 && <span className="text-slate-300 text-xs">→</span>}
+                </div>
+              ))}
             </div>
           )}
-          {destinationsLabel && (
-            <div className="flex items-center gap-2">
-              <MapPin size={16} className="text-brand-500 shrink-0" />
-              <span className="text-sm font-medium text-slate-700">{destinationsLabel}</span>
+
+          {/* Day-split editor — redistributes the SAME total day count across
+              cities; changing trip length itself is a Dates-step change, not
+              this control's job. */}
+          {editingSplit && (
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-xs font-semibold text-slate-700">How many days in each city?</p>
+                <button type="button" onClick={() => setEditingSplit(false)} className="text-slate-400 hover:text-slate-600">
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                {cityList.map((city) => (
+                  <div key={city} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-slate-700 truncate">{city}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => adjustDraftCount(city, -1)}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:opacity-30"
+                        disabled={(draftCounts[city] ?? 1) <= 1}
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <span className="w-6 text-center text-sm font-semibold text-slate-800 tabular-nums">
+                        {draftCounts[city] ?? 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => adjustDraftCount(city, 1)}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600"
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <p className={cn("text-xs", draftValid ? "text-slate-400" : "text-red-600 font-medium")}>
+                  {draftTotal} of {totalDays} days allocated
+                  {!draftValid && (draftTotal > totalDays ? " — remove some to match your trip length" : " — add more to match your trip length")}
+                </p>
+                <Button variant="primary" size="sm" onClick={saveSplitAndRebuild} disabled={!draftValid} loading={isGenerating}>
+                  Save & rebuild
+                </Button>
+              </div>
             </div>
           )}
         </div>
