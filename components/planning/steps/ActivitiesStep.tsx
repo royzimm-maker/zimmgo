@@ -222,18 +222,21 @@ export function ActivitiesStep() {
           </p>
         </div>
       </button>
-      {modeChoice !== "zigy" && (
-        <ModeToggleBanner
-          label="Activities for you to choose from — or let ZiGy pick."
-          onZigy={handleZigyPick}
-          loading={picking}
-          error={pickError}
-        />
-      )}
-      {/* modeChoice === "zigy" hides the banner above (no redundant "let ZiGy
-          pick" prompt right after picking) — but that means a failure from
-          that exact path needs its own surface, not to vanish along with it. */}
-      {modeChoice === "zigy" && pickError && (
+      {/* Always rendered, regardless of modeChoice — a returning user whose
+          `mode` starts at "manual" directly (never visiting the initial
+          prompt) can still reach this button, and it needs to reflect
+          whether a pick has actually happened rather than only tracking
+          modeChoice, which that path never sets. */}
+      <ModeToggleBanner
+        label="Activities for you to choose from — or let ZiGy pick."
+        onZigy={handleZigyPick}
+        loading={picking}
+        error={pickSummary ? null : pickError}
+        picked={!!pickSummary}
+      />
+      {/* A picked banner's own error slot is suppressed above — surface a
+          failure separately so it doesn't vanish along with the closed state. */}
+      {pickSummary && pickError && (
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
           <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
           <p className="text-xs text-red-700">{pickError}</p>
@@ -246,7 +249,7 @@ export function ActivitiesStep() {
             {pickSummary}
           </p>
           <p className="mt-1 text-[10px] text-brand-400">
-            You can still adjust these below — nothing here is locked in.
+            Nothing's locked in — tweak away below!
           </p>
         </div>
       )}
