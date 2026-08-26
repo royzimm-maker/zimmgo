@@ -11,7 +11,7 @@ import { searchRestaurants } from "@/lib/api/restaurants";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
 import { applyReviewSourcePref } from "@/lib/data/reviewSources";
 import { applyBeliPreference } from "@/lib/data/beli";
-import { groupByLocation, parseLocalDate } from "@/lib/utils";
+import { groupByLocation, parseLocalDate, extractIataCode } from "@/lib/utils";
 import { estimateTripBudget } from "@/lib/budget";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
@@ -210,6 +210,46 @@ export async function POST(request: NextRequest) {
       if (result.length && "pricePerNight" in result[0]) hotels      = [...hotels,      ...(result as HotelOption[])];
       else if (result.length && "duration" in result[0]) activities  = [...activities,  ...(result as ActivityOption[])];
       else                                               restaurants = [...restaurants, ...(result as RestaurantOption[])];
+    }
+
+    // ── Ensure both flight legs exist ──
+    // The AI is instructed to call search_flights twice — once outbound, once
+    // return — but tool-use adherence isn't guaranteed, and a model that only
+    // makes the one call leaves the review screen showing a single one-way
+    // leg mislabeled "roundtrip". Backfill whichever leg is missing the same
+    // deterministic way the manual "search again" fallback does.
+    const flightDest = preferences.destination;
+    const flightDates = preferences.dates;
+    if (
+      !preferences.noFlightsNeeded &&
+      flightDest?.departureAirport && flightDest?.arrivalAirport &&
+      flightDates?.type === "exact" && flightDates.startDate && flightDates.endDate && !flightDates.skipFlightSearch
+    ) {
+      const arrivalCode = extractIataCode(flightDest.arrivalAirport);
+      const hasOutbound = flights.some((f) => (f.destination ?? "").toUpperCase().includes(arrivalCode));
+      const hasReturn   = flights.some((f) => !(f.destination ?? "").toUpperCase().includes(arrivalCode));
+      const airlinePrefs = preferences.airlinePrefs;
+      const common = {
+        cabin_class: airlinePrefs?.cabinClass,
+        preferred_airlines: airlinePrefs?.airlines,
+        nonstop_only: airlinePrefs?.preferNonstop,
+        lowest_fare_mode: airlinePrefs?.prioritizeLowestFare,
+      };
+      if (!hasOutbound) {
+        flights = [...flights, ...await searchFlights({
+          origin: flightDest.departureAirport,
+          destination: flightDest.arrivalAirport,
+          departure_date: flightDates.startDate,
+          ...common,
+        })];
+      }
+      if (!hasReturn) {
+        flights = [...flights, ...await searchFlights(
+          flightDest.returnAirport
+            ? { origin: flightDest.arrivalAirport, destination: flightDest.returnAirport, departure_date: flightDates.endDate, ...common }
+            : { origin: flightDest.arrivalAirport, destination: flightDest.departureAirport, departure_date: flightDates.endDate, ...common }
+        )];
+      }
     }
 
     // ── Deduplicate by name across all cities ──

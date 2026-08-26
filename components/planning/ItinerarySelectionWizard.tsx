@@ -333,6 +333,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
   const isLastStep = !nextStep;
   const nextLabel = isLastStep
     ? "Finish review"
+    // Coming straight off Flights, "Continue to {city}" reads like it's
+    // describing where the flight just picked is headed (confusing when the
+    // visible card is the return leg flying the other way) — phrase it as
+    // starting that city's planning instead. Between two cities later in the
+    // wizard there's no flight card to conflict with, so the plain "Continue
+    // to {city}" reads fine there.
+    : step.stage === "flights"
+    ? `Plan the ${nextStep.city} leg`
     : nextStep.city !== step.city
     ? `Continue to ${nextStep.city}`
     : `Continue to ${STAGE_META[nextStep.stage].label} in ${nextStep.city}`;
