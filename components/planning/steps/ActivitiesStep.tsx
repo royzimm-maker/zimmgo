@@ -5,13 +5,12 @@ import { Sparkles, AlertCircle, Timer, MapPinned } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
-import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { BeliConnect } from "@/components/planning/BeliConnect";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import { getIrrelevantCategories } from "@/lib/data/activityRelevance";
-import { cn, scrollStepToTop } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { ActivityCategory } from "@/types/trip";
 
 // Exported so ChatPanel can turn a chat-driven update's raw category ids
@@ -53,10 +52,6 @@ export function ActivitiesStep() {
   const irrelevant = getIrrelevantCategories(trip.preferences.destination, trip.preferences.dates);
   const visibleGeneral = GENERAL.filter((g) => !irrelevant.has(g.id));
 
-  const [mode, setMode] = useState<"prompt" | "manual">(
-    () => (trip.preferences.activities.length > 0 ? "manual" : "prompt")
-  );
-  const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
   const { picking, pickSummary, error: pickError, run: runSmartPick } = useSmartPick();
 
   const [selectedGeneral, setSelectedGeneral] = useState<ActivityCategory[]>(
@@ -128,7 +123,6 @@ export function ActivitiesStep() {
       .map((p) => p.id)
       .filter((id): id is ActivityCategory => visibleGeneral.some((g) => g.id === id));
     setSelectedGeneral(picked);
-    setMode("manual");
     syncActivities({ general: picked });
   }
 
@@ -136,38 +130,8 @@ export function ActivitiesStep() {
     setActivities(assembleActivities());
   }
 
-  async function handlePromptContinue() {
-    if (modeChoice === "manual") setMode("manual");
-    else if (modeChoice === "zigy") await handleZigyPick();
-    scrollStepToTop(); // switching views here doesn't remount the step
-    return false; // stay on this step — just switches to the picker view
-  }
-
   const totalSelected =
     selectedGeneral.length + (otherOpen && otherValue.trim() ? 1 : 0);
-
-  if (mode === "prompt") {
-    return (
-      <StepShell
-        stepId="activities"
-        continueLabel="Continue"
-        continueDisabled={!modeChoice}
-        continueLoading={picking}
-        onContinue={handlePromptContinue}
-        subtitle="How do you want to choose your activities?"
-      >
-        <ChooseModePrompt
-          manualLabel="I'll pick myself"
-          manualDescription="Browse the categories and choose what sounds good."
-          zigyDescription="I'll suggest top-rated activities that fit the vibe of your trip and your destination — you can still adjust before continuing."
-          selected={modeChoice}
-          onSelect={setModeChoice}
-          loading={picking}
-          error={pickError}
-        />
-      </StepShell>
-    );
-  }
 
   return (
     <StepShell
@@ -175,84 +139,94 @@ export function ActivitiesStep() {
       onContinue={handleContinue}
       continueDisabled={totalSelected === 0}
       subtitle="What kind of experiences do you love? We'll weave these into your itinerary."
+      headerImage="/zigy-activities.png"
+      headerExtra={
+        // No separate "how do you want to choose?" screen — this hand-off to
+        // ZiGy is the direct replacement for that, so it needs to read as
+        // the primary alternative to picking manually, not an easy-to-miss
+        // aside. Living in the header's own column also reclaims the empty
+        // space a tall header image leaves next to the short title/subtitle.
+        <div className="max-w-xs flex flex-col gap-3">
+          <ModeToggleBanner
+            label="Activities for you to choose from — or let ZiGy pick."
+            onZigy={handleZigyPick}
+            loading={picking}
+            error={pickSummary ? null : pickError}
+            picked={!!pickSummary}
+            prominent
+          />
+          {/* A picked banner's own error slot is suppressed above — surface a
+              failure separately so it doesn't vanish along with the closed state. */}
+          {pickSummary && pickError && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+              <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-red-700">{pickError}</p>
+            </div>
+          )}
+          {pickSummary && (
+            <div className="rounded-lg bg-brand-50 px-3 py-2">
+              <p className="text-xs text-brand-600">
+                <Sparkles size={11} className="inline mr-1" />
+                {pickSummary}
+              </p>
+              <p className="mt-1 text-[10px] text-brand-400">
+                Nothing's locked in — tweak away below!
+              </p>
+            </div>
+          )}
+        </div>
+      }
     >
-      <button
-        type="button"
-        onClick={toggleAvoidQueues}
-        className={cn(
-          "mb-4 flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
-          avoidQueues ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
-        )}
-      >
-        <span className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-          avoidQueues ? "bg-sage-500 text-white" : "bg-slate-100 text-slate-500"
-        )}>
-          <Timer size={16} />
-        </span>
-        <div className="flex-1">
-          <p className={cn("font-semibold text-sm", avoidQueues ? "text-sage-800" : "text-slate-800")}>
-            Prioritize skip-the-line access
-          </p>
-          <p className="text-xs text-slate-500 mt-0.5">
-            When picking activities, favor early-access and reserved-entry options over general admission — worth it for the main sights, even at a premium.
-          </p>
-        </div>
-      </button>
-      <button
-        type="button"
-        onClick={toggleDayTrip}
-        className={cn(
-          "mb-4 flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
-          dayTrip ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
-        )}
-      >
-        <span className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-          dayTrip ? "bg-sage-500 text-white" : "bg-slate-100 text-slate-500"
-        )}>
-          <MapPinned size={16} />
-        </span>
-        <div className="flex-1">
-          <p className={cn("font-semibold text-sm", dayTrip ? "text-sage-800" : "text-slate-800")}>
-            Include a day trip outside the city
-          </p>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Give one day of the itinerary over to a nearby excursion instead of keeping every day in the main destination.
-          </p>
-        </div>
-      </button>
-      {/* Always rendered, regardless of modeChoice — a returning user whose
-          `mode` starts at "manual" directly (never visiting the initial
-          prompt) can still reach this button, and it needs to reflect
-          whether a pick has actually happened rather than only tracking
-          modeChoice, which that path never sets. */}
-      <ModeToggleBanner
-        label="Activities for you to choose from — or let ZiGy pick."
-        onZigy={handleZigyPick}
-        loading={picking}
-        error={pickSummary ? null : pickError}
-        picked={!!pickSummary}
-      />
-      {/* A picked banner's own error slot is suppressed above — surface a
-          failure separately so it doesn't vanish along with the closed state. */}
-      {pickSummary && pickError && (
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-          <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-red-700">{pickError}</p>
-        </div>
-      )}
-      {pickSummary && (
-        <div className="mb-4 rounded-lg bg-brand-50 px-3 py-2">
-          <p className="text-xs text-brand-600">
-            <Sparkles size={11} className="inline mr-1" />
-            {pickSummary}
-          </p>
-          <p className="mt-1 text-[10px] text-brand-400">
-            Nothing's locked in — tweak away below!
-          </p>
-        </div>
-      )}
+      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={toggleAvoidQueues}
+          title="When picking activities, favor early-access and reserved-entry options over general admission — worth it for the main sights, even at a premium."
+          className={cn(
+            "flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-left transition-all",
+            avoidQueues ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
+          )}
+        >
+          <span className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+            avoidQueues ? "bg-sage-500 text-white" : "bg-slate-100 text-slate-500"
+          )}>
+            <Timer size={13} />
+          </span>
+          <div className="min-w-0">
+            <p className={cn("font-semibold text-xs leading-tight", avoidQueues ? "text-sage-800" : "text-slate-800")}>
+              Skip-the-line access
+            </p>
+            <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+              Favor early-access options
+            </p>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={toggleDayTrip}
+          title="Give one day of the itinerary over to a nearby excursion instead of keeping every day in the main destination."
+          className={cn(
+            "flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-left transition-all",
+            dayTrip ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
+          )}
+        >
+          <span className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+            dayTrip ? "bg-sage-500 text-white" : "bg-slate-100 text-slate-500"
+          )}>
+            <MapPinned size={13} />
+          </span>
+          <div className="min-w-0">
+            <p className={cn("font-semibold text-xs leading-tight", dayTrip ? "text-sage-800" : "text-slate-800")}>
+              Day trip outside city
+            </p>
+            <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+              Swap in a nearby excursion
+            </p>
+          </div>
+        </button>
+      </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {visibleGeneral.map((a) => (
           <SelectChip

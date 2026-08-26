@@ -197,28 +197,29 @@ export function BudgetStep() {
       onContinue={handleContinue}
       continueDisabled={!canContinue}
       subtitle="Tell us about your group and spending comfort — we'll tailor every recommendation."
-    >
-      <div className="flex flex-col gap-8">
-
-        {/* ── Section 0: Display currency ── */}
-        <div>
+      headerImage="/zigy-budget.png"
+      headerExtra={
+        <div className="max-w-xs">
           <p className="mb-1 text-sm font-semibold text-slate-700 flex items-center gap-1.5">
             <Globe2 size={14} className="text-slate-400" />
             Display currency
           </p>
-          <p className="mb-3 text-xs text-slate-400">
-            Every price we show gets converted to this — handy for planning in the currency you actually spend.
+          <p className="mb-2 text-xs text-slate-400">
+            Every price we show gets converted to this.
           </p>
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className="w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             {CURRENCIES.map((c) => (
               <option key={c.code} value={c.code}>{c.code} — {c.name} ({c.symbol})</option>
             ))}
           </select>
         </div>
+      }
+    >
+      <div className="flex flex-col gap-8">
 
         {/* ── Section 1: Travellers & Rooms ── */}
         <div>

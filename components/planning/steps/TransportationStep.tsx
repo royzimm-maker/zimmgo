@@ -43,11 +43,14 @@ export function TransportationStep() {
       onContinue={handleContinue}
       continueDisabled={!hasSelection}
       subtitle="How will you get around once you're there? Choose all that apply."
+      headerImage="/zigy-transport.png"
+      headerExtra={
+        <div className="max-w-xs flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <Lightbulb size={15} className="text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800 leading-relaxed">{transitNote}</p>
+        </div>
+      }
     >
-      <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-        <Lightbulb size={15} className="text-amber-600 shrink-0 mt-0.5" />
-        <p className="text-xs text-amber-800 leading-relaxed">{transitNote}</p>
-      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {MODES.map((m) => (
           <SelectChip
