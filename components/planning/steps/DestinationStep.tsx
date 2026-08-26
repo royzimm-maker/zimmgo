@@ -224,24 +224,30 @@ export function DestinationStep() {
         </button>
       )}
 
+      {/* ── ZiGy, dreaming up the trip — big enough to actually make out
+          what's in the thought bubble, instead of a small inline icon.
+          Sized to leave "Need inspiration?" below still reachable without
+          scrolling on a typical viewport — see the trimmed spacing/rows
+          on this whole block, which claw back the room this costs. ── */}
+      <div className="mb-3 flex justify-center">
+        <Image
+          src="/zigy-dreaming.png"
+          alt=""
+          width={200}
+          height={152}
+          className="select-none pointer-events-none"
+          priority={false}
+        />
+      </div>
+
       {/* ── Free-text destination input ── */}
-      <div className="mb-5">
-        <div className="flex items-center gap-3 mb-1.5">
-          <label className="flex-1 text-sm font-medium text-slate-700">
-            Where do you dream of going?
-          </label>
-          <Image
-            src="/zigy-dreaming.png"
-            alt=""
-            width={112}
-            height={85}
-            className="shrink-0 select-none pointer-events-none"
-            priority={false}
-          />
-        </div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          Where do you dream of going?
+        </label>
         <div className="relative">
           <textarea
-            rows={3}
+            rows={2}
             value={freeText}
             onChange={(e) => handleFreeTextChange(e.target.value)}
             placeholder={`e.g. "Italy, especially Tuscany and maybe the Dolomites, and I'd love to finish somewhere along the Amalfi Coast"\n\nor "Greece for 10 days — Athens, two islands, and maybe Istanbul at the end"`}
