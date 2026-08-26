@@ -103,14 +103,6 @@ export interface DatePreference {
   // generation skips flight search entirely rather than searching a date
   // no real airline would have fares for yet.
   skipFlightSearch?: boolean;
-  // Desired local arrival time for the outbound flight (24h "HH:MM"), e.g.
-  // "14:30" — flight search biases generated options toward this, and the
-  // day-by-day plan treats day 1 as a partial day around it.
-  preferredArrivalTime?: string;
-  // Desired time-of-day for the return flight's departure — same idea as
-  // preferredArrivalTime but coarser, since travellers usually think of the
-  // trip's last day in terms of "morning flight" rather than an exact time.
-  preferredDepartureTimeOfDay?: "morning" | "afternoon" | "evening";
 }
 
 export interface LodgingPreference {

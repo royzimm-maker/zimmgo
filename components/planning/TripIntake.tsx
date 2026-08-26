@@ -87,8 +87,6 @@ export function TripIntake({ onBack }: { onBack: () => void }) {
         type: "exact",
         startDate: parsed.dates.startDate,
         endDate: parsed.dates.endDate,
-        preferredArrivalTime: parsed.dates.preferredArrivalTime,
-        preferredDepartureTimeOfDay: parsed.dates.preferredDepartureTimeOfDay,
       });
       datesCompleted = true;
     } else if (parsed.dates?.type === "flexible" && parsed.dates.flexibleMonth && parsed.dates.flexibleDuration) {
@@ -165,13 +163,9 @@ export function TripIntake({ onBack }: { onBack: () => void }) {
     if (parsed.departureAirport) rows.push({ label: "Departing from", value: parsed.departureAirport, step: "airlines" });
     if (parsed.likelyRoadTrip) rows.push({ label: "Trip type", value: "Road trip — no flights", step: "airlines" });
     if (parsed.dates?.type === "exact" && parsed.dates.startDate && parsed.dates.endDate) {
-      const timing = [
-        parsed.dates.preferredArrivalTime ? `arriving ~${parsed.dates.preferredArrivalTime}` : null,
-        parsed.dates.preferredDepartureTimeOfDay ? `leaving in the ${parsed.dates.preferredDepartureTimeOfDay}` : null,
-      ].filter(Boolean).join(", ");
       rows.push({
         label: "Dates",
-        value: `${formatDate(parsed.dates.startDate)} – ${formatDate(parsed.dates.endDate)}${timing ? ` (${timing})` : ""}`,
+        value: `${formatDate(parsed.dates.startDate)} – ${formatDate(parsed.dates.endDate)}`,
         step: "dates",
       });
     } else if (parsed.dates?.type === "flexible" && parsed.dates.flexibleMonth) {

@@ -30,15 +30,6 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
           description:
             "Set true when the traveller wants the cheapest fares over airline/cabin preference — searches all carriers in economy and sorts by price. Combine with nonstop_only if they also want nonstop.",
         },
-        preferred_arrival_time: {
-          type: "string",
-          description: "24h \"HH:MM\" — set only on the OUTBOUND leg search when the traveller stated a specific arrival time (e.g. \"landing at 14:30\"). Results are biased toward this arrival time. Omit if not stated.",
-        },
-        preferred_departure_time_of_day: {
-          type: "string",
-          enum: ["morning", "afternoon", "evening"],
-          description: "Set only on the RETURN leg search when the traveller stated a rough departure preference (e.g. \"leaving in the morning\"). Results are biased toward this window. Omit if not stated.",
-        },
       },
       required: ["origin", "destination", "departure_date"],
     },
@@ -186,7 +177,7 @@ export const PARSE_DESTINATION_TOOL: Anthropic.Tool = {
       },
       flightsObviouslyRequired: {
         type: "boolean",
-        description: "True ONLY when it's unambiguous that flying (not driving) is required to reach this trip — crossing an ocean, an island region not reachable by road/bridge, or clearly intercontinental travel (e.g. \"Scandinavia with a stopover in Iceland\", \"Japan and Thailand\"). False whenever driving is plausible or it's genuinely ambiguous — never guess. Mutually exclusive with likelyRoadTrip; never set both true.",
+        description: "True whenever the destination is genuinely overseas from a North American departure (this app's default assumption unless stated otherwise) — anywhere in Europe, Asia, Africa, South America, Australia/Oceania, or an island (Hawaii, Iceland, etc.) — even if that region is easy to drive around once there, since reaching it at all requires a flight (e.g. \"Tuscany and the Amalfi Coast\", \"Scandinavia with a stopover in Iceland\", \"Japan and Thailand\"). False only when driving the whole trip is plausible (continental US/Canada/Mexico/Central America) or the traveller's own words place them already near the destination. Mutually exclusive with likelyRoadTrip; never set both true.",
       },
       seasonalNote: {
         type: "string",
@@ -226,7 +217,7 @@ export const PARSE_FULL_TRIP_TOOL: Anthropic.Tool = {
       },
       displayName: { type: "string", description: "A short, clean human-readable label for this trip, e.g. \"Rome, Italy\"." },
       likelyRoadTrip: { type: "boolean", description: "True ONLY if the traveller explicitly said they're driving/road-tripping. Default false when in doubt." },
-      flightsObviouslyRequired: { type: "boolean", description: "True ONLY when it's unambiguous that flying is required — crossing an ocean, an island region, clearly intercontinental travel. False whenever driving is plausible or genuinely ambiguous. Mutually exclusive with likelyRoadTrip." },
+      flightsObviouslyRequired: { type: "boolean", description: "True whenever the destination is genuinely overseas from a North American departure (this app's default assumption unless stated otherwise) — anywhere in Europe, Asia, Africa, South America, Australia/Oceania, or an island (Hawaii, Iceland, etc.) — even if that region is easy to drive around once there, since reaching it at all requires a flight. False only when driving the whole trip is plausible (continental US/Canada/Mexico/Central America) or the traveller's own words place them already near the destination. Mutually exclusive with likelyRoadTrip." },
       seasonalNote: { type: "string", description: "A short heads-up on timing — ONLY if the traveller mentioned a season-dependent draw with a well-established best-viewing window (Northern Lights, cherry blossoms, monsoon season, ski season). Omit if nothing like this was mentioned or the pattern isn't well-known." },
       seasonalWindowStartMonth: { type: "number", description: "1-12, the month the seasonalNote window typically starts. Required together with seasonalNote — set both or neither." },
       seasonalWindowEndMonth: { type: "number", description: "1-12, the month the seasonalNote window typically ends. Can be less than seasonalWindowStartMonth if it wraps the new year. Required together with seasonalNote — set both or neither." },
@@ -239,8 +230,6 @@ export const PARSE_FULL_TRIP_TOOL: Anthropic.Tool = {
           type: { type: "string", enum: ["exact", "flexible"], description: "\"exact\" if specific calendar dates were given, \"flexible\" if only a rough month/duration was given." },
           startDate: { type: "string", description: "ISO date YYYY-MM-DD. Required when type is \"exact\". Resolve any relative or partial dates (e.g. \"next Tuesday\", \"Oct 13\") against the current date given in the prompt." },
           endDate: { type: "string", description: "ISO date YYYY-MM-DD. Required when type is \"exact\"." },
-          preferredArrivalTime: { type: "string", description: "24h \"HH:MM\", ONLY if the traveller stated a specific arrival time for the outbound flight (e.g. \"landing at 14:30\")." },
-          preferredDepartureTimeOfDay: { type: "string", enum: ["morning", "afternoon", "evening"], description: "ONLY if the traveller stated a rough return-flight departure preference (e.g. \"leaving in the morning\")." },
           flexibleMonth: { type: "string", description: "\"YYYY-MM\", required when type is \"flexible\"." },
           flexibleDuration: { type: "number", description: "Trip length in days, required when type is \"flexible\"." },
         },

@@ -18,8 +18,6 @@ export interface ParseFullTripResult {
     type: "exact" | "flexible";
     startDate?: string;
     endDate?: string;
-    preferredArrivalTime?: string;
-    preferredDepartureTimeOfDay?: "morning" | "afternoon" | "evening";
     flexibleMonth?: string;
     flexibleDuration?: number;
   };

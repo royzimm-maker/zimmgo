@@ -14,6 +14,10 @@ interface Props {
   // distinctly, since they're past the window airlines typically have
   // fares open for, not actually invalid to plan around.
   softMax?: string;
+  // Lets a paired picker (e.g. Return) follow this one's page as the user
+  // navigates it, instead of sitting stuck on its own month.
+  onMonthChange?: (year: number, month: number) => void;
+  linkedMonth?: { year: number; month: number } | null;
 }
 
 const DOW = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -28,7 +32,7 @@ function toYMD(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function SimpleDatePicker({ label, value, onChange, min, max, softMax }: Props) {
+export function SimpleDatePicker({ label, value, onChange, min, max, softMax, onMonthChange, linkedMonth }: Props) {
   const minDate = parseYMD(min)!;
   const maxDate = parseYMD(max)!;
   const softMaxDate = softMax ? parseYMD(softMax) : null;
@@ -45,6 +49,17 @@ export function SimpleDatePicker({ label, value, onChange, min, max, softMax }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
+  // Follow a paired picker's page (e.g. Return trailing Departure) — only
+  // once this picker has no date of its own pinning its view, since a
+  // selected date should keep winning over a stale sync from before it was picked.
+  useEffect(() => {
+    if (linkedMonth && !selectedDate) {
+      setViewYear(linkedMonth.year);
+      setViewMonth(linkedMonth.month);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedMonth]);
+
   const firstOfMonth = new Date(viewYear, viewMonth, 1);
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const startDow = firstOfMonth.getDay();
@@ -58,6 +73,7 @@ export function SimpleDatePicker({ label, value, onChange, min, max, softMax }: 
     const d = new Date(viewYear, viewMonth + dir, 1);
     setViewYear(d.getFullYear());
     setViewMonth(d.getMonth());
+    onMonthChange?.(d.getFullYear(), d.getMonth());
   }
 
   return (

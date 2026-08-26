@@ -57,10 +57,7 @@ export function DatesStep() {
   const hardMaxDate = `${hardMaxObj.getFullYear()}-${String(hardMaxObj.getMonth() + 1).padStart(2, "0")}-${String(hardMaxObj.getDate()).padStart(2, "0")}`;
   const [startDate, setStartDate] = useState(existing?.startDate?.slice(0, 10) ?? "");
   const [endDate,   setEndDate  ] = useState(existing?.endDate?.slice(0, 10) ?? "");
-  const [arrivalTime, setArrivalTime] = useState(existing?.preferredArrivalTime ?? "");
-  const [departureTimeOfDay, setDepartureTimeOfDay] = useState<DatePreference["preferredDepartureTimeOfDay"] | undefined>(
-    existing?.preferredDepartureTimeOfDay
-  );
+  const [returnLinkedMonth, setReturnLinkedMonth] = useState<{ year: number; month: number } | null>(null);
   // Default into the seasonal window (the next upcoming month that falls in
   // it) rather than always "this month" — only when nothing's been picked
   // yet, so it never overrides a traveller's own earlier choice.
@@ -115,8 +112,6 @@ export function DatesStep() {
           startDate,
           endDate,
           skipFlightSearch: isBeyondFlightWindow,
-          preferredArrivalTime: arrivalTime || undefined,
-          preferredDepartureTimeOfDay: departureTimeOfDay,
         }
       : { type: "flexible", flexibleMonth: flexMonth, flexibleDuration: duration };
   }
@@ -248,6 +243,7 @@ export function DatesStep() {
               min={today}
               max={hardMaxDate}
               softMax={maxDate}
+              onMonthChange={(year, month) => setReturnLinkedMonth({ year, month })}
             />
             <SimpleDatePicker
               label="Return"
@@ -256,6 +252,7 @@ export function DatesStep() {
               min={startDate || today}
               max={hardMaxDate}
               softMax={maxDate}
+              linkedMonth={returnLinkedMonth}
             />
           </div>
           {tooFewNights && (
@@ -267,46 +264,6 @@ export function DatesStep() {
               </p>
             </div>
           )}
-          {/* Optional flight time preferences — flight search biases generated
-              options toward these, and the day-by-day plan treats day 1/the
-              last day as partial around them, instead of ignoring time of day
-              entirely. */}
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
-            <p className="mb-2 text-sm font-medium text-slate-700">
-              Flight timing <span className="font-normal text-slate-400">(optional)</span>
-            </p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs text-slate-500">Preferred arrival time</label>
-                <input
-                  type="time"
-                  value={arrivalTime}
-                  onChange={(e) => setArrivalTime(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-slate-500">Preferred return-flight departure</label>
-                <div className="flex gap-1.5">
-                  {(["morning", "afternoon", "evening"] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setDepartureTimeOfDay((prev) => (prev === t ? undefined : t))}
-                      className={cn(
-                        "flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium capitalize transition-all",
-                        departureTimeOfDay === t
-                          ? "border-brand-500 bg-brand-50 text-brand-700"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
           {isBeyondFlightWindow && (
             <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
               <Info size={15} className="text-amber-600 shrink-0 mt-0.5" />

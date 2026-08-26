@@ -15,26 +15,6 @@ interface FlightSearchParams {
   preferred_airlines?: string[];
   nonstop_only?: boolean;
   lowest_fare_mode?: boolean;
-  preferred_arrival_time?: string; // "HH:MM", 24h
-  preferred_departure_time_of_day?: "morning" | "afternoon" | "evening";
-}
-
-const DEPARTURE_TIME_OF_DAY_RANGE: Record<"morning" | "afternoon" | "evening", [number, number]> = {
-  morning: [6, 11],
-  afternoon: [12, 17],
-  evening: [18, 22],
-};
-
-// Clusters each generated option's minutes-since-midnight within ±45min of
-// the requested time, instead of the usual wide random spread — so a stated
-// time preference ("landing at 14:30") actually has something close to it to
-// pick from, rather than being silently ignored by the mock generator.
-function timeNear(hhmm: string, idx: number): { h: number; m: number } {
-  const [baseH, baseM] = hhmm.split(":").map(Number);
-  const baseMinutes = baseH * 60 + baseM;
-  const jitter = [0, -20, 25, -40][idx % 4];
-  const total = Math.max(0, Math.min(23 * 60 + 59, baseMinutes + jitter));
-  return { h: Math.floor(total / 60), m: total % 60 };
 }
 
 // Realistic mock data keyed by destination region
@@ -103,14 +83,8 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
   const basePrice = lowestFare ? randomInt(300, 900) : randomInt(600, 2400);
 
   const results = airlines.map((airline, idx) => {
-    let departureHM = { h: randomInt(6, 14), m: [0, 15, 30, 45][idx % 4] };
-    if (params.preferred_departure_time_of_day) {
-      const [lo, hi] = DEPARTURE_TIME_OF_DAY_RANGE[params.preferred_departure_time_of_day];
-      departureHM = { h: randomInt(lo, hi), m: [0, 15, 30, 45][idx % 4] };
-    }
-    const arrivalHM = params.preferred_arrival_time
-      ? timeNear(params.preferred_arrival_time, idx)
-      : { h: randomInt(14, 23), m: [0, 30][idx % 2] };
+    const departureHM = { h: randomInt(6, 14), m: [0, 15, 30, 45][idx % 4] };
+    const arrivalHM = { h: randomInt(14, 23), m: [0, 30][idx % 2] };
 
     return {
     id: uuid(),
