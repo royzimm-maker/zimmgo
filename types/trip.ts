@@ -172,6 +172,13 @@ export interface TripPreferences {
   lodging?: LodgingPreference;
   selectedHotel?: HotelOption;
   selectedHotelsByCity?: Record<string, HotelOption>; // per-city picks for multi-destination trips
+  // Set when the traveller used "Let ZiGy choose for me" on the Lodging
+  // step — that step only ever searches/picks a hotel for the trip's
+  // primary city, so this tells the itinerary review wizard's per-city
+  // Hotels stage to auto-run the same smart pick for every other city too,
+  // instead of leaving each one sitting on a blank picker as if nothing
+  // had been decided.
+  autoPickHotels?: boolean;
   selectedFlight?: FlightOption;
   selectedRestaurantIds?: string[]; // restaurants the traveller picked in for their plan (vs. just Wanderlog-saved)
   selectedActivityIds?: string[];   // activities the traveller picked in for their plan (vs. just Wanderlog-saved)

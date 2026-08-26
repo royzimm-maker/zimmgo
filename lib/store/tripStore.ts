@@ -69,6 +69,7 @@ interface TripState {
   setBeliPref: (pref: BeliPreference) => void;
   setSelectedHotel: (hotel: HotelOption | null) => void;
   setSelectedHotelForCity: (city: string, hotel: HotelOption | null) => void;
+  setAutoPickHotels: (value: boolean) => void;
   setSelectedFlight: (flight: import("@/types/trip").FlightOption | null) => void;
   toggleSelectedRestaurant: (id: string) => void;
   toggleSelectedActivity: (id: string) => void;
@@ -341,6 +342,15 @@ export const useTripStore = create<TripState>()(
             },
           };
         }),
+
+      setAutoPickHotels: (autoPickHotels) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, autoPickHotels },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
 
       setSelectedFlight: (selectedFlight) =>
         set((s) => ({

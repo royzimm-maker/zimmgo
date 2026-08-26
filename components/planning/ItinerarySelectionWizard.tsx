@@ -239,6 +239,28 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
       setPickingHotel(false);
     }
   }
+
+  // The Lodging step's own "Let ZiGy choose for me" only ever searches and
+  // picks a hotel for the trip's primary city — it has no way to know about
+  // the other stops in a multi-city trip. Honor that same choice here for
+  // every city (including the primary one, which also never got a pick
+  // written into selectedHotelsByCity) by auto-running the same per-city
+  // smart pick a user would otherwise have to click "Let ZiGy choose the
+  // hotel for {city}" to trigger themselves. A city the traveller already
+  // picked for (manually or via a previous auto-pick) is left alone, and a
+  // failed attempt isn't retried — it just falls back to the manual picker.
+  const [autoPickedHotelFor, setAutoPickedHotelFor] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (stage !== "hotels") return;
+    if (!preferences.autoPickHotels) return;
+    if (preferences.selectedHotelsByCity?.[currentCity]) return;
+    if (autoPickedHotelFor.has(currentCity)) return;
+    if (pickingHotel || hotelsForCity.length === 0) return;
+
+    setAutoPickedHotelFor((prev) => new Set(prev).add(currentCity));
+    handleSmartPickHotel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, currentCity, preferences.autoPickHotels, preferences.selectedHotelsByCity, hotelsForCity, pickingHotel]);
   async function handleSmartPickActivities() {
     setPickingActivities(true);
     setActivityPickError(null);
