@@ -299,32 +299,35 @@ export function getExcludedPlaces(text: string): string[] {
 }
 
 // Returns the routing suggestion with any excluded cities removed from the
-// arrival-airport list. If the recommended airport was excluded, promotes the
-// next best option.
+// arrival-airport list, and the recommended gateway re-ranked toward
+// whichever city the traveller actually named. If the recommended airport
+// was excluded, promotes the next best option.
 export function getFilteredRoutingSuggestion(text: string): {
   routing: RoutingSuggestion | null;
   excludedPlaces: string[];
 } {
   const routing = getRoutingSuggestion(text);
   const excludedPlaces = getExcludedPlaces(text);
-  if (!routing || !excludedPlaces.length) return { routing, excludedPlaces };
+  if (!routing) return { routing, excludedPlaces };
 
   // Mark excluded-city airports as transit-only rather than removing them —
   // FCO may still be the best entry point into Italy even if the user doesn't
   // want to spend time in Rome.
-  const airports = routing.arrivalAirports.map((ap) => {
-    const isExcluded = excludedPlaces.some((p) => containsPlace(ap.city, p));
-    if (!isExcluded) return ap;
-    return {
-      ...ap,
-      transitOnly: true,
-      recommended: false,
-      reason: `Transit hub only — you won't be spending time here, but ${ap.code} remains one of the most accessible entry points. Fly in and head straight to your destination.`,
-    };
-  });
+  const airports = excludedPlaces.length
+    ? routing.arrivalAirports.map((ap) => {
+        const isExcluded = excludedPlaces.some((p) => containsPlace(ap.city, p));
+        if (!isExcluded) return ap;
+        return {
+          ...ap,
+          transitOnly: true,
+          recommended: false,
+          reason: `Transit hub only — you won't be spending time here, but ${ap.code} remains one of the most accessible entry points. Fly in and head straight to your destination.`,
+        };
+      })
+    : routing.arrivalAirports;
 
   // If the recommended gateway was marked transit-only, promote the first non-transit one
-  const withRecommended = airports.some((ap) => ap.recommended)
+  let ranked = airports.some((ap) => ap.recommended)
     ? airports
     : airports.map((ap, i) =>
         !ap.transitOnly && i === airports.findIndex((a) => !a.transitOnly)
@@ -332,7 +335,22 @@ export function getFilteredRoutingSuggestion(text: string): {
           : ap
       );
 
-  return { routing: { ...routing, arrivalAirports: withRecommended }, excludedPlaces };
+  // The DB's "recommended" gateway is a static per-country default (e.g.
+  // Madrid for any Spain trip) — it doesn't know which cities THIS traveller
+  // actually named. "Barcelona & Andalusia" has no Madrid in it at all, so
+  // recommending Madrid ignores a city the traveller explicitly typed in
+  // favor of one they didn't. When at least one non-excluded airport's city
+  // is named in the text and the current recommendation's city isn't among
+  // them, hand the "best gateway" badge to the first named one instead —
+  // preserving the DB's own relative ordering as the tiebreaker.
+  const mentioned = ranked.filter((ap) => !ap.transitOnly && containsPlace(text, ap.city));
+  const currentPick = ranked.find((ap) => ap.recommended);
+  if (mentioned.length && !(currentPick && mentioned.includes(currentPick))) {
+    const promoteCode = mentioned[0].code;
+    ranked = ranked.map((ap) => ({ ...ap, recommended: ap.code === promoteCode }));
+  }
+
+  return { routing: { ...routing, arrivalAirports: ranked }, excludedPlaces };
 }
 
 export function searchAirports(query: string): Airport[] {
