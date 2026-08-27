@@ -121,7 +121,12 @@ export function DestinationStep() {
     let cities = parseCitiesFromText(text);
     let displayName = text;
     let likelyRoadTrip = false;
-    let flightsObviouslyRequired = false;
+    // Every curated quick pick is overseas from a North American departure
+    // (this app's default assumption) — unlike free-typed text, there's no
+    // ambiguity to guess at for this fixed list, so the fast path can set
+    // this outright instead of defaulting to false and only asking the AI
+    // when it bothers to run at all.
+    let flightsObviouslyRequired = POPULAR.includes(text);
     let seasonalNote: string | undefined;
     let seasonalWindowStartMonth: number | undefined;
     let seasonalWindowEndMonth: number | undefined;
