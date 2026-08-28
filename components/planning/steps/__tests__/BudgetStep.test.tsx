@@ -98,7 +98,7 @@ describe("BudgetStep — food budget", () => {
     render(<BudgetStep />);
 
     await user.click(screen.getByText("$200 – $400 / room / night"));
-    await user.click(screen.getByRole("button", { name: /enter a custom amount/i, exact: false }));
+    await user.click(screen.getByRole("button", { name: /enter a custom amount/i }));
     fireEvent.change(screen.getByPlaceholderText("e.g. 120"), { target: { value: "5" } });
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
@@ -134,7 +134,7 @@ describe("BudgetStep — splurge meals", () => {
     await user.click(screen.getByText("Room for a few splurge meals?"));
     // The food-budget section above has its own "Enter a custom amount"
     // button — the splurge one is the second occurrence in DOM order.
-    const customButtons = screen.getAllByRole("button", { name: /enter a custom amount/i, exact: false });
+    const customButtons = screen.getAllByRole("button", { name: /enter a custom amount/i });
     await user.click(customButtons[customButtons.length - 1]);
     fireEvent.change(screen.getByPlaceholderText("e.g. 150"), { target: { value: "200" } });
     fireEvent.change(screen.getByPlaceholderText("e.g. 250"), { target: { value: "150" } });

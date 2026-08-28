@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { VibeStep } from "@/components/planning/steps/VibeStep";
 import { useTripStore } from "@/lib/store/tripStore";
-import type { Trip } from "@/types/trip";
+import type { Trip, VibeTag } from "@/types/trip";
 
 function freshTrip(vibes: Trip["preferences"]["vibes"] = []): Trip {
   const now = new Date().toISOString();
@@ -95,7 +95,7 @@ describe("VibeStep", () => {
   });
 
   it("re-opens the 'Other' field and restores its value when the store holds a custom vibe", async () => {
-    useTripStore.setState({ trip: freshTrip(["romantic", "Glamping"]) });
+    useTripStore.setState({ trip: freshTrip(["romantic", "Glamping" as VibeTag]) });
     render(<VibeStep />);
 
     expect(screen.getByDisplayValue("Glamping")).toBeInTheDocument();

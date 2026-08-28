@@ -164,6 +164,9 @@ export interface TripPreferences {
   lodging?: LodgingPreference;
   selectedHotel?: HotelOption;
   selectedHotelsByCity?: Record<string, HotelOption>; // per-city picks for multi-destination trips
+  // Inter-city ferry/train picks, keyed by the arriving city — same
+  // per-leg convention as travelNoteByCity in the generate route.
+  selectedTransportByLeg?: Record<string, TransportOption>;
   // Set when the traveller used "Let ZiGy choose for me" on the Lodging
   // step — that step only ever searches/picks a hotel for the trip's
   // primary city, so this tells the itinerary review wizard's per-city
@@ -237,6 +240,23 @@ export interface FlightOption {
   price: number;
   currency: string;
   cabinClass: string;
+  bookingUrl?: string;
+}
+
+// Inter-city ground/ferry transport for regions with a real regional
+// operator (e.g. Ferryhopper for the Greek islands, SNCF for France) —
+// see lib/data/groundTransportProviders.ts for which destinations match.
+export interface TransportOption {
+  id: string;
+  mode: "ferry" | "train";
+  provider: string;
+  fromCity: string;
+  toCity: string;
+  departureTime: string;
+  arrivalTime: string;
+  duration: string;
+  price: number;
+  currency: string;
   bookingUrl?: string;
 }
 
@@ -349,6 +369,9 @@ export interface GeneratedItinerary {
   days: ItineraryDay[];
   flights: FlightOption[];
   hotels: HotelOption[];
+  // Only populated for legs where a real regional operator matched (see
+  // lib/data/groundTransportProviders.ts) — most trips have none.
+  groundTransport?: TransportOption[];
   activities: ActivityOption[];
   restaurants?: RestaurantOption[];
   totalEstimatedCost: number;

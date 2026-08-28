@@ -8,13 +8,15 @@ import { searchFlights } from "@/lib/api/flights";
 import { searchHotels } from "@/lib/api/hotels";
 import { searchActivities } from "@/lib/api/activities";
 import { searchRestaurants } from "@/lib/api/restaurants";
+import { searchGroundTransport } from "@/lib/api/groundTransport";
+import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
 import { applyReviewSourcePref } from "@/lib/data/reviewSources";
 import { applyBeliPreference } from "@/lib/data/beli";
 import { groupByLocation, parseLocalDate, extractIataCode } from "@/lib/utils";
 import { estimateTripBudget } from "@/lib/budget";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
-import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
+import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay, TransportOption } from "@/types/trip";
 import { rateLimit } from "@/lib/rateLimit";
 
 // Generation can take several agentic tool-call rounds against the real
@@ -258,7 +260,7 @@ export async function POST(request: NextRequest) {
     hotels      = dedup(hotels);
 
     // ── Synthesise final itinerary from collected data ──
-    const itinerary = assembleItinerary({
+    const itinerary = await assembleItinerary({
       tripId,
       preferences,
       flights,
@@ -296,7 +298,7 @@ interface AssembleParams {
   gatewayAdvisory?: string;
 }
 
-function assembleItinerary(p: AssembleParams): GeneratedItinerary {
+async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary> {
   const { preferences, flights, activities, restaurants, aiSummary, tripId, selectedHotelIdByCity, travelNoteByCity, gatewayAdvisory } = p;
   let hotels = p.hotels;
 
@@ -320,6 +322,18 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
   }
 
   const days: ItineraryDay[] = buildDays(parseLocalDate(startDate), numDays, activities, restaurants, preferences, travelNoteByCity);
+
+  // ── Ground/ferry transport for inter-city legs with a real regional
+  // operator (see lib/data/groundTransportProviders.ts) — most legs match
+  // nothing here and stay covered only by the AI's prose travel note.
+  const groundTransport: TransportOption[] = [];
+  for (let i = 1; i < days.length; i++) {
+    const fromCity = days[i - 1].location;
+    const toCity = days[i].location;
+    if (!fromCity || !toCity || fromCity === toCity) continue;
+    if (!getGroundTransportProvider(`${fromCity} ${toCity}`)) continue;
+    groundTransport.push(...await searchGroundTransport(fromCity, toCity, days[i].date, preferences));
+  }
 
   // If user pre-selected a hotel in the Lodging step, use it; otherwise use AI-searched results
   if (preferences.selectedHotel) {
@@ -387,6 +401,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     createdAt: new Date().toISOString(),
     days,
     flights,
+    groundTransport: groundTransport.length ? groundTransport : undefined,
     hotels: ratedHotels,
     activities: ratedActivities,
     restaurants: ratedRestaurants.length ? ratedRestaurants : undefined,
