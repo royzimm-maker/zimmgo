@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, Heart, Calendar, List, Lightbulb } from "lucide-react";
+import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, Heart, Calendar, List, Lightbulb, Ship, TrainFront } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate, pairFlights, groupByLocation, groupItineraryDaysByLocation } from "@/lib/utils";
@@ -14,7 +14,7 @@ import { PreTripTasks } from "@/components/planning/PreTripTasks";
 import { Wanderlog } from "@/components/planning/Wanderlog";
 import { LocalDiscovery } from "@/components/planning/LocalDiscovery";
 import { ItineraryCalendarView } from "@/components/planning/ItineraryCalendarView";
-import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay, TripPreferences } from "@/types/trip";
+import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay, TripPreferences, TransportOption } from "@/types/trip";
 
 interface Props {
   itinerary: GeneratedItinerary;
@@ -689,6 +689,67 @@ export function FlightPairList({
         Estimates only — prices change. Booking opens the airline&apos;s site in a new tab.
       </p>
     </div>
+  );
+}
+
+export function TransportCard({
+  option,
+  selected = false,
+  onSelect,
+}: {
+  option: TransportOption;
+  selected?: boolean;
+  onSelect?: () => void;
+}) {
+  const { trip } = useTripStore();
+  const currency = trip.preferences.preferredCurrency;
+  const ModeIcon = option.mode === "ferry" ? Ship : TrainFront;
+
+  return (
+    <Card padding="sm" className={`transition-all ${selected ? "border-brand-400 ring-2 ring-brand-100" : ""}`}>
+      <div className="flex items-start gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+          <ModeIcon size={15} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-slate-800 text-sm">{option.provider}</span>
+            <Badge variant="info">{option.mode === "ferry" ? "Ferry" : "Train"}</Badge>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            {option.fromCity} → {option.toCity} · {option.duration}
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="font-bold text-slate-900 text-sm">{formatCurrency(option.price, currency)}</p>
+          <p className="text-[10px] text-slate-400">per person</p>
+        </div>
+      </div>
+      {onSelect && (
+        <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={onSelect}
+            className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+              selected ? "bg-brand-600 text-white" : "border border-brand-300 text-brand-700 hover:bg-brand-50"
+            }`}
+          >
+            {selected && <Check size={11} />}
+            {selected ? "Selected" : "Select this option"}
+          </button>
+          {option.bookingUrl && (
+            <a
+              href={option.bookingUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-0.5 text-xs text-brand-500 hover:underline ml-auto font-medium"
+            >
+              Book with {option.provider} <ExternalLink size={10} />
+            </a>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 

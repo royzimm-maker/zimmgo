@@ -15,6 +15,7 @@ import type {
   DatePreference,
   HotelOption,
   FlightOption,
+  TransportOption,
   LodgingPreference,
   AirlinePreference,
   ActivityCategory,
@@ -69,6 +70,7 @@ interface TripState {
   setBeliPref: (pref: BeliPreference) => void;
   setSelectedHotel: (hotel: HotelOption | null) => void;
   setSelectedHotelForCity: (city: string, hotel: HotelOption | null) => void;
+  setSelectedTransportForLeg: (city: string, option: TransportOption | null) => void;
   setAutoPickHotels: (value: boolean) => void;
   setSelectedFlight: (flight: import("@/types/trip").FlightOption | null) => void;
   toggleSelectedRestaurant: (id: string) => void;
@@ -338,6 +340,20 @@ export const useTripStore = create<TripState>()(
             trip: {
               ...s.trip,
               preferences: { ...s.trip.preferences, selectedHotelsByCity: next },
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }),
+
+      setSelectedTransportForLeg: (city, option) =>
+        set((s) => {
+          const next = { ...(s.trip.preferences.selectedTransportByLeg ?? {}) };
+          if (option) next[city] = option;
+          else delete next[city];
+          return {
+            trip: {
+              ...s.trip,
+              preferences: { ...s.trip.preferences, selectedTransportByLeg: next },
               updatedAt: new Date().toISOString(),
             },
           };

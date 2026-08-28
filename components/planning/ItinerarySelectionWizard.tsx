@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, Sparkles, Search, AlertCircle, Check } from "lucide-react";
+import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, Sparkles, Search, AlertCircle, Check, Ship, TrainFront } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { useExpandablePreview } from "@/lib/hooks/useExpandablePreview";
 import { fetchSmartPick } from "@/lib/api/smartPick";
 import { fetchFlightSearch } from "@/lib/api/searchFlights";
+import { fetchGroundTransport } from "@/lib/api/searchGroundTransport";
+import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 import { cn, formatDate, fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
 import {
-  Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard,
+  Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard, TransportCard,
 } from "@/components/planning/ItineraryView";
-import type { GeneratedItinerary } from "@/types/trip";
+import type { GeneratedItinerary, TransportOption } from "@/types/trip";
 
 interface Props {
   itinerary: GeneratedItinerary;
@@ -24,7 +26,7 @@ interface Props {
   onRegenerate: () => void;
 }
 
-type Stage = "flights" | "hotels" | "restaurants" | "activities";
+type Stage = "flights" | "transport" | "hotels" | "restaurants" | "activities";
 
 // "2026-11" -> "November 2026"
 function flexibleMonthLabel(yyyyMm: string): string {
@@ -37,10 +39,11 @@ const RESTAURANT_PREVIEW_COUNT = 3;
 const ACTIVITY_PREVIEW_COUNT = 4;
 
 const STAGE_META: Record<Stage, { label: string; icon: React.ReactNode }> = {
-  flights:     { label: "Flights",     icon: <Plane size={16} /> },
-  hotels:      { label: "Hotels",      icon: <Hotel size={16} /> },
-  restaurants: { label: "Restaurants", icon: <UtensilsCrossed size={16} /> },
-  activities:  { label: "Activities",  icon: <Star size={16} /> },
+  flights:     { label: "Flights",      icon: <Plane size={16} /> },
+  transport:   { label: "Getting there", icon: <Ship size={16} /> },
+  hotels:      { label: "Hotels",       icon: <Hotel size={16} /> },
+  restaurants: { label: "Restaurants",  icon: <UtensilsCrossed size={16} /> },
+  activities:  { label: "Activities",   icon: <Star size={16} /> },
 };
 
 // One entry in the flattened step list — flights has no city; every other
@@ -53,7 +56,7 @@ interface WizardStep {
 }
 
 export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }: Props) {
-  const { trip, setSelectedFlight, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity, setItineraryFlights, setDates, goToStep } = useTripStore();
+  const { trip, setSelectedFlight, setSelectedTransportForLeg, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity, setItineraryFlights, setDates, goToStep } = useTripStore();
   const preferences = trip.preferences;
 
   const [searchingFlights, setSearchingFlights] = useState(false);
@@ -137,9 +140,18 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
     // Road trips / other no-flight itineraries skip the flights review
     // entirely — there's nothing to search or select.
     const list: WizardStep[] = preferences.noFlightsNeeded ? [] : [{ stage: "flights", city: null }];
-    for (const city of cities) {
+    cities.forEach((city, i) => {
+      // A ferry/train stage only makes sense as the leg INTO this city from
+      // the previous one, and only where a real regional operator matches
+      // (most legs match nothing and skip this stage entirely) — keyed by
+      // the arriving city, same convention as travelNoteByCity/
+      // selectedTransportByLeg.
+      const prevCity = i > 0 ? cities[i - 1] : null;
+      if (prevCity && getGroundTransportProvider(`${prevCity} ${city}`)) {
+        list.push({ stage: "transport", city });
+      }
       for (const stage of perCityStages) list.push({ stage, city });
-    }
+    });
     return list;
   }, [cities, perCityStages, preferences.noFlightsNeeded]);
 
@@ -213,6 +225,39 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
   function goBack() {
     if (stepIdx > 0) setStepIdx((i) => i - 1);
   }
+
+  // The "transport" stage is only ever included keyed by the arriving
+  // city (see the steps construction above) — the departing city is
+  // simply the one immediately before it in the trip's ordered city list.
+  const transportFromCity = stage === "transport" ? cities[cities.indexOf(currentCity) - 1] ?? null : null;
+
+  const transportForLeg = useMemo(
+    () => (itinerary.groundTransport ?? []).filter((t) => t.toCity === currentCity),
+    [itinerary.groundTransport, currentCity]
+  );
+
+  // Manual fallback for a leg generation didn't produce any options for —
+  // mirrors handleSearchFlights, just against the ground-transport search
+  // endpoint instead.
+  const [searchingTransport, setSearchingTransport] = useState(false);
+  const [transportSearchError, setTransportSearchError] = useState<string | null>(null);
+  const [manualTransportResults, setManualTransportResults] = useState<TransportOption[]>([]);
+
+  async function handleSearchTransport() {
+    if (!transportFromCity) return;
+    setSearchingTransport(true);
+    setTransportSearchError(null);
+    try {
+      const date = itinerary.days.find((d) => d.location === currentCity)?.date ?? itinerary.days[0]?.date ?? "";
+      setManualTransportResults(await fetchGroundTransport(transportFromCity, currentCity, date, preferences));
+    } catch (e: unknown) {
+      setTransportSearchError(e instanceof Error ? e.message : "Ground transport search failed");
+    } finally {
+      setSearchingTransport(false);
+    }
+  }
+
+  const displayedTransportOptions = transportForLeg.length ? transportForLeg : manualTransportResults;
 
   const hotelsForCity = useMemo(
     () => itinerary.hotels.filter((h) => fuzzyCityMatch(h.city ?? h.location, currentCity)),
@@ -322,6 +367,8 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
   const sectionTitle = stage === "flights" ? "Flights" : `${STAGE_META[stage].label} — ${currentCity}`;
   const sectionSubtitle = stage === "flights"
     ? "Select your preferred option — prices are roundtrip per person, estimated."
+    : stage === "transport"
+    ? `Select an option for ${transportFromCity ? `${transportFromCity} → ${currentCity}` : "this leg"}, or skip and arrange it yourself.`
     : stage === "hotels"
     ? "Tap a hotel to pick it for this city — you can change it later."
     : "Tap \"Add\" to include a pick in your plan — the bookmark saves it to your Wanderlog instead, without scheduling it.";
@@ -533,6 +580,48 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
                 <ArrowLeft size={14} />
                 Go to Flights
               </button>
+            </div>
+          )
+        )}
+
+        {stage === "transport" && (
+          displayedTransportOptions.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {displayedTransportOptions.map((t) => (
+                <TransportCard
+                  key={t.id}
+                  option={t}
+                  selected={preferences.selectedTransportByLeg?.[currentCity]?.id === t.id}
+                  onSelect={() => {
+                    const already = preferences.selectedTransportByLeg?.[currentCity]?.id === t.id;
+                    setSelectedTransportForLeg(currentCity, already ? null : t);
+                  }}
+                />
+              ))}
+              <p className="text-[10px] text-slate-400 text-center">
+                Estimates only — prices change. Booking opens the provider&apos;s site in a new tab.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+              <p className="text-sm text-slate-500">
+                {searchingTransport ? "Searching…" : "No specific options found yet."}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">This leg is entirely optional to book here — skip it and arrange it yourself if you'd rather.</p>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={handleSearchTransport}
+                  disabled={searchingTransport}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
+                >
+                  <Search size={14} />
+                  {searchingTransport ? "Searching…" : "Search again"}
+                </button>
+                {transportSearchError && (
+                  <p className="text-xs text-red-600 mt-2">{transportSearchError}</p>
+                )}
+              </div>
             </div>
           )
         )}

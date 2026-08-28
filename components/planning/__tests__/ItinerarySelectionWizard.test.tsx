@@ -171,3 +171,118 @@ describe("ItinerarySelectionWizard — cross-city hotel auto-pick", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+// ─── Ground-transport stage ─────────────────────────────────────────────────
+
+function makeGreeceItinerary(): GeneratedItinerary {
+  return {
+    id: "itin-greece",
+    tripId: "trip-1",
+    version: 1,
+    createdAt: new Date().toISOString(),
+    days: [
+      { date: "2026-09-08", dayNumber: 1, theme: "Arrival", location: "Athens", morning: [], afternoon: [], evening: [], meals: [] },
+      { date: "2026-09-09", dayNumber: 2, theme: "Explore", location: "Athens", morning: [], afternoon: [], evening: [], meals: [] },
+      { date: "2026-09-10", dayNumber: 3, theme: "Ferry to Mykonos", location: "Mykonos", morning: [], afternoon: [], evening: [], meals: [] },
+      { date: "2026-09-11", dayNumber: 4, theme: "Explore", location: "Mykonos", morning: [], afternoon: [], evening: [], meals: [] },
+    ],
+    flights: [],
+    hotels: [],
+    activities: [],
+    restaurants: [],
+    groundTransport: [
+      {
+        id: "gt-1", mode: "ferry", provider: "Ferryhopper", fromCity: "Athens", toCity: "Mykonos",
+        departureTime: "2026-09-10T08:00:00", arrivalTime: "2026-09-10T11:00:00", duration: "3h",
+        price: 60, currency: "USD", bookingUrl: "https://www.ferryhopper.com/en/search/Athens/Mykonos/2026-09-10",
+      },
+    ],
+    totalEstimatedCost: 2000,
+    currency: "USD",
+    aiSummary: "",
+    whyThisWorks: "",
+  };
+}
+
+function greeceTrip(): Trip {
+  const now = new Date().toISOString();
+  return {
+    id: "trip-1",
+    name: "Test Trip",
+    preferences: {
+      destination: { cities: ["Athens", "Mykonos"], displayName: "Greece — Athens & Mykonos" },
+      activities: [], activityRankings: {}, vibes: [], transportation: [],
+      noFlightsNeeded: true,
+    },
+    currentStep: "itinerary",
+    completedSteps: [],
+    itineraries: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+describe("ItinerarySelectionWizard — ground transport stage", () => {
+  it("includes a transport stage for a leg with a matching regional operator", async () => {
+    useTripStore.setState({ trip: greeceTrip() });
+    const user = userEvent.setup();
+    render(
+      <ItinerarySelectionWizard itinerary={makeGreeceItinerary()} onComplete={() => {}} onRegenerate={() => {}} />
+    );
+
+    // Walk through Athens's hotels/restaurants/activities (no hotels/
+    // activities seeded, so each stage's own EmptyState renders, but
+    // Continue still advances) into Mykonos's leading transport stage.
+    await user.click(screen.getByRole("button", { name: /Continue to Restaurants in Athens/i }));
+    await user.click(screen.getByRole("button", { name: /Continue to Activities in Athens/i }));
+    await user.click(screen.getByRole("button", { name: /Continue to Mykonos/i }));
+
+    expect(screen.getByText("Ferryhopper")).toBeInTheDocument();
+    expect(screen.getByText(/Athens → Mykonos · 3h/)).toBeInTheDocument();
+  });
+
+  it("writes the selected option to selectedTransportByLeg, keyed by the arriving city", async () => {
+    useTripStore.setState({ trip: greeceTrip() });
+    const user = userEvent.setup();
+    render(
+      <ItinerarySelectionWizard itinerary={makeGreeceItinerary()} onComplete={() => {}} onRegenerate={() => {}} />
+    );
+
+    await user.click(screen.getByRole("button", { name: /Continue to Restaurants in Athens/i }));
+    await user.click(screen.getByRole("button", { name: /Continue to Activities in Athens/i }));
+    await user.click(screen.getByRole("button", { name: /Continue to Mykonos/i }));
+
+    await user.click(screen.getByRole("button", { name: /select this option/i }));
+
+    const picked = useTripStore.getState().trip.preferences.selectedTransportByLeg?.Mykonos;
+    expect(picked?.provider).toBe("Ferryhopper");
+    expect(picked?.id).toBe("gt-1");
+  });
+
+  it("is skippable — Continue works without picking an option", async () => {
+    useTripStore.setState({ trip: greeceTrip() });
+    const user = userEvent.setup();
+    render(
+      <ItinerarySelectionWizard itinerary={makeGreeceItinerary()} onComplete={() => {}} onRegenerate={() => {}} />
+    );
+
+    await user.click(screen.getByRole("button", { name: /Continue to Restaurants in Athens/i }));
+    await user.click(screen.getByRole("button", { name: /Continue to Activities in Athens/i }));
+    await user.click(screen.getByRole("button", { name: /Continue to Mykonos/i }));
+
+    // No selection made — Continue still moves on to Mykonos's Hotels stage.
+    await user.click(screen.getByRole("button", { name: /Continue to Hotels in Mykonos/i }));
+    expect(useTripStore.getState().trip.preferences.selectedTransportByLeg?.Mykonos).toBeUndefined();
+  });
+
+  it("doesn't include a transport stage for a destination with no matching regional operator", () => {
+    // Reuses the Spain fixture from earlier in this file — Barcelona/
+    // Andalusia matches neither the Greece nor France provider.
+    useTripStore.setState({ trip: freshTrip() });
+    render(
+      <ItinerarySelectionWizard itinerary={makeItinerary()} onComplete={() => {}} onRegenerate={() => {}} />
+    );
+    expect(screen.queryByText("Getting there — Barcelona")).not.toBeInTheDocument();
+    expect(screen.queryByText("Getting there — Andalusia")).not.toBeInTheDocument();
+  });
+});
