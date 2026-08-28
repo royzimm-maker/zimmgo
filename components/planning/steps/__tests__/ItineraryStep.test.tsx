@@ -261,7 +261,7 @@ describe("ItineraryStep — wizard vs. finalized view", () => {
   });
 
   it("shows 'Update my schedule' instead of 'Review & fine-tune' once a plan is finalized", () => {
-    const itinerary = makeItinerary({ finalizedPlan: { dayCards: {}, unplacedCardIds: [] } as GeneratedItinerary["finalizedPlan"] });
+    const itinerary = makeItinerary({ finalizedPlan: { dayCards: {}, bankCards: [] } });
     useTripStore.setState({ trip: freshTrip({ itineraries: [itinerary] }) });
     render(<ItineraryStep />);
 
@@ -287,7 +287,7 @@ describe("ItineraryStep — wizard vs. finalized view", () => {
           ...s.trip,
           itineraries: s.trip.itineraries.map((it) =>
             it.id === itinerary.id
-              ? { ...it, finalizedPlan: { dayCards: {}, unplacedCardIds: [] } as GeneratedItinerary["finalizedPlan"] }
+              ? { ...it, finalizedPlan: { dayCards: {}, bankCards: [] } }
               : it
           ),
         },
