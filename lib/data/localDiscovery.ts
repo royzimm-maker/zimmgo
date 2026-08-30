@@ -78,8 +78,8 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
       events: [
         { name: "Ravello Festival",          emoji: "🎼", type: "festival", description: "July–September. Classical concerts on a clifftop stage with a 270° view of the sea — including a legendary open-air concert platform cantilevered over the Tyrrhenian.", url: "https://www.ravellofestival.com", tipNote: "Buy tickets in advance — the Belvedere concert (held in Villa Rufolo gardens) sells out weeks ahead." },
         { name: "Limoncello tasting trails",  emoji: "🍋", type: "food",     description: "Local producers along the Amalfi Drive open their terraces for tastings — Limone Costa d'Amalfi IGP is the real thing, made with local sfusato lemons, not imports.", tipNote: "Look for Limoncello di Amalfi or Limoncello di Sorrento labels — both are the genuine article." },
-        { name: "Festa di Sant'Andrea",       emoji: "⛵", type: "festival", description: "June 27 and November 30. Amalfi town goes all-in for its patron saint — evening procession down to the harbour, fireworks over the sea, and serious local pride on display." },
-        { name: "Fishing boat sunrise",       emoji: "🌅", type: "food",     description: "Walk to the harbour in Cetara or Minori at 6am and buy directly from fishermen returning with catch. The alici (anchovies) here are celebrated across Italy." },
+        { name: "Festa di Sant'Andrea",       emoji: "⛵", type: "festival", description: "June 27 and November 30. Amalfi town goes all-in for its patron saint — evening procession down to the harbor, fireworks over the sea, and serious local pride on display." },
+        { name: "Fishing boat sunrise",       emoji: "🌅", type: "food",     description: "Walk to the harbor in Cetara or Minori at 6am and buy directly from fishermen returning with catch. The alici (anchovies) here are celebrated across Italy." },
       ],
       music: {
         intro: "The Coast has its own musical DNA — tarantella rhythms from the south, the melancholic strumming of Neapolitan song, and the occasional international festival that brings serious classical talent to clifftop stages.",
@@ -204,7 +204,7 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
         { option: "Private Transfer", emoji: "🚐", timeEst: "35–45 min", costEst: "€50–€80", recommended: false, description: "Meet-and-greet in arrivals. Worth it for families or groups, or if you're arriving after midnight.", tip: "Book through your hotel or a vetted service like Welcome Pickups." },
       ],
       hiddenGems: [
-        { name: "Anafiotika",               emoji: "🏡", type: "neighbourhood", description: "A tiny Cycladic village magically transplanted onto the slopes of the Acropolis. 45 houses, cats everywhere, zero tourists at 8am.", sourceUrl: "https://www.timeout.com/athens/things-to-do/anafiotika" },
+        { name: "Anafiotika",               emoji: "🏡", type: "neighborhood", description: "A tiny Cycladic village magically transplanted onto the slopes of the Acropolis. 45 houses, cats everywhere, zero tourists at 8am.", sourceUrl: "https://www.timeout.com/athens/things-to-do/anafiotika" },
         { name: "National Garden after dark", emoji: "🌿", type: "park",         description: "Athens' secret evening retreat — locals walk here after dinner when temperatures drop. The tortoises are real and very slow." },
         { name: "To Kati Allo",              emoji: "☕", type: "café",          description: "A bohemian bookshop-café in Exarchia that hosts poetry readings and philosophy nights. Regulars include professors and artists, not tour groups." },
       ],
@@ -223,7 +223,7 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
         { name: "Testaccio Market, Rome",         emoji: "🧀", type: "market",   description: "Rome's best covered market — not the tourist one. Go early for vendors selling tripe sandwiches, hand-rolled pasta, and the cheapest espresso in the city.", url: "https://www.timeout.com/rome" },
         { name: "Mercato Centrale, Florence",     emoji: "🥩", type: "market",   description: "San Lorenzo's sprawling food hall — Florentine steak, lampredotto (tripe) sandwiches, and a rooftop dining floor with great pasta.", url: "https://www.mercatocentrale.it" },
         { name: "Estate Romana",                  emoji: "🎪", type: "festival", description: "Rome's summer festival (June–September) turns piazzas, ruins, and riverside promenades into open-air cinema, concert, and dance venues.", url: "https://www.estateromana.comune.roma.it" },
-        { name: "Elena Ferrante's Naples",        emoji: "📖", type: "literary", description: "The Neapolitan Novels are set in the Rione Luzzatti neighbourhood — a gritty, vibrant area rarely visited by tourists. Walking the streets feels like being inside the books.", url: "https://www.timeout.com/naples" },
+        { name: "Elena Ferrante's Naples",        emoji: "📖", type: "literary", description: "The Neapolitan Novels are set in the Rione Luzzatti neighborhood — a gritty, vibrant area rarely visited by tourists. Walking the streets feels like being inside the books.", url: "https://www.timeout.com/naples" },
         { name: "Discoteca Lanificio, Rome",      emoji: "💃", type: "dance",    description: "Rome's best club for serious dancing — in a former wool factory. Resident DJs + occasional live jazz nights. The aperitivo hour here is peak Rome cool." },
       ],
       music: {
@@ -236,7 +236,7 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
         ],
         venues: [
           { name: "Alexanderplatz Jazz Club", vibe: "Rome's oldest jazz institution — intimate, serious, brilliant", genre: "Jazz", url: "https://www.alexanderplatzjazz.com" },
-          { name: "Pigneto neighbourhood bars", vibe: "Rome's coolest local neighbourhood — great live indie music and no tourists", genre: "Indie / Alternative" },
+          { name: "Pigneto neighborhood bars", vibe: "Rome's coolest local neighborhood — great live indie music and no tourists", genre: "Indie / Alternative" },
           { name: "Blue Note Milan",            vibe: "World-class jazz in a proper venue — Milan's premier music institution", genre: "Jazz / Blues", url: "https://www.bluenotemilano.com" },
           { name: "Tenax, Florence",            vibe: "Florence's best club — legendary electronic music nights in an industrial space", genre: "Electronic / Techno", url: "https://www.tenax.org" },
         ],
@@ -256,7 +256,7 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
         { option: "Terravision / SIT Bus (FCO)", emoji: "🚌", timeEst: "60–80 min", costEst: "€6–7", recommended: false, description: "Budget option to Termini — slower but the cheapest way in. Good for travellers with light luggage.", tip: "Buy online for the best price — on the day it costs more." },
       ],
       hiddenGems: [
-        { name: "Quartiere Coppedè, Rome",    emoji: "✨", type: "architecture", description: "A fairytale neighbourhood near Villa Borghese that most visitors never find — art nouveau and baroque buildings so fantastical they look CGI.", sourceUrl: "https://www.theinfatuation.com/rome" },
+        { name: "Quartiere Coppedè, Rome",    emoji: "✨", type: "architecture", description: "A fairytale neighborhood near Villa Borghese that most visitors never find — art nouveau and baroque buildings so fantastical they look CGI.", sourceUrl: "https://www.theinfatuation.com/rome" },
         { name: "Drogheria, Florence",         emoji: "🍷", type: "bar",          description: "A tiny natural wine bar in Santo Spirito that fills up with locals at 7pm. No menu — the owner picks what you drink based on your mood." },
         { name: "San Miniato al Monte at dusk",emoji: "🌅", type: "viewpoint",    description: "The best view of Florence isn't from the Piazzale Michelangelo (too crowded) — it's from the steps of this Romanesque church 10 minutes further up the hill." },
         { name: "Libreria Acqua Alta, Venice", emoji: "📚", type: "bookshop",     description: "Books stacked in gondolas, bathtubs and boats, with a staircase made of books leading to a canal view. Famously eccentric, genuinely wonderful.", sourceUrl: "https://www.timeout.com/venice" },
@@ -326,11 +326,11 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
         { name: "La Boqueria, Barcelona", emoji: "🍓", type: "market",   description: "Go early (7–9am) before the tourist hordes arrive. This is when the local chefs shop. The best pintxos bar in the market has a queue of chefs at it.", url: "https://www.boqueria.barcelona" },
         { name: "El Rastro, Madrid",      emoji: "🛒", type: "market",   description: "Sunday flea market snaking through La Latina — 3,500 stalls of antiques, junk, vintage clothing, and oddities. The bars around Plaza del Cascorro open at 9am to serve vermouth to market-goers.", url: "https://www.elrastro.org" },
         { name: "Primavera Sound",        emoji: "🎵", type: "festival", description: "Barcelona's world-class music festival (May/June) — always one of the best lineups in Europe. Day tickets usually available even when the festival is sold out.", url: "https://www.primaverasound.com" },
-        { name: "Carlos Ruiz Zafón's Barcelona", emoji: "📖", type: "literary", description: "The Shadow of the Wind is set in the El Born neighbourhood — visit Carrer d'Elisabets, the Palau de la Música, and the old Barrio Gótico that Zafón used as his canvas.", url: "https://www.timeout.com/barcelona" },
+        { name: "Carlos Ruiz Zafón's Barcelona", emoji: "📖", type: "literary", description: "The Shadow of the Wind is set in the El Born neighborhood — visit Carrer d'Elisabets, the Palau de la Música, and the old Barrio Gótico that Zafón used as his canvas.", url: "https://www.timeout.com/barcelona" },
         { name: "Nit de Foc — Verbena de Sant Joan", emoji: "🎆", type: "festival", description: "June 23rd: the eve of Sant Joan. Every beach and park in Catalonia erupts in fireworks and bonfires all night. Completely spontaneous, completely Spanish." },
       ],
       music: {
-        intro: "Spain's music is as regionally diverse as its food — flamenco in Andalusia, rumba catalana in Barcelona, and a booming urban Latin scene centred on Madrid that's producing some of the most-streamed Spanish-language music in the world.",
+        intro: "Spain's music is as regionally diverse as its food — flamenco in Andalusia, rumba catalana in Barcelona, and a booming urban Latin scene centered on Madrid that's producing some of the most-streamed Spanish-language music in the world.",
         artists: [
           { name: "Rosalía",     genre: "Flamenco fusion / pop",  why: "Barcelona's gift to global music — her reinvention of flamenco earned a Grammy and changed what Spanish pop could be.", searchUrl: "https://open.spotify.com/search/Rosal%C3%ADa" },
           { name: "C. Tangana",  genre: "Urban / Latin pop",       why: "Madrid's most interesting pop star — his Almaselo album blends flamenco, bolero, and trap in a way nobody thought possible.", searchUrl: "https://open.spotify.com/search/C.%20Tangana" },
@@ -353,14 +353,14 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
         { name: "Renfe",                 category: "transit",  emoji: "🚄", description: "Spain's national rail — book AVE high-speed trains between cities early (prices double close to departure).", url: "https://www.renfe.com", platform: "both" },
       ],
       airportTransfers: [
-        { option: "Aerobus (BCN → Barcelona centre)", emoji: "🚌", timeEst: "35 min", costEst: "€6.75", recommended: true, description: "Express bus from El Prat to Plaça Catalunya — runs every 5–10 minutes, 5am–1am. Drop your bags and you're in the heart of the city.", tip: "Buy return ticket upfront for a slight discount." },
+        { option: "Aerobus (BCN → Barcelona center)", emoji: "🚌", timeEst: "35 min", costEst: "€6.75", recommended: true, description: "Express bus from El Prat to Plaça Catalunya — runs every 5–10 minutes, 5am–1am. Drop your bags and you're in the heart of the city.", tip: "Buy return ticket upfront for a slight discount." },
         { option: "Metro L9 Sud (BCN)", emoji: "🚇", timeEst: "45–55 min", costEst: "€5.15 (airport supplement)", recommended: false, description: "Requires a connection — slower than the Aerobus. Only makes sense if your hotel is directly on the L9 or L1 line.", tip: "You need to add an airport supplement to your regular card." },
-        { option: "Metro (MAD → Madrid centre)", emoji: "🚇", timeEst: "25–40 min", costEst: "€5 (airport supplement)", recommended: true, description: "Barajas Line 8 connects directly to Nuevos Ministerios in central Madrid. Clean, fast, reliable.", tip: "The €3 airport supplement is added to your single or multi-trip ticket." },
+        { option: "Metro (MAD → Madrid center)", emoji: "🚇", timeEst: "25–40 min", costEst: "€5 (airport supplement)", recommended: true, description: "Barajas Line 8 connects directly to Nuevos Ministerios in central Madrid. Clean, fast, reliable.", tip: "The €3 airport supplement is added to your single or multi-trip ticket." },
         { option: "Licensed Taxi (Madrid)", emoji: "🚕", timeEst: "20–40 min", costEst: "€30–€40", recommended: false, description: "Fixed rate of €30 from any terminal to central Madrid. Official white cabs with red stripe only.", tip: "No need to negotiate — the fixed rate is mandated." },
       ],
       hiddenGems: [
         { name: "El Xampanyet, Barcelona",    emoji: "🥂", type: "bar",          description: "A cava bar in El Born that hasn't changed since the 1920s — the house cava is under €3 a glass and the anchovies are revelatory.", sourceUrl: "https://www.theinfatuation.com/barcelona" },
-        { name: "Mercado de San Fernando",    emoji: "🛒", type: "market",       description: "Madrid's Lavapiés neighbourhood market — local, diverse, zero tourists, and the best falafel in the city in the stalls outside.", sourceUrl: "https://www.mercadodesanfernando.com" },
+        { name: "Mercado de San Fernando",    emoji: "🛒", type: "market",       description: "Madrid's Lavapiés neighborhood market — local, diverse, zero tourists, and the best falafel in the city in the stalls outside.", sourceUrl: "https://www.mercadodesanfernando.com" },
         { name: "Tibidabo fairground, BCN",   emoji: "🎡", type: "experience",   description: "A 1909 amusement park on the hill above Barcelona — the rides are gloriously antique and the views of the city are better than any lookout point.", sourceUrl: "https://www.tibidabo.cat" },
       ],
     },
@@ -377,8 +377,8 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
         { name: "Sumo morning practice",            emoji: "🏟️", type: "sport",    description: "Watch professional wrestlers train (asa-geiko) at a stable in Ryogoku, Tokyo — free, close-up, and completely different from the tournament. Apply in advance through your hotel.", url: "https://www.timeout.com/tokyo", tipNote: "You must arrange this in advance — walk-ins are not permitted at most stables." },
         { name: "Golden Gai, Tokyo",                emoji: "🍶", type: "music",    description: "A labyrinth of 200 micro-bars in Shinjuku, each holding 5–8 people. Many specialise — vinyl jazz, cult cinema, punk music. The bartender picks the music and you listen.", tipNote: "Cover charges (usually ¥500–¥1,000) are normal. Don't be put off — they keep the pretenders out." },
         { name: "Noh theatre at Kongo Noh Stage",   emoji: "🎭", type: "theater",  description: "The world's oldest continuously performed theatrical tradition. Kyoto's Kongo school is the most traditional — silent, strange, and absolutely hypnotic.", url: "https://www.kongou-net.com" },
-        { name: "Ozu Yasujiro's Tokyo",             emoji: "📖", type: "literary", description: "The director's films — Late Spring, Tokyo Story — are set in the working-class neighbourhoods of Kamata, Omori, and Ofuna. Walking these areas with his films in mind gives you a completely different city." },
-        { name: "Koenji Sunday antique market",     emoji: "🏮", type: "market",   description: "Tokyo's most characterful flea market — vintage kimono, antique ceramics, and mid-century Japanese objects. The neighbourhood around it is the city's indie music heartland." },
+        { name: "Ozu Yasujiro's Tokyo",             emoji: "📖", type: "literary", description: "The director's films — Late Spring, Tokyo Story — are set in the working-class neighborhoods of Kamata, Omori, and Ofuna. Walking these areas with his films in mind gives you a completely different city." },
+        { name: "Koenji Sunday antique market",     emoji: "🏮", type: "market",   description: "Tokyo's most characterful flea market — vintage kimono, antique ceramics, and mid-century Japanese objects. The neighborhood around it is the city's indie music heartland." },
       ],
       music: {
         intro: "Japan's music culture is obsessive in the best way — there are jazz bars here that have been playing the same genre since 1965 without irony, city pop is having a global renaissance 40 years late, and the live idol and indie scenes are unlike anything in the world.",
@@ -410,7 +410,7 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
         { option: "Keikyu + Tokyo Monorail (HND → central)", emoji: "🚝", timeEst: "25–35 min", costEst: "¥500–¥700", recommended: true, description: "Haneda Airport is much closer to central Tokyo — the Keikyu line to Shinagawa is fast and cheap.", tip: "Haneda is the domestic airport that handles some international flights — always check which airport before booking." },
       ],
       hiddenGems: [
-        { name: "Yanaka neighbourhood",        emoji: "🏘️", type: "neighbourhood", description: "Tokyo's best-preserved Edo-era neighbourhood — temples, cats, independent shops, and a cemetery that's also a park. Completely untouched by development.", sourceUrl: "https://www.timeout.com/tokyo/things-to-do/yanaka" },
+        { name: "Yanaka neighborhood",        emoji: "🏘️", type: "neighborhood", description: "Tokyo's best-preserved Edo-era neighborhood — temples, cats, independent shops, and a cemetery that's also a park. Completely untouched by development.", sourceUrl: "https://www.timeout.com/tokyo/things-to-do/yanaka" },
         { name: "Tsukiji outer market",        emoji: "🐟", type: "market",         description: "The inner tuna auction moved, but the outer market — chefs' knives, tamagoyaki breakfast, fresh fish on sticks — remains and is unmissable at 6am.", sourceUrl: "https://www.tsukiji.or.jp" },
         { name: "Nishiki Market, Kyoto",       emoji: "🥢", type: "market",         description: "A five-block covered market called 'Kyoto's Kitchen' — pickled vegetables, tofu doughnuts, fresh mochi, and grilled skewers at every turn.", sourceUrl: "https://www.timeout.com/kyoto" },
         { name: "Bar Martha, Kyoto",           emoji: "🎵", type: "bar",             description: "A tiny jazz bar in a machiya townhouse in Gion where the owner plays vinyl on a custom turntable. Tables for four. Perfect." },
@@ -477,7 +477,7 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
       destination: "Portugal",
       sceneIntro: "Lisbon has a word — saudade — that doesn't translate. It's a bittersweet longing for something you can't name. You hear it in fado, you feel it watching the sun set over the Tagus, and somehow, mysteriously, you feel it before you've even left.",
       events: [
-        { name: "Fado at a casas de fado",    emoji: "🎻", type: "music",    description: "Real fado is performed in small casas — not tourist restaurants. Tasca do Chico in Lisbon's Bica neighbourhood has 30 seats and the real thing. Book weeks in advance.", url: "https://www.tascadochico.net", tipNote: "Silence is the protocol — talking during a fado performance is deeply rude, and will be communicated to you." },
+        { name: "Fado at a casas de fado",    emoji: "🎻", type: "music",    description: "Real fado is performed in small casas — not tourist restaurants. Tasca do Chico in Lisbon's Bica neighborhood has 30 seats and the real thing. Book weeks in advance.", url: "https://www.tascadochico.net", tipNote: "Silence is the protocol — talking during a fado performance is deeply rude, and will be communicated to you." },
         { name: "Feira da Ladra, Lisbon",     emoji: "🪆", type: "market",   description: "Lisbon's flea market in Alfama (Tuesday and Saturday mornings) — tiles, fishing equipment, vintage fabrics, Soviet binoculars, and inexplicable ceramic donkeys.", url: "https://www.timeout.com/lisbon" },
         { name: "Mercado da Ribeira",         emoji: "🥩", type: "market",   description: "The Time Out Market in the historic Ribeira hall — yes, it's tourist-friendly, but the food is genuinely excellent and the 8pm wine bar section is where the locals end up.", url: "https://www.timeoutmarket.com/lisboa" },
         { name: "LX Factory, Sunday market",  emoji: "🏭", type: "market",   description: "A former industrial complex in Alcântara that hosts Sunday markets, bookshops, restaurants, and occasional rooftop concerts. The kind of place you go for brunch and leave at midnight.", url: "https://www.lxfactory.com" },
@@ -488,7 +488,7 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
         intro: "Fado is the soul of Portugal — but scratch the surface and you find a contemporary music scene that's been absorbing African rhythms from former colonies, blending them into something genuinely new. Kizomba, semba, and the new wave of Portuguese hip-hop are all worth exploring.",
         artists: [
           { name: "Mariza",          genre: "Contemporary fado", why: "The voice that introduced fado to the world — her live performances are extraordinary.", searchUrl: "https://open.spotify.com/search/Mariza%20fado" },
-          { name: "Ana Moura",       genre: "Fado / soul",       why: "Prince named her his favourite singer after hearing her perform — that should be enough.", searchUrl: "https://open.spotify.com/search/Ana%20Moura%20fado" },
+          { name: "Ana Moura",       genre: "Fado / soul",       why: "Prince named her his favorite singer after hearing her perform — that should be enough.", searchUrl: "https://open.spotify.com/search/Ana%20Moura%20fado" },
           { name: "Buraka Som Sistema", genre: "Electronic / kuduro / Afrobeat", why: "The band that fused Portuguese electronic music with Angolan kuduro — their live shows are legendary.", searchUrl: "https://open.spotify.com/search/Buraka%20Som%20Sistema" },
           { name: "Dino d'Santiago",  genre: "African soul / pop", why: "Cape Verdean-Portuguese artist bridging African rhythms with contemporary pop — the sound of modern Lisbon.", searchUrl: "https://open.spotify.com/search/Dino%20d%27Santiago" },
         ],
@@ -505,12 +505,12 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
         { name: "BOLT",                 category: "taxi",     emoji: "🚕", description: "The dominant rideshare in Portugal — much cheaper and more available than Uber in smaller cities.", url: "https://bolt.eu", platform: "both" },
         { name: "ZAPP",                 category: "transit",  emoji: "🛵", description: "Electric scooters across Lisbon — great for the flat areas (not the hills). Much better than Lime.", url: "https://zapp.city", platform: "both" },
         { name: "Zomato Portugal",      category: "food",     emoji: "🍽️", description: "Restaurant discovery and delivery — better Portuguese restaurant database than TheFork in smaller cities.", url: "https://www.zomato.com/pt", platform: "both" },
-        { name: "Timeout Lisboa",       category: "events",   emoji: "🎟️", description: "English-language guide to events, restaurants, and neighbourhood guides — updated weekly.", url: "https://www.timeout.com/lisbon", platform: "both" },
+        { name: "Timeout Lisboa",       category: "events",   emoji: "🎟️", description: "English-language guide to events, restaurants, and neighborhood guides — updated weekly.", url: "https://www.timeout.com/lisbon", platform: "both" },
       ],
       airportTransfers: [
-        { option: "Metro (Red Line → Lisbon centre)", emoji: "🚇", timeEst: "20–30 min", costEst: "€1.80", recommended: true, description: "Lisbon's airport metro stop connects directly to Alameda (change for Green Line) and onwards to Rossio, Cais do Sodré, and Baixa-Chiado. Remarkably good value.", tip: "Buy a rechargeable Via Viagem card (€0.50 deposit) — much cheaper than single tickets." },
+        { option: "Metro (Red Line → Lisbon center)", emoji: "🚇", timeEst: "20–30 min", costEst: "€1.80", recommended: true, description: "Lisbon's airport metro stop connects directly to Alameda (change for Green Line) and onwards to Rossio, Cais do Sodré, and Baixa-Chiado. Remarkably good value.", tip: "Buy a rechargeable Via Viagem card (€0.50 deposit) — much cheaper than single tickets." },
         { option: "Aerobus",            emoji: "🚌", timeEst: "25–45 min", costEst: "€4", recommended: false, description: "Direct bus to Marquês de Pombal, Rossio, Cais do Sodré, and Belém. Good for those areas but slower than the metro in traffic.", tip: "The metro is almost always faster and cheaper — the bus only makes sense for Belém." },
-        { option: "Licensed Taxi",      emoji: "🚕", timeEst: "15–25 min", costEst: "€15–€20", recommended: false, description: "Metered fares from the airport — usually quite reasonable by European standards. Official cream-coloured cabs from the designated rank.", tip: "There's a €1.60 supplement for the airport. Confirm the meter is running when you get in." },
+        { option: "Licensed Taxi",      emoji: "🚕", timeEst: "15–25 min", costEst: "€15–€20", recommended: false, description: "Metered fares from the airport — usually quite reasonable by European standards. Official cream-colored cabs from the designated rank.", tip: "There's a €1.60 supplement for the airport. Confirm the meter is running when you get in." },
       ],
       hiddenGems: [
         { name: "Miradouro da Graça",        emoji: "🌅", type: "viewpoint",    description: "The best sunset viewpoint in Lisbon — fewer tourists than Santa Catarina or São Pedro de Alcântara, local families bring wine and watch the sun go down over the Tagus.", sourceUrl: "https://www.timeout.com/lisbon" },
@@ -524,9 +524,9 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
 // Generic fallback for destinations without specific data
 const GENERIC_DISCOVERY: LocalDiscovery = {
   destination: "Your destination",
-  sceneIntro: "Every city has a version of itself that the guidebooks don't capture. It's in the Sunday market that the locals actually use, the bar where the musicians go after their gig, the neighbourhood café that's been doing the same thing impeccably for 40 years.",
+  sceneIntro: "Every city has a version of itself that the guidebooks don't capture. It's in the Sunday market that the locals actually use, the bar where the musicians go after their gig, the neighborhood café that's been doing the same thing impeccably for 40 years.",
   events: [
-    { name: "Local market",          emoji: "🛍️", type: "market",   description: "Find the neighbourhood market — not the tourist market. Vendors who sell to locals will tell you more about a place than any guide." },
+    { name: "Local market",          emoji: "🛍️", type: "market",   description: "Find the neighborhood market — not the tourist market. Vendors who sell to locals will tell you more about a place than any guide." },
     { name: "Live music venues",      emoji: "🎵", type: "music",    description: "Look for venues recommended by Resident Advisor (for electronic music) or local blog recommendations — the best small venues rarely make guidebooks.", url: "https://ra.co" },
     { name: "Local arts listings",    emoji: "🎭", type: "art",      description: "Check the local Time Out edition or equivalent — they track events most visitors never discover.", url: "https://www.timeout.com" },
   ],

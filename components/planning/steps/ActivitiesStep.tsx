@@ -16,7 +16,7 @@ import type { ActivityCategory } from "@/types/trip";
 // Exported so ChatPanel can turn a chat-driven update's raw category ids
 // back into friendly labels for its confirmation banner.
 export const GENERAL: { id: ActivityCategory; label: string; icon: string; sublabel: string }[] = [
-  { id: "guided_walking_tour", label: "Guided Walking Tour", icon: "🚶", sublabel: "Expert-led neighbourhood & history walks" },
+  { id: "guided_walking_tour", label: "Guided Walking Tour", icon: "🚶", sublabel: "Expert-led neighborhood & history walks" },
   { id: "hiking",              label: "Hiking",              icon: "🥾", sublabel: "Trails, peaks, national parks" },
   { id: "skiing",              label: "Skiing",              icon: "⛷️", sublabel: "Downhill, backcountry, snow" },
   { id: "sailing",             label: "Sailing & Boating",   icon: "⛵", sublabel: "Charters, boat excursions, coastal cruising" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Star, ExternalLink, Check, Sparkles, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
@@ -26,7 +26,7 @@ const TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[
 
 const AMENITIES = [
   "Free breakfast", "Pool", "Gym", "Concierge", "Airport transfer",
-  "Rooftop bar", "Spa", "City centre location", "Kitchen / kitchenette",
+  "Rooftop bar", "Spa", "City center location", "Kitchen / kitchenette",
   "High walkability",
 ];
 
@@ -402,6 +402,23 @@ export function LodgingStep() {
       </div>
     );
   }
+
+  // "Let ZiGy plan my whole trip" (chosen on the Planning Mode step just
+  // before this one) means this step's own "I'll pick myself vs. let ZiGy
+  // choose" prompt would be redundant — auto-run the exact same ZiGy pick
+  // path a manual click on that card would trigger, once, so the traveller
+  // lands directly on the review screen instead of having to choose again.
+  const autoPlanRef = useRef(false);
+  useEffect(() => {
+    if (!trip.preferences.autoPlanEverything || existing || mode !== "prompt" || autoPlanRef.current) return;
+    autoPlanRef.current = true;
+    setModeChoice("zigy");
+    (async () => {
+      await handleZigyPick();
+      setMode("zigy_review");
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.preferences.autoPlanEverything, existing, mode]);
 
   async function handlePromptContinue() {
     if (modeChoice === "manual") setMode("manual");

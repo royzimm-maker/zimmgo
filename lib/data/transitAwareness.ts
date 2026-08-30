@@ -26,7 +26,7 @@ const NOTES: TransitNote[] = [
   },
   {
     keywords: ["venice"],
-    note: "Venice has no cars at all in the historic centre — you'll walk and take the vaporetto (water bus) everywhere. Don't plan around a rental car here.",
+    note: "Venice has no cars at all in the historic center — you'll walk and take the vaporetto (water bus) everywhere. Don't plan around a rental car here.",
   },
   {
     keywords: ["rome", "florence", "milan", "bologna", "naples", "sicily", "italy"],
@@ -58,7 +58,7 @@ const NOTES: TransitNote[] = [
   },
   {
     keywords: ["seville"],
-    note: "Seville's historic centre is compact and very walkable — public transit exists but you may not need much of it day-to-day.",
+    note: "Seville's historic center is compact and very walkable — public transit exists but you may not need much of it day-to-day.",
   },
   {
     keywords: ["lisbon", "porto", "portugal"],

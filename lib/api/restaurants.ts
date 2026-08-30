@@ -140,7 +140,7 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       tier: "upscale",
       rating: 9.0,
       reviewCount: 2800,
-      location: "Reykjavik city centre",
+      location: "Reykjavik city center",
       description: "The 'Grill Market' champions Icelandic ingredients — lamb, Arctic char, langoustine — over an open lava stone grill.",
       mustOrder: "Langoustine soup and the slow-roasted lamb",
     },
@@ -160,11 +160,11 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       tier: "street_food",
       rating: 9.4,
       reviewCount: 28000,
-      location: "Reykjavik harbour",
-      description: "A red kiosk by the harbour that's been here since 1937. Bill Clinton ate here. So should you.",
+      location: "Reykjavik harbor",
+      description: "A red kiosk by the harbor that's been here since 1937. Bill Clinton ate here. So should you.",
       mustOrder: "One with everything — 'eina með öllu'",
     },
-    { name: "Sumac",              cuisine: "Levantine",         tier: "midrange", rating: 8.9, reviewCount: 1800, location: "Reykjavik", description: "Rooftop views over the harbour and a Middle Eastern menu that's become a local favorite.", mustOrder: "Lamb shoulder and the mezze platter" },
+    { name: "Sumac",              cuisine: "Levantine",         tier: "midrange", rating: 8.9, reviewCount: 1800, location: "Reykjavik", description: "Rooftop views over the harbor and a Middle Eastern menu that's become a local favorite.", mustOrder: "Lamb shoulder and the mezze platter" },
     { name: "Kaffibrennslan",     cuisine: "Café & Brunch",     tier: "brunch",   rating: 8.7, reviewCount: 2600, location: "Reykjavik", description: "One of the city's oldest cafés on the main shopping street — good coffee, better people-watching.", mustOrder: "Skyr pancakes with blueberry jam" },
   ],
   santorini: [
@@ -194,7 +194,7 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       rating: 9.2,
       reviewCount: 1800,
       location: "Mikrolimano, Athens",
-      description: "Lefteris Lazarou's Michelin-starred harbourside restaurant. Every plate is a love letter to the Aegean.",
+      description: "Lefteris Lazarou's Michelin-starred harborside restaurant. Every plate is a love letter to the Aegean.",
       mustOrder: "Sea urchin with squid ink and caviar",
     },
     {
@@ -509,7 +509,7 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
     { name: "Mercato di Mezzo",   cuisine: "Bolognese Food Hall",  tier: "street_food", rating: 8.8, reviewCount: 9400, location: "Via Clavature, Bologna",   description: "A historic covered market turned food hall — mortadella sandwiches and fresh pasta stalls under one roof.", mustOrder: "Mortadella panino" },
     { name: "I Portici Ristorante", cuisine: "Modern Emilian",     tier: "fine_dining", rating: 9.4, reviewCount: 620,  location: "Via Indipendenza, Bologna", description: "One Michelin star inside a converted 1920s theatre — refined Emilia-Romagna cuisine with real theatre.", mustOrder: "Tasting menu with the tortelloni" },
     { name: "Caffè Zanarini",     cuisine: "Bologna Café",         tier: "brunch",      rating: 8.7, reviewCount: 3100, location: "Piazza Galvani, Bologna",  description: "The city's classic aperitivo spot on a historic piazza — good coffee by day, Aperol by evening.", mustOrder: "Espresso and a cornetto, or the evening spritz" },
-    { name: "All'Osteria Bottega", cuisine: "Traditional Emilian", tier: "upscale",     rating: 9.1, reviewCount: 1400, location: "Via Santa Caterina, Bologna", description: "A no-nonsense neighbourhood institution serving definitive versions of Bologna's classics.", mustOrder: "Cotoletta alla bolognese" },
+    { name: "All'Osteria Bottega", cuisine: "Traditional Emilian", tier: "upscale",     rating: 9.1, reviewCount: 1400, location: "Via Santa Caterina, Bologna", description: "A no-nonsense neighborhood institution serving definitive versions of Bologna's classics.", mustOrder: "Cotoletta alla bolognese" },
   ],
   tuscany: [
     { name: "Osteria di Fonterutoli", cuisine: "Chianti Estate Dining", tier: "upscale", rating: 9.2, reviewCount: 1200, location: "Castellina in Chianti, Tuscany", description: "A Mazzei-family wine estate restaurant pairing Tuscan classics with their own Chianti Classico.", mustOrder: "Pappardelle with wild boar ragù" },
@@ -523,7 +523,7 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
     { name: "Nessun Dorma",       cuisine: "Ligurian Bruschetteria", tier: "casual",    rating: 9.3, reviewCount: 5200, location: "Manarola, Cinque Terre",   description: "No reservations, cliffside tables, and the best view of any bruschetta in Italy — worth the wait.", mustOrder: "Bruschetta with pesto and burrata" },
     { name: "Ristorante Belforte", cuisine: "Seafood Fine Dining", tier: "upscale",     rating: 9.4, reviewCount: 1600, location: "Vernazza, Cinque Terre",   description: "Built into a 16th-century watchtower over the sea — the region's most romantic seafood dinner.", mustOrder: "Catch of the day, whatever came in that morning" },
     { name: "Trattoria dal Billy", cuisine: "Ligurian Trattoria",  tier: "midrange",    rating: 9.1, reviewCount: 2100, location: "Manarola, Cinque Terre",   description: "Up the hill away from the crowds, with a terrace looking back down over the village and vineyards.", mustOrder: "Trofie al pesto" },
-    { name: "Il Pescato Cucinato", cuisine: "Seafood Street Food", tier: "street_food", rating: 9.0, reviewCount: 3400, location: "Riomaggiore, Cinque Terre", description: "A paper cone of fried anchovies and calamari eaten on the harbour steps — the definitive Cinque Terre snack.", mustOrder: "Cuoppo di pesce fritto" },
+    { name: "Il Pescato Cucinato", cuisine: "Seafood Street Food", tier: "street_food", rating: 9.0, reviewCount: 3400, location: "Riomaggiore, Cinque Terre", description: "A paper cone of fried anchovies and calamari eaten on the harbor steps — the definitive Cinque Terre snack.", mustOrder: "Cuoppo di pesce fritto" },
     { name: "Il Frantoio",        cuisine: "Focacceria",           tier: "street_food", rating: 8.8, reviewCount: 1900, location: "Monterosso al Mare, Cinque Terre", description: "A tiny focacceria pressing its own olive oil — the focaccia comes out still warm from the oven.", mustOrder: "Focaccia with olives" },
     { name: "Cantina Sciacchetrà", cuisine: "Wine Bar",            tier: "midrange",    rating: 8.9, reviewCount: 900,  location: "Corniglia, Cinque Terre",  description: "A hilltop wine bar pouring the region's rare sweet Sciacchetrà wine with a simple cheese and salumi board.", mustOrder: "Sciacchetrà tasting with local cheese" },
   ],
@@ -542,12 +542,12 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       tier: "fine_dining",
       rating: 9.2,
       reviewCount: 1400,
-      location: "City centre",
+      location: "City center",
       description: "The destination restaurant of the city — locally sourced, exquisitely presented, and worth the reservation effort.",
       mustOrder: "Chef's tasting menu with wine pairings",
     },
     {
-      name: "Neighbourhood Kitchen",
+      name: "Neighborhood Kitchen",
       cuisine: "Modern Local",
       tier: "midrange",
       rating: 8.8,
@@ -593,7 +593,7 @@ const RESTAURANT_DB: Record<string, RestaurantSeed[]> = {
       rating: 8.6,
       reviewCount: 5100,
       location: "Local district",
-      description: "A no-frills neighbourhood spot that locals swear by — generous portions, fair prices.",
+      description: "A no-frills neighborhood spot that locals swear by — generous portions, fair prices.",
       mustOrder: "Ask the server what's fresh today",
     },
   ],
@@ -639,10 +639,10 @@ export async function searchRestaurants(params: RestaurantSearchParams): Promise
     return bMichelin - aMichelin || b.rating - a.rating;
   });
 
-  // Seed locations are real neighbourhoods within their pool's home city (or generic
-  // placeholders like "City centre" for the default pool). When a nearby city shares
+  // Seed locations are real neighborhoods within their pool's home city (or generic
+  // placeholders like "City center" for the default pool). When a nearby city shares
   // that pool via DESTINATION_ALIASES (e.g. Florence borrowing the "italy" pool, whose
-  // seeds are all Rome neighbourhoods), the seed location won't mention the actual
+  // seeds are all Rome neighborhoods), the seed location won't mention the actual
   // search destination — swap it out so results aren't mislabeled as another city.
   return filtered.slice(0, 6).map((r) => ({
     ...r,

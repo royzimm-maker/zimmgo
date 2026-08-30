@@ -150,6 +150,15 @@ function hotelWriteup(hotel: { name: string; writeup: string; isTravellerPick: b
   ];
 }
 
+function highlightBox(name: string, reason: string) {
+  return box(TAN, GOLD, [
+    para([
+      body("If you only do one thing today, make it this: ", { italics: true, bold: true, size: 20, color: NAVY }),
+      body(`${name} — ${reason}`, { italics: true, size: 20 }),
+    ], 0),
+  ]);
+}
+
 function hr() {
   return new Paragraph({ text: "", border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "D8D2C4", space: 1 } }, spacing: { before: 260, after: 260 } });
 }
@@ -231,6 +240,9 @@ export async function renderItineraryDocx(model: DocxModel): Promise<Buffer> {
       } else {
         bodyChildren.push(new Paragraph({ children: [body("Open — nothing scheduled yet.", { italics: true, size: 20, color: "8A8578" })], spacing: { after: 90 } }));
       }
+      if (day.highlight) {
+        bodyChildren.push(spacer(100), highlightBox(day.highlight.name, day.highlight.reason));
+      }
       bodyChildren.push(spacer(220));
     });
     // One table if every restaurant here is in the same boat (all booked,
@@ -267,7 +279,7 @@ export async function renderItineraryDocx(model: DocxModel): Promise<Buffer> {
     }
   }
 
-  bodyChildren.push(spacer(260), new Paragraph({ children: [body("Have a wonderful trip.", { italics: true, size: 22 })], alignment: AlignmentType.CENTER }));
+  bodyChildren.push(spacer(260), new Paragraph({ children: [body("Go get delightfully lost — ZiGy will be here for the next one.", { italics: true, size: 22 })], alignment: AlignmentType.CENTER }));
 
   const doc = new Document({
     numbering: {

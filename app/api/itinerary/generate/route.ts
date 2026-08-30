@@ -348,7 +348,7 @@ async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary>
     `**${numDays}-day itinerary for ${dest}**\n\n` +
     `Your plan is built around what matters most to you:\n` +
     `- ${acts || "local experiences"}\n` +
-    `- Hand-picked restaurants and neighbourhood discoveries\n` +
+    `- Hand-picked restaurants and neighborhood discoveries\n` +
     `- Logical day-by-day sequencing to minimise travel time`;
 
   const budgetLabel = resolveBudget(preferences)?.label ?? "chosen";
@@ -515,7 +515,7 @@ function generateThemes(numDays: number, preferences: TripPreferences): string[]
   const farewell = "Relaxation, Shopping & Farewell Dinner";
   const middle = [
     "Iconic Landmarks & Cultural Immersion",
-    "Local Neighbourhoods & Hidden Gems",
+    "Local Neighborhoods & Hidden Gems",
     "Day Trip & Natural Scenery",
     "Food, Markets & Evening Atmosphere",
     "Adventure & Active Exploration",
@@ -546,14 +546,14 @@ function buildTimeBlock(
       ["Sunrise viewpoint walk", "Visit a local food market"],
     ],
     afternoon: [
-      ["Rest and explore the immediate neighbourhood", "Light lunch at a recommended spot"],
+      ["Rest and explore the immediate neighborhood", "Light lunch at a recommended spot"],
       ["Guided museum or landmark tour", "Afternoon pick-me-up at an artisan coffee shop"],
       ["Scenic hike or guided activity", "Explore a design or arts district"],
     ],
     evening: [
       ["Early dinner to adjust to the timezone", "Easy stroll and early night"],
       ["Pre-dinner aperitivo at a rooftop bar", "Dinner at a highly-rated local restaurant"],
-      ["Night-time city walk or harbour cruise", "Late dinner followed by local bar scene"],
+      ["Night-time city walk or harbor cruise", "Late dinner followed by local bar scene"],
     ],
   };
 
@@ -606,11 +606,11 @@ function buildMeals(
     `Café near your hotel for coffee and a light bite`,
   ];
   const lunchFallbacks = isHighBudget
-    ? [`Neighbourhood bistro with a good-value set lunch`, `Rooftop restaurant with panoramic views`, `Award-winning spot recommended by your concierge`]
+    ? [`Neighborhood bistro with a good-value set lunch`, `Rooftop restaurant with panoramic views`, `Award-winning spot recommended by your concierge`]
     : [`Street food market — follow the locals`, `Casual trattoria or café away from tourist areas`, `Picnic from the local deli — great for outdoor spots`];
   const dinnerFallbacks = isHighBudget
     ? [`Michelin-recognised restaurant — book ahead`, `Chef's tasting menu experience`, `Celebrated local restaurant with strong reviews`]
-    : [`Neighbourhood restaurant popular with locals`, `A low-key spot serving regional specialities`, `Wine bar with small plates — great for grazing`];
+    : [`Neighborhood restaurant popular with locals`, `A low-key spot serving regional specialities`, `Wine bar with small plates — great for grazing`];
 
   const dinnerSuggestion = named(dinnerR, dayIndex, dinnerFallbacks[dayIndex % dinnerFallbacks.length]);
 

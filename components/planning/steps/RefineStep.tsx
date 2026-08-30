@@ -234,15 +234,20 @@ export function RefineStep() {
   const { trip, goToStep, saveFinalizedPlan, markItineraryReviewed, addWanderlogItem, setSelectedHotelForCity } = useTripStore();
   const itinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
+  // Only the activities/restaurants the traveller actually picked in the
+  // review wizard belong on this board — the full generated list (including
+  // everything they skipped) would make it look like nothing was selected
+  // at all, and mismatch the "Where things stand" counts above, which are
+  // already scoped to these same selected-id lists.
   const activities = useMemo<ActivityOption[]>(
-    () => itinerary?.activities ?? [],
+    () => (itinerary?.activities ?? []).filter((a) => (trip.preferences.selectedActivityIds ?? []).includes(a.id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [itinerary?.id]
+    [itinerary?.id, trip.preferences.selectedActivityIds]
   );
   const restaurants = useMemo<RestaurantOption[]>(
-    () => itinerary?.restaurants ?? [],
+    () => (itinerary?.restaurants ?? []).filter((r) => (trip.preferences.selectedRestaurantIds ?? []).includes(r.id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [itinerary?.id]
+    [itinerary?.id, trip.preferences.selectedRestaurantIds]
   );
   const days = itinerary?.days ?? [];
 

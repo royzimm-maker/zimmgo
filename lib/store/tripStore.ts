@@ -26,6 +26,7 @@ import type {
   WanderlogItem,
   ReviewSourcePreference,
   BeliPreference,
+  SchedulePace,
 } from "@/types/trip";
 import { calcProgress } from "@/types/trip";
 
@@ -56,6 +57,10 @@ interface TripState {
   setDestination: (dest: Destination) => void;
   setActivities: (activities: (ActivityCategory | string)[]) => void;
   setVibes: (vibes: VibeTag[]) => void;
+  setSchedulePace: (pace: SchedulePace | undefined) => void;
+  setAutoPlanEverything: (value: boolean) => void;
+  setSelectedActivityIds: (ids: string[]) => void;
+  setSelectedRestaurantIds: (ids: string[]) => void;
   setDates: (dates: DatePreference) => void;
   setBudget: (ranges: BudgetRange[]) => void;
   setBudgetDetails: (details: {
@@ -257,6 +262,42 @@ export const useTripStore = create<TripState>()(
           trip: {
             ...s.trip,
             preferences: { ...s.trip.preferences, vibes },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setSchedulePace: (schedulePace) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, schedulePace },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setAutoPlanEverything: (autoPlanEverything) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, autoPlanEverything },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setSelectedActivityIds: (selectedActivityIds) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, selectedActivityIds },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setSelectedRestaurantIds: (selectedRestaurantIds) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, selectedRestaurantIds },
             updatedAt: new Date().toISOString(),
           },
         })),

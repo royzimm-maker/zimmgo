@@ -41,7 +41,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
       {
         name: "Athens Food Walk — Culinary Backstreets", emoji: "🥙", category: "food", isSignature: true,
         description: "The flagship Athens walk hits Monastiraki, Psiri and Koukaki — souvlaki, loukoumades, mezedes and natural wine in locals-only spots.",
-        providerWhy: "Culinary Backstreets was founded by food journalists and neighbourhood specialists who were frustrated by tours that took people to tourist-facing venues. Their guides are embedded locals — often food writers, chefs, or restaurant insiders — who take small groups to the places they actually eat at. No placement fees, no tourist menus.",
+        providerWhy: "Culinary Backstreets was founded by food journalists and neighborhood specialists who were frustrated by tours that took people to tourist-facing venues. Their guides are embedded locals — often food writers, chefs, or restaurant insiders — who take small groups to the places they actually eat at. No placement fees, no tourist menus.",
         guideNote: "Guides are not publicly named in advance (they vary by schedule), but Culinary Backstreets consistently receives top marks specifically for guide knowledge and authenticity in independent reviews. You can read past participant reviews on their site and on TripAdvisor.",
         alternatives: [
           { name: "Devour Athens", url: "devourtours.com", note: "Food tour operator with strong Athens presence and good reviews" },
@@ -51,7 +51,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
       },
       { name: "Oia caldera sunset watch",                        emoji: "🌅", category: "cultural",            isSignature: true,  description: "Santorini's most iconic moment — position yourself at the kasteli ruins for the best unobstructed view." },
       { name: "Olive oil & wine tasting, Crete",                 emoji: "🫒", category: "food",                               description: "Visit a family estate in the Cretan countryside for fresh-pressed oil, local cheeses and Assyrtiko wine." },
-      { name: "Sea kayaking along volcanic coastline",           emoji: "🚣", category: "adventure",                          description: "Paddle through sea caves and lava cliffs around Milos or Santorini — surreal colours unique to this archipelago." },
+      { name: "Sea kayaking along volcanic coastline",           emoji: "🚣", category: "adventure",                          description: "Paddle through sea caves and lava cliffs around Milos or Santorini — surreal colors unique to this archipelago." },
       { name: "Delphi day trip",                                 emoji: "🗿", category: "cultural",                           description: "The ancient oracle site sits dramatically on Mount Parnassus — one of the most atmospheric ruins in Europe." },
     ],
   },
@@ -72,7 +72,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
       },
       {
         name: "Istanbul Food Walk — Culinary Backstreets", emoji: "🍢", category: "food", isSignature: true,
-        description: "Culinary Backstreets pioneered the neighbourhood food walk in Istanbul — their Beyoğlu and Balık Ekmek walks are widely regarded as the gold standard for eating like a local.",
+        description: "Culinary Backstreets pioneered the neighborhood food walk in Istanbul — their Beyoğlu and Balık Ekmek walks are widely regarded as the gold standard for eating like a local.",
         providerWhy: "Culinary Backstreets has operated in Istanbul since 2009 — longer than almost any other food tour company in the city. Their Istanbul team has included Turkish food journalists and chefs who built personal relationships with vendors before ever running tours. They explicitly do not charge restaurants for inclusion, so every stop is a genuine recommendation.",
         guideNote: "Guide names are not listed in advance, but Culinary Backstreets publishes detailed editorial about each of their walks on their website, which gives a clear sense of what the guide knows. Reviews on TripAdvisor and their own site frequently cite guide expertise as the defining element.",
         alternatives: [
@@ -137,7 +137,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
       {
         name: "Paris Market & Bistro Walk — Culinary Backstreets", emoji: "🥐", category: "food", isSignature: true,
         description: "Takes you through the Marché d'Aligre and surrounding bistros — the market Parisians actually shop at, not the tourist version.",
-        providerWhy: "Culinary Backstreets' Paris team includes French food journalists and restaurant insiders who have spent years writing about the city's neighbourhood eating culture. Their walks deliberately avoid the famous markets and instead focus on the authentic daily food infrastructure of Paris — venues with no financial relationship with tour operators.",
+        providerWhy: "Culinary Backstreets' Paris team includes French food journalists and restaurant insiders who have spent years writing about the city's neighborhood eating culture. Their walks deliberately avoid the famous markets and instead focus on the authentic daily food infrastructure of Paris — venues with no financial relationship with tour operators.",
         guideNote: "As with all Culinary Backstreets tours, specific guide names are not listed in advance. Their Paris guides are profiled in editorial features on the website, and independently reviewed on TripAdvisor, where the Paris walk consistently receives 5-star ratings.",
         alternatives: [
           { name: "Devour Paris", url: "devourtours.com", note: "Well-regarded food tour company with strong Paris offerings" },
@@ -192,10 +192,10 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
       {
         name: "Florence Art & Markets — Eating Europe", emoji: "🖼️", category: "food",
         description: "Combines the Mercato Centrale with a guided walk through the Oltrarno — pecorino, lampredotto and Chianti included.",
-        providerWhy: "Eating Europe has operated food tours across major European cities for over a decade. Their Florence programme is specifically designed around the working food culture of the Oltrarno district, which remains more local than the tourist-heavy centre. They vet all stops for quality and consistency.",
+        providerWhy: "Eating Europe has operated food tours across major European cities for over a decade. Their Florence programme is specifically designed around the working food culture of the Oltrarno district, which remains more local than the tourist-heavy center. They vet all stops for quality and consistency.",
         guideNote: "Eating Europe lists their guide team on their website and provides transparent booking information. Their guides typically have backgrounds in food writing, hospitality, or culinary arts.",
         alternatives: [
-          { name: "Culinary Backstreets Florence", url: "culinarybackstreets.com", note: "If available, their Florence walks apply the same neighbourhood-deep approach" },
+          { name: "Culinary Backstreets Florence", url: "culinarybackstreets.com", note: "If available, their Florence walks apply the same neighborhood-deep approach" },
           { name: "Devour Florence", url: "devourtours.com", note: "Well-reviewed food tour company with Florence offerings" },
           { name: "Viator", url: "viator.com", note: "Marketplace; compare multiple Florence food tours by review score" },
         ],
@@ -224,7 +224,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
       {
         name: "Marrakech Food Walk — Culinary Backstreets", emoji: "🫕", category: "food", isSignature: true,
         description: "Covers the souks at dawn, a traditional harira breakfast and the city's best bastilla — stops chosen entirely outside the tourist menus.",
-        providerWhy: "Culinary Backstreets' Marrakech walks are designed around the premise that the best Moroccan food in Marrakech is almost never found in the Djemaa el-Fna area. Their team identifies venues that serve the working local population — foundouks, neighbourhood ovens, and family kitchens — and builds relationships with them over time before including them in tours.",
+        providerWhy: "Culinary Backstreets' Marrakech walks are designed around the premise that the best Moroccan food in Marrakech is almost never found in the Djemaa el-Fna area. Their team identifies venues that serve the working local population — foundouks, neighborhood ovens, and family kitchens — and builds relationships with them over time before including them in tours.",
         guideNote: "As with all Culinary Backstreets operations, guide names are not listed in advance. Their Marrakech editorial on the website explains the walk's philosophy and stops in detail. Independent reviews on TripAdvisor describe guides as 'genuine food insiders' rather than tourist industry professionals.",
         alternatives: [
           { name: "Marrakech Food Tours", url: "marrakechfoodtours.com", note: "Local specialist with well-reviewed food and medina walks" },
@@ -246,10 +246,10 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
         name: "NYC Architecture Walk — Context Travel", emoji: "🏙️", category: "guided_walking_tour", isSignature: true,
         description: "Led by architects and architectural historians — their Lower Manhattan and Art Deco midtown walks are among the most detailed available in the city.",
         providerWhy: "Context Travel's New York guides are working architects, urban historians, and preservationists. The city's built environment is one of the richest and most layered in the world, and Context Travel's walks treat it with corresponding seriousness — covering structural engineering, urban planning decisions, and social history alongside aesthetics.",
-        guideNote: "New York is one of Context Travel's most active markets and their guide roster is larger and more varied here than in most other cities. Guide profiles are listed on contexttravel.com with areas of specialisation — worth reviewing if you have a specific neighbourhood or period in mind (Gilded Age, Beaux-Arts, post-war modernism, etc.).",
+        guideNote: "New York is one of Context Travel's most active markets and their guide roster is larger and more varied here than in most other cities. Guide profiles are listed on contexttravel.com with areas of specialisation — worth reviewing if you have a specific neighborhood or period in mind (Gilded Age, Beaux-Arts, post-war modernism, etc.).",
         alternatives: [
           { name: "Big Onion Walking Tours", url: "bigonion.com", note: "New York institution since 1991; graduate student guides with deep local knowledge" },
-          { name: "Free Tours by Foot NYC", url: "freetoursbyfoot.com/new-york-tours", note: "Pay-what-you-like tours with professional guides; good for neighbourhood walks" },
+          { name: "Free Tours by Foot NYC", url: "freetoursbyfoot.com/new-york-tours", note: "Pay-what-you-like tours with professional guides; good for neighborhood walks" },
           { name: "The Municipal Art Society", url: "mas.org/tours", note: "NYC's premier architectural advocacy organisation; runs expert-led urban tours" },
         ],
       },
@@ -261,7 +261,7 @@ const DB: { keywords: string[]; activities: DestinationActivity[] }[] = [
         alternatives: [
           { name: "Devour NYC", url: "devourtours.com", note: "Food tour operator with New York coverage and good reviews" },
           { name: "Foods of New York Tours", url: "foodsofny.com", note: "Long-running NYC food tour company; Chelsea Market and West Village walks" },
-          { name: "Airbnb Experiences NYC", url: "airbnb.com/s/experiences", note: "Local-hosted food and neighbourhood experiences with verified reviews" },
+          { name: "Airbnb Experiences NYC", url: "airbnb.com/s/experiences", note: "Local-hosted food and neighborhood experiences with verified reviews" },
         ],
       },
       { name: "High Line walk & Chelsea Market",                 emoji: "🌿", category: "cultural",                              description: "The elevated park above the West Side — end at Chelsea Market for artisan food stalls and the best chowder in the city." },

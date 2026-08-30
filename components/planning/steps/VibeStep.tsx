@@ -5,7 +5,13 @@ import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { useTripStore } from "@/lib/store/tripStore";
-import type { VibeTag } from "@/types/trip";
+import type { VibeTag, SchedulePace } from "@/types/trip";
+
+const SCHEDULE_PACES: { id: SchedulePace; label: string; sublabel: string }[] = [
+  { id: "wide_open",        label: "Wide open",          sublabel: "Leave most days unscheduled — I'll wander and decide as I go" },
+  { id: "one_anchor",       label: "One anchor a day",   sublabel: "One must-do thing per day, open for everything else" },
+  { id: "fully_programmed", label: "Fully programmed",   sublabel: "Plan out each day in detail" },
+];
 
 // Exported so ChatPanel can turn a chat-driven update's raw vibe ids back
 // into friendly labels for its confirmation banner.
@@ -24,8 +30,9 @@ export const VIBES: { id: VibeTag; label: string; icon: string; sublabel: string
 // No "let ZiGy pick" mode here, unlike Lodging/Activities — vibe is a direct
 // input into what ZiGy recommends elsewhere, so it has to come from the user.
 export function VibeStep() {
-  const { trip, setVibes } = useTripStore();
+  const { trip, setVibes, setSchedulePace } = useTripStore();
   const [selected, setSelected] = useState<VibeTag[]>(trip.preferences.vibes);
+  const schedulePace = trip.preferences.schedulePace;
   const [otherOpen,  setOtherOpen ] = useState(false);
   const [otherValue, setOtherValue] = useState("");
 
@@ -114,6 +121,28 @@ export function VibeStep() {
           onToggle={handleOtherToggle}
           placeholder="e.g. Pet-friendly, Accessible travel…"
         />
+      </div>
+
+      <div className="mt-6 border-t border-slate-100 pt-5">
+        <p className="text-xs font-semibold text-slate-700 mb-1">How full should each day be?</p>
+        <p className="text-[11px] text-slate-400 mb-3">Optional — helps ZiGy decide how much to schedule per day.</p>
+        <div className="flex flex-col gap-2">
+          {SCHEDULE_PACES.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setSchedulePace(schedulePace === p.id ? undefined : p.id)}
+              className={`flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                schedulePace === p.id
+                  ? "border-brand-500 bg-brand-50"
+                  : "border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              <span className={`text-xs font-semibold ${schedulePace === p.id ? "text-brand-700" : "text-slate-700"}`}>{p.label}</span>
+              <span className="text-[11px] text-slate-400">{p.sublabel}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </StepShell>
   );

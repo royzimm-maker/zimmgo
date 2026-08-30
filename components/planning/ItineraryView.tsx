@@ -356,6 +356,7 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
         <button
           type="button"
           onClick={handlePrint}
+          title="A raw printout of this screen, exactly as it looks now"
           className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
         >
           <Printer size={13} />
@@ -373,12 +374,16 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
           type="button"
           onClick={handleExportDocx}
           disabled={exportingDocx}
+          title="A polished, print-ready document — nicely formatted and organized for reading or sharing"
           className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-60"
         >
           <FileDown size={13} />
           {exportingDocx ? "Exporting…" : "Export as Word doc"}
         </button>
       </div>
+      <p className="text-[10px] text-slate-400 -mt-1">
+        Print / Save as PDF is a quick raw copy of this screen — Export as Word doc gives you a polished, formatted itinerary to keep or share.
+      </p>
       {exportError && (
         <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           <AlertCircle size={13} className="shrink-0 mt-0.5" />

@@ -11,6 +11,23 @@ function buildDietaryLine(preferences: TripPreferences): string {
   return ` Dietary restrictions (must be respected in every restaurant and food-related recommendation): ${parts}.`;
 }
 
+// Shared by every prompt that lays out a day-by-day schedule (initial
+// generation and the "Let ZiGy arrange" smart-pick), so the traveller's
+// stated pacing preference is applied consistently everywhere, not just
+// wherever the itinerary happened to be built.
+function buildSchedulePaceLine(pace: TripPreferences["schedulePace"]): string {
+  if (pace === "wide_open") {
+    return `Pacing preference: the traveller wants most days left wide open — schedule only a light touch per day (e.g. one activity, or none) and leave real unstructured time to wander, rather than filling every slot.`;
+  }
+  if (pace === "one_anchor") {
+    return `Pacing preference: the traveller wants one clear anchor (a must-do activity or reservation) per day, with the rest of the day left open rather than densely scheduled.`;
+  }
+  if (pace === "fully_programmed") {
+    return `Pacing preference: the traveller wants each day fully planned out in detail — fill morning, afternoon, and evening with specific activities and meals rather than leaving gaps.`;
+  }
+  return "";
+}
+
 // "Where do you want to go?" free-text input — parsed with parse_destination
 export function buildDestinationParsePrompt(text: string): string {
   return `The traveller typed this into a "where do you want to go?" field:\n\n"${text}"\n\nCall parse_destination with the real place names they mentioned (respecting any explicit constraints they stated, like "just X" or "no side trips" implying a single city) and a clean display label. ` +
@@ -46,8 +63,8 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
       ` Allocate days across all destinations and include logical travel connections between them.` +
       ` The day-by-day plan is built programmatically around exactly these ${cityList.length} legs, in this order: ${cityList.map((c) => `"${c}"`).join(", ")}.` +
       ` You MUST call search_hotels, search_activities, and search_restaurants using these exact strings as the \`destination\` parameter — one set of calls per leg, no more, no fewer. ` +
-      `Do not substitute a more specific sub-area (e.g. a particular neighbourhood or nearby city) as the \`destination\` value, even if you think it's more precise — that would cause the results to be dropped, since nothing downstream in this pipeline knows about it. ` +
-      `If you want to mention specific neighbourhoods or nearby towns worth visiting within one of these legs, do that in your descriptive text, not as a separate \`destination\` value. ` +
+      `Do not substitute a more specific sub-area (e.g. a particular neighborhood or nearby city) as the \`destination\` value, even if you think it's more precise — that would cause the results to be dropped, since nothing downstream in this pipeline knows about it. ` +
+      `If you want to mention specific neighborhoods or nearby towns worth visiting within one of these legs, do that in your descriptive text, not as a separate \`destination\` value. ` +
       `Your final written summary must describe the trip strictly as these ${cityList.length} legs with the same city names — do not present a different, more granular breakdown (e.g. splitting one leg into named sub-cities with their own night counts) than what these tool calls and the day-by-day structure actually use.`
     );
     // The traveller manually rebalanced how many days go to each city (via
@@ -91,6 +108,9 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
       );
     }
   }
+
+  const paceLine = buildSchedulePaceLine(preferences.schedulePace);
+  if (paceLine) parts.push(paceLine);
 
   if (preferences.travelers || preferences.rooms) {
     const t = preferences.travelers ?? 2;
@@ -183,7 +203,7 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     "For every day in the itinerary, set the `location` field to the city or region for that day (e.g. \"Rome\", \"Amalfi Coast\", \"Dolomites\"). " +
     "For multi-destination trips: call search_hotels SEPARATELY for EACH destination city — one tool call per city, using the correct city name. " +
     "For multi-destination trips: call search_activities AND search_restaurants SEPARATELY for EACH destination city — one tool call per city. Do NOT call these tools for the departure airport city. " +
-    "For activities and restaurants: include a `location` field on every item naming the specific city or neighbourhood it belongs to (e.g. \"Rome\", \"Amalfi Coast\"). " +
+    "For activities and restaurants: include a `location` field on every item naming the specific city or neighborhood it belongs to (e.g. \"Rome\", \"Amalfi Coast\"). " +
     "When search_restaurants returns options with Michelin Guide recognition (stars, Bib Gourmand) that fit the traveller's budget, favor those in your picks and call it out explicitly in your write-up — it's a real, verifiable distinction worth naming, not just a rating number. " +
     (preferences.avoidLongQueues ? "The traveller wants to avoid long waits at the main sights. When search_activities returns options with skip-the-line, early-access, or reserved-entry wording, favor those over general-admission equivalents for the same landmark, even if slightly pricier — and mention explicitly in your write-up why a pick avoids the queue. " : "") +
     (preferences.dayTripRequested ? "The traveller wants one day of the trip given over to an out-of-town day trip. When search_activities returns a \"Full day\" excursion outside the main city (not a museum or in-city tour), include it and schedule it as its own dedicated day in the day-by-day plan — don't split it across a day with other in-city activities. If no such day-trip option exists in the results, say so plainly in your summary rather than inventing one. " : "") +
@@ -356,6 +376,7 @@ export function buildSchedulePickPrompt(
 ): string {
   const vibeStr = preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
   const scheduleDietaryLine = buildDietaryLine(preferences);
+  const paceLine = buildSchedulePaceLine(preferences.schedulePace);
   const dayList = days.map((d) => `- day ${d.dayNumber}: "${d.theme}" (${d.date})`).join("\n");
   const actList = activities.map((a) =>
     `- id="act-${a.id}" [activity] ${a.name} | ${a.duration} | $${a.price} | ${a.description}`
@@ -364,10 +385,10 @@ export function buildSchedulePickPrompt(
     `- id="rest-${r.id}" [restaurant] ${r.name} | ${r.tier} | ${r.cuisine} | ${r.description}`
   ).join("\n");
 
-  return `Arrange ${city}'s activities and restaurants across its ${days.length} day(s) in this itinerary.${vibeStr}${scheduleDietaryLine}\n\n` +
+  return `Arrange ${city}'s activities and restaurants across its ${days.length} day(s) in this itinerary.${vibeStr}${scheduleDietaryLine}${paceLine ? ` ${paceLine}` : ""}\n\n` +
     `Days:\n${dayList}\n\nActivities:\n${actList}\n\nRestaurants:\n${restList}\n\n` +
     `For each item worth including, call make_selection with its id and the dayNumber you're assigning it to, plus a one-sentence reason. ` +
-    `Guidelines: don't overload a single day (roughly 1-2 activities and 1-2 restaurants per day is plenty), sequence logically, ` +
+    `Guidelines: don't overload a single day (roughly 1-2 activities and 1-2 restaurants per day is plenty, or fewer if the pacing preference above says to leave the day open), sequence logically, ` +
     `and it's fine to leave out an item entirely if the day is already full or it doesn't fit the pacing. ` +
     `Also include a 1-2 sentence "summary" explaining your overall approach for this city.`;
 }

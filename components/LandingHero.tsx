@@ -15,6 +15,7 @@ const STEPS = [
   { icon: "💰", label: "Budget" },
   { icon: "✨", label: "Vibe" },
   { icon: "🎯", label: "Activities" },
+  { icon: "🧭", label: "Planning Style" },
   { icon: "🏨", label: "Lodging" },
   { icon: "🚗", label: "Transport" },
   { icon: "🗺️", label: "Itinerary" },
@@ -116,7 +117,7 @@ export function LandingHero() {
           ))}
         </div>
         <p className="mt-3 text-xs text-slate-400">
-          9 guided steps to help you plan everything you need for your next dream vacation
+          10 guided steps to help you plan everything you need for your next dream vacation
         </p>
       </div>
 

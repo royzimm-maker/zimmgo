@@ -283,7 +283,7 @@ export const ADD_TO_WANDERLOG_TOOL: Anthropic.Tool = {
           properties: {
             label: { type: "string", description: "Short name of the thing to save, e.g. a restaurant, activity, or place name" },
             source: { type: "string", enum: ["activity", "restaurant", "discovery", "custom"], description: "What kind of item this is — use \"custom\" if unsure" },
-            location: { type: "string", description: "City or neighbourhood, if known" },
+            location: { type: "string", description: "City or neighborhood, if known" },
             description: { type: "string", description: "One short sentence on what it actually is — enough that the traveller recognizes it when reading their Wanderlog months later, without having to remember this conversation." },
           },
           required: ["label", "source"],
@@ -318,7 +318,7 @@ export const UPDATE_LODGING_PREFERENCES_TOOL: Anthropic.Tool = {
         type: "array",
         items: { type: "string" },
         description:
-          "The traveller's full desired list of must-have amenities, drawn from: Free breakfast, Pool, Gym, Concierge, Airport transfer, Rooftop bar, Spa, City centre location, Kitchen / kitchenette, High walkability. Carry forward their existing selections unless they're clearly replacing them. Omit if not changing.",
+          "The traveller's full desired list of must-have amenities, drawn from: Free breakfast, Pool, Gym, Concierge, Airport transfer, Rooftop bar, Spa, City center location, Kitchen / kitchenette, High walkability. Carry forward their existing selections unless they're clearly replacing them. Omit if not changing.",
       },
       other_amenity: {
         type: "string",

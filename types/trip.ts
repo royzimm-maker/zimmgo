@@ -5,6 +5,7 @@ export type StepId =
   | "vibe"
   | "dates"
   | "budget"
+  | "planningMode"
   | "lodging"
   | "airlines"
   | "transportation"
@@ -213,7 +214,20 @@ export interface TripPreferences {
   // required to proceed) when getVisaRequirementsForTrip found at least one
   // country that needs a visa. See lib/data/visaRequirements.ts.
   visaAcknowledged?: boolean;
+  // How tightly the traveller wants each day scheduled — feeds ZiGy's
+  // day-by-day arranging (both initial generation and the "Let ZiGy
+  // arrange" smart-pick) so a "wide open" traveller doesn't get a packed
+  // itinerary and vice versa. Undefined = no stated preference.
+  schedulePace?: SchedulePace;
+  // Set on the Planning Mode step when the traveller chooses "Let ZiGy plan
+  // my whole trip" — tells the Itinerary step to run the full auto-plan
+  // orchestration (hotel/activities/restaurants picks + day-by-day
+  // scheduling, city by city) instead of showing the manual selection
+  // wizard, landing the traveller straight on the finished plan.
+  autoPlanEverything?: boolean;
 }
+
+export type SchedulePace = "wide_open" | "one_anchor" | "fully_programmed";
 
 // ─── Neighborhood option ──────────────────────────────────────────────────────
 export interface NeighborhoodOption {
@@ -434,6 +448,7 @@ export const ORDERED_STEPS: StepId[] = [
   "budget",
   "vibe",
   "activities",
+  "planningMode",
   "lodging",
   "transportation",
   "itinerary",
@@ -446,6 +461,7 @@ export const STEP_META: Record<StepId, Omit<PlanningStep, "completed">> = {
   vibe:           { id: "vibe",           label: "Vibe",           description: "What's the mood?",               skippable: false },
   dates:          { id: "dates",          label: "Dates",          description: "When are you going?",            skippable: false },
   budget:         { id: "budget",         label: "Budget",         description: "What's your daily spend?",       skippable: false },
+  planningMode:   { id: "planningMode",   label: "Planning Style", description: "Do it yourself or let ZiGy handle it?", skippable: false },
   lodging:        { id: "lodging",        label: "Lodging",        description: "Hotels or Airbnb?",              skippable: false },
   airlines:       { id: "airlines",       label: "Flights",        description: "Any airline preferences?",       skippable: true  },
   transportation: { id: "transportation", label: "Getting Around", description: "How will you move locally?",     skippable: false },

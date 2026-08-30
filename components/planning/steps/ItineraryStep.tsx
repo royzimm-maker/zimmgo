@@ -12,6 +12,7 @@ import { VisaRequirements } from "@/components/planning/VisaRequirements";
 import { useTripStore } from "@/lib/store/tripStore";
 import { cn, extractApiErrorMessage, formatDate, groupItineraryDaysByLocation, parseLocalDate } from "@/lib/utils";
 import { getVisaRequirementsForTrip } from "@/lib/data/visaRequirements";
+import { autoPlanTrip } from "@/lib/planning/autoPlanTrip";
 import type { GeneratedItinerary } from "@/types/trip";
 
 // Sourced from the generated days themselves, not the raw preferences — the
@@ -30,7 +31,10 @@ function tripDateRangeLabel(days: GeneratedItinerary["days"]): string | null {
 }
 
 export function ItineraryStep() {
-  const { trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep, markItineraryReviewed, setCityNights, setDates } = useTripStore();
+  const {
+    trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep, markItineraryReviewed, setCityNights, setDates,
+    setSelectedHotelForCity, setSelectedActivityIds, setSelectedRestaurantIds, saveFinalizedPlan, setAutoPlanEverything,
+  } = useTripStore();
   const latest = trip.itineraries[trip.itineraries.length - 1] ?? null;
   const isPersonalized = Boolean(latest?.finalizedPlan);
   const dateRangeLabel = latest ? tripDateRangeLabel(latest.days) : null;
@@ -144,6 +148,55 @@ export function ItineraryStep() {
 
   const autoStartRef = useRef(false);
   const prevPersonalizedRef = useRef(isPersonalized);
+
+  // "Let ZiGy plan my whole trip" (chosen on the Planning Mode step) — once
+  // the itinerary lands, run the same hotel/activities/restaurants smart-
+  // picks and day-by-day arranging the wizard and Refine step would
+  // otherwise ask for one screen at a time, city by city, then mark review
+  // complete so the traveller lands straight on the finished plan.
+  const [autoPlanning, setAutoPlanning] = useState(false);
+  const [autoPlanError, setAutoPlanError] = useState<string | null>(null);
+  const autoPlanRef = useRef(false);
+
+  useEffect(() => {
+    if (!latest || latest.reviewCompleted || !trip.preferences.autoPlanEverything) return;
+    if (autoPlanRef.current) return;
+    autoPlanRef.current = true;
+    (async () => {
+      setAutoPlanning(true);
+      setAutoPlanError(null);
+      try {
+        const currentPrefs = useTripStore.getState().trip.preferences;
+        const result = await autoPlanTrip(latest, currentPrefs);
+        for (const [city, hotel] of Object.entries(result.selectedHotelsByCity)) {
+          setSelectedHotelForCity(city, hotel);
+        }
+        setSelectedActivityIds(result.selectedActivityIds);
+        setSelectedRestaurantIds(result.selectedRestaurantIds);
+        const placed = new Set(Object.values(result.dayCards).flat());
+        const allCardIds = [
+          ...latest.activities.map((a) => `act-${a.id}`),
+          ...(latest.restaurants ?? []).map((r) => `rest-${r.id}`),
+        ];
+        const bankCards = allCardIds.filter((id) => !placed.has(id));
+        saveFinalizedPlan(latest.id, { dayCards: result.dayCards, bankCards });
+        markItineraryReviewed(latest.id);
+      } catch (e: unknown) {
+        // Fall back to the manual wizard rather than leaving the traveller
+        // stuck on a permanent loading state — a real failure here (bad API
+        // key, network blip) shouldn't block the whole trip from being planned.
+        setAutoPlanError(
+          e instanceof Error
+            ? `ZiGy couldn't finish planning automatically (${e.message}) — go through it yourself below instead.`
+            : "ZiGy couldn't finish planning automatically — go through it yourself below instead."
+        );
+        setAutoPlanEverything(false);
+      } finally {
+        setAutoPlanning(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latest?.id, latest?.reviewCompleted, trip.preferences.autoPlanEverything]);
 
   useEffect(() => {
     const state = useTripStore.getState();
@@ -379,8 +432,24 @@ export function ItineraryStep() {
         </Card>
       )}
 
+      {/* Auto-plan error — falls back to the manual wizard below once shown */}
+      {autoPlanError && (
+        <Card className="border-amber-200 bg-amber-50 mb-4">
+          <p className="text-sm text-amber-700">{autoPlanError}</p>
+        </Card>
+      )}
+
+      {/* Auto-plan loading state */}
+      {autoPlanning && (
+        <div className="flex flex-col items-center gap-3 py-14 text-center">
+          <div className="h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin" />
+          <p className="text-sm font-semibold text-slate-700">ZiGy is planning your whole trip…</p>
+          <p className="text-xs text-slate-400 max-w-xs">Lodging, activities, restaurants, and the day-by-day schedule — one city at a time.</p>
+        </div>
+      )}
+
       {/* Itinerary output */}
-      {latest && !latest.reviewCompleted && (
+      {latest && !latest.reviewCompleted && !autoPlanning && !trip.preferences.autoPlanEverything && (
         <ItinerarySelectionWizard
           key={latest.id}
           itinerary={latest}

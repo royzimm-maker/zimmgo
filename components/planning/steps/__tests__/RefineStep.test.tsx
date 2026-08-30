@@ -40,6 +40,11 @@ function freshTrip(overrides: Partial<Trip> = {}): Trip {
     preferences: {
       activities: [], activityRankings: {}, vibes: [], transportation: [],
       destination: { cities: ["Barcelona", "Andalusia"], displayName: "Spain" },
+      // RefineStep's board only shows activities/restaurants the traveller
+      // actually picked in the review wizard — both fixtures are "picked"
+      // by default so these tests exercise scheduling, not selection.
+      selectedActivityIds: ["a1", "a2"],
+      selectedRestaurantIds: ["r1", "r2"],
     },
     currentStep: "refine",
     completedSteps: [],

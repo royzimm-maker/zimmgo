@@ -95,17 +95,45 @@ describe("assembleItineraryDocxModel — day resolution", () => {
     expect(day1.bullets).toEqual(["Check in", "Walk the Gothic Quarter", "Dinner near the hotel"]);
   });
 
-  it("treats an isLocalFavorite activity as a plain bullet — no special box or callout", () => {
-    // v2 of the skill dropped HIGHLIGHT/OPTIONAL/TIP boxes entirely in
-    // favor of restraint; isLocalFavorite no longer produces anything
-    // beyond an ordinary bullet.
+  it("treats an isLocalFavorite activity as a plain bullet — no per-item box or callout", () => {
+    // v2 of the skill dropped OPTIONAL/TIP boxes entirely in favor of
+    // restraint; isLocalFavorite still produces an ordinary bullet like any
+    // other item, it just also feeds the day-level highlight (below).
     const itinerary = makeItinerary({
       finalizedPlan: { dayCards: { 1: ["act-a1", "act-a2"], 2: [], 3: [] }, bankCards: [] },
     });
     const model = assembleItineraryDocxModel(itinerary, makePreferences());
     const day1 = model.sections[0].days[0];
     expect(day1.bullets).toEqual(["Gaudi Tour", "Tapas Crawl"]);
-    expect(day1).not.toHaveProperty("highlights");
+  });
+});
+
+describe("assembleItineraryDocxModel — day highlight", () => {
+  it("surfaces a real isLocalFavorite pick scheduled that day as the highlight", () => {
+    const itinerary = makeItinerary({
+      finalizedPlan: { dayCards: { 1: ["act-a2", "act-a1"], 2: [], 3: [] }, bankCards: [] },
+    });
+    const model = assembleItineraryDocxModel(itinerary, makePreferences());
+    expect(model.sections[0].days[0].highlight).toEqual({
+      name: "Gaudi Tour",
+      reason: "A deep dive into Gaudi's most iconic Barcelona buildings.",
+    });
+  });
+
+  it("has no highlight when nothing scheduled that day is a local favorite", () => {
+    const itinerary = makeItinerary({
+      finalizedPlan: { dayCards: { 1: ["act-a2"], 2: [], 3: [] }, bankCards: [] },
+    });
+    const model = assembleItineraryDocxModel(itinerary, makePreferences());
+    expect(model.sections[0].days[0].highlight).toBeNull();
+  });
+
+  it("never fabricates a highlight when nothing was scheduled day-by-day yet", () => {
+    // No finalizedPlan — the day's bullets come from the AI's own free-text
+    // blurbs with no structured link back to a specific ActivityOption, so
+    // there's no real pick to point to.
+    const model = assembleItineraryDocxModel(makeItinerary(), makePreferences());
+    expect(model.sections[0].days[0].highlight).toBeNull();
   });
 });
 

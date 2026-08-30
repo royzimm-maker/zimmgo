@@ -31,7 +31,7 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
     { name: "Hotel de Russie",          stars: 5, hotelType: "hotel",    location: "Via del Babuino, Rome",      rating: 9.5, ratingSource: "Google Reviews", reviewCount: 2100, highlights: ["Secret garden", "Rocco Forte spa", "Steps from Piazza del Popolo"] },
     { name: "J.K. Place Roma",          stars: 5, hotelType: "boutique", location: "Via di Monte d'Oro, Rome",   rating: 9.4, ratingSource: "TripAdvisor",    reviewCount: 980,  highlights: ["Intimate boutique feel", "Rooftop terrace", "Near the Pantheon"] },
     { name: "Hotel Raphael",            stars: 4, hotelType: "boutique", location: "Largo Febo, Rome",           rating: 9.0, ratingSource: "Booking.com",    reviewCount: 2400, highlights: ["Ivy-covered façade", "Rooftop with Pantheon views", "Art collection"] },
-    { name: "Hotel Santa Maria",        stars: 4, hotelType: "hotel",    location: "Trastevere, Rome",           rating: 8.8, ratingSource: "Google Reviews", reviewCount: 3100, highlights: ["Trastevere neighbourhood", "Orange garden courtyard", "Quiet side streets"] },
+    { name: "Hotel Santa Maria",        stars: 4, hotelType: "hotel",    location: "Trastevere, Rome",           rating: 8.8, ratingSource: "Google Reviews", reviewCount: 3100, highlights: ["Trastevere neighborhood", "Orange garden courtyard", "Quiet side streets"] },
     { name: "Hotel Arco del Lauro",     stars: 3, hotelType: "guesthouse", location: "Trastevere, Rome",         rating: 8.6, ratingSource: "Booking.com",    reviewCount: 4200, highlights: ["Charming guesthouse", "Walking distance to everything", "Great value"] },
     { name: "Hotel Navona",             stars: 3, hotelType: "hotel",    location: "Piazza Navona, Rome",        rating: 8.2, ratingSource: "TripAdvisor",    reviewCount: 5600, highlights: ["Unbeatable location", "Simple and clean", "Budget-friendly"] },
   ],
@@ -54,15 +54,15 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
   naples: [
     { name: "Grand Hotel Vesuvio",      stars: 5, hotelType: "hotel",    location: "Via Partenope, Naples",   rating: 9.4, ratingSource: "Google Reviews", reviewCount: 1900, highlights: ["Bay of Naples views", "Rooftop restaurant", "Historic since 1882"] },
     { name: "Romeo Hotel",              stars: 5, hotelType: "boutique", location: "Municipio, Naples",       rating: 9.2, ratingSource: "TripAdvisor",    reviewCount: 1100, highlights: ["Design-forward interiors", "Rooftop pool over the port", "Sushi bar"] },
-    { name: "Hotel Piazza Bellini",     stars: 4, hotelType: "boutique", location: "Centro Storico, Naples",  rating: 8.9, ratingSource: "Booking.com",    reviewCount: 1600, highlights: ["Contemporary art collection", "Steps from Cappella Sansevero", "Historic centre"] },
-    { name: "Hotel Mediterraneo",       stars: 4, hotelType: "hotel",    location: "Santa Lucia, Naples",     rating: 8.7, ratingSource: "Google Reviews", reviewCount: 2400, highlights: ["Harbour views", "Rooftop terrace", "Central location"] },
+    { name: "Hotel Piazza Bellini",     stars: 4, hotelType: "boutique", location: "Centro Storico, Naples",  rating: 8.9, ratingSource: "Booking.com",    reviewCount: 1600, highlights: ["Contemporary art collection", "Steps from Cappella Sansevero", "Historic center"] },
+    { name: "Hotel Mediterraneo",       stars: 4, hotelType: "hotel",    location: "Santa Lucia, Naples",     rating: 8.7, ratingSource: "Google Reviews", reviewCount: 2400, highlights: ["Harbor views", "Rooftop terrace", "Central location"] },
     { name: "Belle Arti Resort",        stars: 3, hotelType: "guesthouse", location: "Centro Storico, Naples", rating: 8.5, ratingSource: "TripAdvisor",   reviewCount: 900,  highlights: ["Boutique feel", "Near the archaeological museum", "Great value"] },
     { name: "Hotel Il Convento",        stars: 3, hotelType: "hotel",    location: "Quartieri Spagnoli, Naples", rating: 8.0, ratingSource: "Booking.com", reviewCount: 1800, highlights: ["Character-filled former convent", "Walkable to everything", "Budget-friendly"] },
   ],
   milan: [
     { name: "Bulgari Hotel Milano",     stars: 5, hotelType: "hotel",    location: "Brera, Milan",            rating: 9.5, ratingSource: "Google Reviews", reviewCount: 1400, highlights: ["Private garden oasis", "Steps from La Scala", "Iconic spa"] },
     { name: "Room Mate Giulia",         stars: 5, hotelType: "boutique", location: "Duomo, Milan",            rating: 9.1, ratingSource: "TripAdvisor",    reviewCount: 1700, highlights: ["Design hotel facing the Duomo", "Rooftop terrace", "Playful modern interiors"] },
-    { name: "Hotel Viu Milan",          stars: 4, hotelType: "boutique", location: "Isola, Milan",            rating: 9.0, ratingSource: "Booking.com",    reviewCount: 1200, highlights: ["Rooftop infinity pool", "Trendy Isola neighbourhood", "Design-forward rooms"] },
+    { name: "Hotel Viu Milan",          stars: 4, hotelType: "boutique", location: "Isola, Milan",            rating: 9.0, ratingSource: "Booking.com",    reviewCount: 1200, highlights: ["Rooftop infinity pool", "Trendy Isola neighborhood", "Design-forward rooms"] },
     { name: "NH Collection Milano President", stars: 4, hotelType: "hotel", location: "Porta Romana, Milan",  rating: 8.6, ratingSource: "Google Reviews", reviewCount: 2500, highlights: ["Business-friendly", "Fashion district access", "Reliable comfort"] },
     { name: "Maison Borella",           stars: 3, hotelType: "guesthouse", location: "Navigli, Milan",        rating: 8.7, ratingSource: "TripAdvisor",    reviewCount: 1000, highlights: ["Canal-side charm", "Navigli nightlife nearby", "Boutique feel"] },
     { name: "Hotel Berna",              stars: 3, hotelType: "hotel",    location: "Stazione Centrale, Milan", rating: 7.9, ratingSource: "Booking.com",   reviewCount: 3200, highlights: ["Steps from Central Station", "Clean and simple", "Budget-friendly"] },
@@ -76,7 +76,7 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
     { name: "Albergo A'Scalinatella",   stars: 3, hotelType: "guesthouse", location: "Ravello",                  rating: 8.7, ratingSource: "TripAdvisor",    reviewCount: 1900, highlights: ["Quiet Ravello hilltop", "Garden with views", "Family-run charm"] },
   ],
   sicily: [
-    { name: "Villa Igiea",              stars: 5, hotelType: "hotel",    location: "Acquasanta, Palermo",      rating: 9.4, ratingSource: "Google Reviews", reviewCount: 1100, highlights: ["Belle Époque waterfront palace", "Rocco Forte spa", "Private harbour"] },
+    { name: "Villa Igiea",              stars: 5, hotelType: "hotel",    location: "Acquasanta, Palermo",      rating: 9.4, ratingSource: "Google Reviews", reviewCount: 1100, highlights: ["Belle Époque waterfront palace", "Rocco Forte spa", "Private harbor"] },
     { name: "San Domenico Palace",      stars: 5, hotelType: "hotel",    location: "Taormina",                  rating: 9.6, ratingSource: "TripAdvisor",    reviewCount: 890,  highlights: ["Former 14th-century monastery", "Etna and sea views", "White Lotus filming location"] },
     { name: "Hotel Villa Athena",       stars: 4, hotelType: "boutique", location: "Agrigento",                 rating: 9.2, ratingSource: "Booking.com",    reviewCount: 1600, highlights: ["Views of the Valley of the Temples", "Infinity pool facing the ruins", "Quiet countryside setting"] },
     { name: "Ortea Palace Hotel",       stars: 4, hotelType: "hotel",    location: "Ortigia, Syracuse",         rating: 8.9, ratingSource: "Google Reviews", reviewCount: 1400, highlights: ["Baroque old-town setting", "Rooftop restaurant", "Steps from the Duomo"] },
@@ -102,9 +102,9 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
   cinque: [
     { name: "Hotel Porto Roca",         stars: 4, hotelType: "hotel",    location: "Monterosso al Mare, Cinque Terre", rating: 9.2, ratingSource: "Google Reviews", reviewCount: 1100, highlights: ["Clifftop with sea views", "Private beach access", "Terrace restaurant"] },
     { name: "La Mala",                  stars: 4, hotelType: "boutique", location: "Manarola, Cinque Terre",    rating: 9.4, ratingSource: "TripAdvisor",    reviewCount: 620,  highlights: ["Adults-only clifftop suites", "Panoramic terrace", "No cars — boat or trail access only"] },
-    { name: "Locanda Ca' dei Duxi",     stars: 3, hotelType: "guesthouse", location: "Riomaggiore, Cinque Terre", rating: 9.0, ratingSource: "Booking.com",  reviewCount: 1400, highlights: ["Village-centre location", "Home-style breakfast", "Family-run"] },
-    { name: "Hotel Gianni Franzi",      stars: 3, hotelType: "hotel",    location: "Vernazza, Cinque Terre",    rating: 8.7, ratingSource: "Google Reviews", reviewCount: 1800, highlights: ["Harbour-front rooms", "Castle-view terrace restaurant", "Central Vernazza"] },
-    { name: "Albergo Marina Piccola",   stars: 3, hotelType: "hotel",    location: "Manarola, Cinque Terre",    rating: 8.5, ratingSource: "TripAdvisor",    reviewCount: 1200, highlights: ["Seafront terrace", "Simple comfortable rooms", "Steps from the harbour"] },
+    { name: "Locanda Ca' dei Duxi",     stars: 3, hotelType: "guesthouse", location: "Riomaggiore, Cinque Terre", rating: 9.0, ratingSource: "Booking.com",  reviewCount: 1400, highlights: ["Village-center location", "Home-style breakfast", "Family-run"] },
+    { name: "Hotel Gianni Franzi",      stars: 3, hotelType: "hotel",    location: "Vernazza, Cinque Terre",    rating: 8.7, ratingSource: "Google Reviews", reviewCount: 1800, highlights: ["Harbor-front rooms", "Castle-view terrace restaurant", "Central Vernazza"] },
+    { name: "Albergo Marina Piccola",   stars: 3, hotelType: "hotel",    location: "Manarola, Cinque Terre",    rating: 8.5, ratingSource: "TripAdvisor",    reviewCount: 1200, highlights: ["Seafront terrace", "Simple comfortable rooms", "Steps from the harbor"] },
     { name: "Ostello Corniglia",        stars: 3, hotelType: "guesthouse", location: "Corniglia, Cinque Terre", rating: 8.0, ratingSource: "Booking.com",    reviewCount: 700,  highlights: ["Hilltop village, fewer crowds", "Terrace views over the vineyards", "Budget-friendly"] },
   ],
   athens: [
@@ -117,7 +117,7 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
     { name: "Katikies Santorini",       stars: 5, hotelType: "boutique", location: "Oia, Santorini",           rating: 9.7, ratingSource: "Google Reviews", reviewCount: 980,  highlights: ["Iconic cliffside caldera views", "Infinity pools", "Cave-style suites"] },
     { name: "Canaves Oia Suites",       stars: 4, hotelType: "boutique", location: "Oia, Santorini",           rating: 9.3, ratingSource: "Booking.com",    reviewCount: 1100, highlights: ["Whitewashed cave suites", "Private plunge pools", "Sunset views"] },
     { name: "Aroma Suites",             stars: 4, hotelType: "boutique", location: "Fira, Santorini",          rating: 8.9, ratingSource: "Google Reviews", reviewCount: 900,  highlights: ["Caldera views without Oia prices", "Infinity pool", "Central Fira location"] },
-    { name: "Villa Roussa",             stars: 3, hotelType: "guesthouse", location: "Fira, Santorini",        rating: 8.2, ratingSource: "Booking.com",    reviewCount: 1300, highlights: ["Inland, budget-friendly", "Walking distance to Fira centre", "Simple comfortable rooms"] },
+    { name: "Villa Roussa",             stars: 3, hotelType: "guesthouse", location: "Fira, Santorini",        rating: 8.2, ratingSource: "Booking.com",    reviewCount: 1300, highlights: ["Inland, budget-friendly", "Walking distance to Fira center", "Simple comfortable rooms"] },
   ],
   thessaloniki: [
     { name: "Makedonia Palace",         stars: 5, hotelType: "hotel",    location: "Nea Paralia, Thessaloniki", rating: 9.1, ratingSource: "Google Reviews", reviewCount: 1400, highlights: ["Waterfront promenade location", "Rooftop pool", "Panoramic Thermaic Gulf views"] },
@@ -192,22 +192,22 @@ const HOTEL_DB: Record<string, (Partial<HotelOption> & { hotelType?: HotelType }
   paris: [
     { name: "Le Bristol Paris",       stars: 5, hotelType: "hotel",    location: "8th arr., Paris",   rating: 9.5, ratingSource: "Google Reviews", reviewCount: 2100, highlights: ["Palace hotel", "3★ Michelin restaurant", "Garden courtyard"] },
     { name: "Hôtel Costes",           stars: 4, hotelType: "boutique", location: "Rue Saint-Honoré",  rating: 8.9, ratingSource: "TripAdvisor",    reviewCount: 1850, highlights: ["Iconic Paris bar", "Stunning decor", "Fashion district"] },
-    { name: "Mama Shelter Paris",     stars: 4, hotelType: "boutique", location: "20th arr., Paris",  rating: 8.4, ratingSource: "Booking.com",    reviewCount: 5200, highlights: ["Design-led boutique", "Great rooftop", "Vibrant neighbourhood"] },
+    { name: "Mama Shelter Paris",     stars: 4, hotelType: "boutique", location: "20th arr., Paris",  rating: 8.4, ratingSource: "Booking.com",    reviewCount: 5200, highlights: ["Design-led boutique", "Great rooftop", "Vibrant neighborhood"] },
     { name: "Ibis Paris Gare de Lyon",stars: 3, hotelType: "hotel",    location: "12th arr., Paris",  rating: 7.8, ratingSource: "Booking.com",    reviewCount: 7400, highlights: ["Metro access", "Clean & reliable", "Budget pick"] },
     { name: "Generator Paris",        stars: 3, hotelType: "guesthouse", location: "10th arr., Paris",rating: 8.0, ratingSource: "TripAdvisor",    reviewCount: 4900, highlights: ["Trendy hostel-hotel", "Canal Saint-Martin", "Social atmosphere"] },
   ],
   iceland: [
     { name: "ION Adventure Hotel",    stars: 4, hotelType: "boutique", location: "Nesjavellir Geothermal Area", rating: 9.1, ratingSource: "TripAdvisor",    reviewCount: 870,  highlights: ["Northern lights viewing", "Lava field views", "Hot springs"] },
-    { name: "Reykjavik EDITION",      stars: 5, hotelType: "hotel",    location: "Reykjavik harbour",           rating: 9.3, ratingSource: "Google Reviews", reviewCount: 1200, highlights: ["Harbour views", "Rooftop bar", "Spa"] },
+    { name: "Reykjavik EDITION",      stars: 5, hotelType: "hotel",    location: "Reykjavik harbor",           rating: 9.3, ratingSource: "Google Reviews", reviewCount: 1200, highlights: ["Harbor views", "Rooftop bar", "Spa"] },
     { name: "Hotel Rangá",            stars: 4, hotelType: "boutique", location: "South Iceland",               rating: 9.4, ratingSource: "Booking.com",    reviewCount: 640,  highlights: ["Aurora observatory", "Romantic", "Remote wilderness"] },
     { name: "Guesthouse Baldursbra",  stars: 3, hotelType: "guesthouse", location: "Reykjavik",                 rating: 8.3, ratingSource: "Booking.com",    reviewCount: 1100, highlights: ["Cosy guesthouse", "Walking distance to city", "Friendly hosts"] },
   ],
   default: [
-    { name: "Four Seasons",           stars: 5, hotelType: "resort",   location: "City centre",       rating: 9.3, ratingSource: "Google Reviews", reviewCount: 2800, highlights: ["World-class service", "Exceptional dining", "Spa"] },
+    { name: "Four Seasons",           stars: 5, hotelType: "resort",   location: "City center",       rating: 9.3, ratingSource: "Google Reviews", reviewCount: 2800, highlights: ["World-class service", "Exceptional dining", "Spa"] },
     { name: "Rosewood Collection",    stars: 5, hotelType: "boutique", location: "Prime location",    rating: 9.1, ratingSource: "TripAdvisor",    reviewCount: 1900, highlights: ["Iconic design", "Butler service", "Local experiences"] },
-    { name: "The Grand",              stars: 5, hotelType: "hotel",    location: "City centre",       rating: 9.0, ratingSource: "Google Reviews", reviewCount: 2400, highlights: ["Grand heritage building", "Fine dining", "Concierge"] },
-    { name: "Maison Boutique",        stars: 4, hotelType: "boutique", location: "Old town",          rating: 8.9, ratingSource: "Google Reviews", reviewCount: 1800, highlights: ["Local art collection", "Rooftop terrace", "Neighbourhood feel"] },
-    { name: "The Mercure",            stars: 3, hotelType: "hotel",    location: "City centre",       rating: 8.0, ratingSource: "Booking.com",    reviewCount: 4500, highlights: ["Reliable mid-range", "Good location", "Clean rooms"] },
+    { name: "The Grand",              stars: 5, hotelType: "hotel",    location: "City center",       rating: 9.0, ratingSource: "Google Reviews", reviewCount: 2400, highlights: ["Grand heritage building", "Fine dining", "Concierge"] },
+    { name: "Maison Boutique",        stars: 4, hotelType: "boutique", location: "Old town",          rating: 8.9, ratingSource: "Google Reviews", reviewCount: 1800, highlights: ["Local art collection", "Rooftop terrace", "Neighborhood feel"] },
+    { name: "The Mercure",            stars: 3, hotelType: "hotel",    location: "City center",       rating: 8.0, ratingSource: "Booking.com",    reviewCount: 4500, highlights: ["Reliable mid-range", "Good location", "Clean rooms"] },
     { name: "ibis Styles",            stars: 3, hotelType: "hotel",    location: "Central district",  rating: 7.7, ratingSource: "TripAdvisor",    reviewCount: 5800, highlights: ["Great value", "Modern design", "Easy access"] },
   ],
 };
@@ -302,7 +302,7 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
     .slice(0, params.limit ?? 12)
     .map((h) => {
       const [lo, hi] = priceBand[h.stars ?? 5] ?? [60, 900];
-      const GENERIC = new Set(["city centre", "prime location", "old town", "central district"]);
+      const GENERIC = new Set(["city center", "prime location", "old town", "central district"]);
       const rawLoc = (h.location ?? "").toLowerCase();
       const fullLocation = GENERIC.has(rawLoc) ? params.destination : (h.location ?? params.destination);
       return {

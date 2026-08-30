@@ -6,9 +6,13 @@
 //
 // Deliberately omits GROUP NOTES (no named travellers/subgroups in ZimmGo's
 // data model) and CAR LOGISTICS boxes (no rental-car handoff tracking) — v2
-// of the skill also dropped HIGHLIGHT/OPTIONAL/TIP boxes entirely in favor
-// of plain bullets, so an activity's `isLocalFavorite` flag no longer gets
-// any special treatment here either; it's just a bullet like any other.
+// of the skill also dropped OPTIONAL/TIP boxes entirely in favor of plain
+// bullets, so an activity's `isLocalFavorite` flag gets no special
+// treatment as a bullet. One box type is back by request: a per-day
+// "if you only do one thing today" callout, built strictly from a real
+// isLocalFavorite pick placed on that day in the traveller's finalizedPlan
+// (see resolveDayHighlight) — never fabricated, and simply absent for a day
+// that has no such pick or hasn't been scheduled yet.
 // The glance table's column stays labeled "Notes", not "Confirmed
 // Bookings" like the reference example — nothing in ZimmGo is an actual
 // confirmed booking, and relabeling the column to imply otherwise would
@@ -40,6 +44,9 @@ export interface DocxDay {
   dateLabel: string; // "May 15"
   theme: string;
   bullets: string[];
+  // "If you only do one thing today" callout — only set when a real
+  // isLocalFavorite activity was placed on this day in the finalized plan.
+  highlight: { name: string; reason: string } | null;
 }
 
 export interface DocxSection {
@@ -103,6 +110,26 @@ function resolveDayBullets(
     return bullets;
   }
   return [...day.morning, ...day.afternoon, ...day.evening];
+}
+
+// Only ever set from a real, scheduled isLocalFavorite pick — the AI's own
+// free-text morning/afternoon/evening blurbs (no finalizedPlan yet) have no
+// structured link back to a specific ActivityOption, so a day that hasn't
+// been scheduled just gets no highlight rather than a guessed one.
+function resolveDayHighlight(
+  day: GeneratedItinerary["days"][number],
+  itinerary: GeneratedItinerary,
+  lookup: ReturnType<typeof cardLookup>
+): { name: string; reason: string } | null {
+  if (!itinerary.finalizedPlan) return null;
+  const cardIds = itinerary.finalizedPlan.dayCards[day.dayNumber] ?? [];
+  for (const id of cardIds) {
+    const act = lookup.acts[id];
+    if (act?.isLocalFavorite && act.description) {
+      return { name: act.name, reason: act.description };
+    }
+  }
+  return null;
 }
 
 function hotelWriteup(hotel: HotelOption): string {
@@ -204,6 +231,7 @@ export function assembleItineraryDocxModel(
       dateLabel: formatDate(day.date).replace(/^\w+,\s*/, ""),
       theme: day.theme,
       bullets: resolveDayBullets(day, itinerary, lookup),
+      highlight: resolveDayHighlight(day, itinerary, lookup),
     }));
 
     const { booked, options } = splitRestaurantsForLocation(leg.location, preferences, itinerary.restaurants ?? []);

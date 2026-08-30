@@ -37,7 +37,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
   ],
   italy: [
     { name: "Colosseum early-access tour",    category: "cultural",     duration: "2.5h", price: 65,  rating: 9.5, reviewCount: 28000, isLocalFavorite: false, description: "Beat the queues with skip-the-line early access and a guide who brings the gladiators back to life." },
-    { name: "Trastevere street food walk",    category: "food",         duration: "2.5h", price: 75,  rating: 9.3, reviewCount: 8400,  isLocalFavorite: true,  description: "Explore Rome's most authentic neighbourhood: supplì, fried artichokes, and a glass of house white." },
+    { name: "Trastevere street food walk",    category: "food",         duration: "2.5h", price: 75,  rating: 9.3, reviewCount: 8400,  isLocalFavorite: true,  description: "Explore Rome's most authentic neighborhood: supplì, fried artichokes, and a glass of house white." },
     { name: "Vatican Museums & Sistine Chapel",category: "cultural",    duration: "3h",   price: 85,  rating: 9.4, reviewCount: 45000, isLocalFavorite: false, description: "Reserved-entry tour that gets you in before the crowds. The ceiling is even more staggering in person." },
     { name: "Vespa tour of the old city",     category: "guided_walking_tour", duration: "3h", price: 120, rating: 9.6, reviewCount: 3200, isLocalFavorite: true,  description: "See the city the Roman way — on the back of a Vespa with a local guide." },
     { name: "Tivoli day trip: Villa d'Este & Hadrian's Villa", category: "cultural", duration: "Full day", price: 95, rating: 9.4, reviewCount: 3900, isLocalFavorite: false, description: "Renaissance fountains at Villa d'Este and the sprawling ruins of an emperor's retreat, an hour outside Rome with none of the city's crowds." },
@@ -55,7 +55,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Doge's Palace & St. Mark's Basilica skip-the-line tour", category: "cultural", duration: "3h", price: 85, rating: 9.5, reviewCount: 12000, isLocalFavorite: false, description: "Reserved entry to the Doge's private chambers and the Basilica's golden mosaics before the day-trip crowds arrive." },
     { name: "Venetian mask-making workshop",  category: "cultural",     duration: "2h",   price: 60,  rating: 9.2, reviewCount: 2100,  isLocalFavorite: true,  description: "A third-generation mascherari studio in Cannaregio — paint your own Carnevale mask to take home." },
     { name: "Grand Canal sunset gondola ride", category: "sailing",     duration: "1h",   price: 90,  rating: 9.6, reviewCount: 8400,  isLocalFavorite: true,  description: "Skip the San Marco touts and book a private gondolier through a local guide — the Rialto at golden hour is unmissable." },
-    { name: "Burano & Murano islands boat tour", category: "sailing",   duration: "5h",   price: 75,  rating: 9.3, reviewCount: 5200,  isLocalFavorite: false, description: "Lace-making Burano's candy-coloured houses and Murano's glass furnaces, away from the San Marco crowds." },
+    { name: "Burano & Murano islands boat tour", category: "sailing",   duration: "5h",   price: 75,  rating: 9.3, reviewCount: 5200,  isLocalFavorite: false, description: "Lace-making Burano's candy-colored houses and Murano's glass furnaces, away from the San Marco crowds." },
   ],
   naples: [
     { name: "Pompeii ruins guided tour",      category: "cultural",     duration: "4h",   price: 70,  rating: 9.6, reviewCount: 9800,  isLocalFavorite: false, description: "Walk the frozen streets of Pompeii with an archaeologist guide who brings 79 AD back into focus." },
@@ -96,7 +96,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
   ],
   cinque: [
     { name: "Sentiero Azzurro hike through all five villages", category: "hiking", duration: "Full day", price: 45, rating: 9.7, reviewCount: 4800, isLocalFavorite: true, description: "The classic blue trail linking Monterosso to Riomaggiore along the cliffs — buy the Cinque Terre Card for trail access." },
-    { name: "Vernazza harbour swim & pesto-making class", category: "food", duration: "3h", price: 65, rating: 9.4, reviewCount: 2100, isLocalFavorite: true, description: "Swim in Vernazza's tiny harbour, then learn real Ligurian pesto from a local — mortar and pestle, no shortcuts." },
+    { name: "Vernazza harbor swim & pesto-making class", category: "food", duration: "3h", price: 65, rating: 9.4, reviewCount: 2100, isLocalFavorite: true, description: "Swim in Vernazza's tiny harbor, then learn real Ligurian pesto from a local — mortar and pestle, no shortcuts." },
     { name: "Cinque Terre coastal boat tour", category: "sailing", duration: "4h", price: 85, rating: 9.6, reviewCount: 3600, isLocalFavorite: false, description: "See all five villages from the water — the only angle that shows why they're called the 'five lands'." },
     { name: "Manarola sunset photography walk", category: "photography", duration: "2h", price: 40, rating: 9.5, reviewCount: 1400, isLocalFavorite: false, description: "The most photographed village in Liguria at golden hour, with a guide who knows the quiet vantage points." },
   ],
@@ -115,7 +115,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
   ],
   seville: [
     { name: "Real Alcázar & Santa Cruz quarter tour", category: "cultural", duration: "3h", price: 65, rating: 9.5, reviewCount: 5600, isLocalFavorite: false, description: "The oldest royal palace still in use in Europe — Mudéjar architecture that inspired parts of Game of Thrones' Dorne." },
-    { name: "Flamenco show in Triana",            category: "cultural", duration: "1.5h", price: 40, rating: 9.3, reviewCount: 4200, isLocalFavorite: true, description: "Flamenco's actual birthplace neighbourhood, across the river from the tourist zone — raw and unpolished in the best way." },
+    { name: "Flamenco show in Triana",            category: "cultural", duration: "1.5h", price: 40, rating: 9.3, reviewCount: 4200, isLocalFavorite: true, description: "Flamenco's actual birthplace neighborhood, across the river from the tourist zone — raw and unpolished in the best way." },
     { name: "Seville Cathedral & Giralda tower climb", category: "cultural", duration: "2h", price: 35, rating: 9.2, reviewCount: 6100, isLocalFavorite: false, description: "The world's largest Gothic cathedral, with a ramp (not stairs) to the top of the Giralda for panoramic city views." },
     { name: "Tapas crawl through Santa Cruz & Alfalfa", category: "food", duration: "3h", price: 55, rating: 9.4, reviewCount: 3100, isLocalFavorite: true, description: "Hop between family-run bars for salmorejo, croquetas, and sherry the way sevillanos have for generations." },
     { name: "Ronda & white villages day trip", category: "photography", duration: "Full day", price: 95, rating: 9.5, reviewCount: 2600, isLocalFavorite: false, description: "A town split by a 100-metre gorge, plus the whitewashed pueblos blancos on the way — Andalusia's most dramatic day out from Seville." },
@@ -192,7 +192,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Whisky tasting in a historic Old Town cellar", category: "food", duration: "2h", price: 60, rating: 9.4, reviewCount: 1800, isLocalFavorite: true, description: "A guided flight through Scotland's whisky regions in a 16th-century vault beneath the Royal Mile." },
   ],
   glasgow: [
-    { name: "Glasgow mural trail & street art walk", category: "guided_walking_tour", duration: "2h", price: 30, rating: 9.0, reviewCount: 1600, isLocalFavorite: true, description: "The City Centre Mural Trail — dozens of large-scale street art pieces most visitors walk straight past." },
+    { name: "Glasgow mural trail & street art walk", category: "guided_walking_tour", duration: "2h", price: 30, rating: 9.0, reviewCount: 1600, isLocalFavorite: true, description: "The City Center Mural Trail — dozens of large-scale street art pieces most visitors walk straight past." },
     { name: "Kelvingrove Art Gallery & Museum tour", category: "cultural", duration: "2h", price: 25, rating: 9.1, reviewCount: 3400, isLocalFavorite: false, description: "A Victorian red-sandstone museum with everything from a Spitfire to Dalí — free entry, genuinely excellent collection." },
     { name: "Glasgow whisky & gin tasting",         category: "food",     duration: "2h",  price: 55,  rating: 9.2, reviewCount: 1400, isLocalFavorite: true, description: "Scotland's other whisky city — a guided tasting through Lowland and Highland drams in a West End bar." },
     { name: "West End & Ashton Lane food crawl",    category: "food", duration: "2.5h", price: 45, rating: 8.9, reviewCount: 1100, isLocalFavorite: true, description: "Glasgow's leafy, studenty West End — cobbled Ashton Lane's bars and the city's best casual food scene." },
@@ -208,7 +208,7 @@ const ACTIVITY_POOLS: Record<string, Partial<ActivityOption>[]> = {
     { name: "Scottish Highlands day trip from Edinburgh", category: "hiking", duration: "Full day", price: 110, rating: 9.5, reviewCount: 2900, isLocalFavorite: true, description: "Glencoe and Loch Ness in a single day, timed to reach the glens before the tour-bus convoys." },
   ],
   default: [
-    { name: "Private city food tour",            category: "food",     duration: "3h",  price: 95,  rating: 9.4, reviewCount: 2400, isLocalFavorite: true,  description: "Curated neighbourhoods and stops that locals love — vetted by our on-the-ground advisors." },
+    { name: "Private city food tour",            category: "food",     duration: "3h",  price: 95,  rating: 9.4, reviewCount: 2400, isLocalFavorite: true,  description: "Curated neighborhoods and stops that locals love — vetted by our on-the-ground advisors." },
     { name: "Sunrise hike with local guide",     category: "hiking",   duration: "5h",  price: 80,  rating: 9.2, reviewCount: 1800, isLocalFavorite: true,  description: "The best viewpoints before the tour groups arrive, with a guide who grew up here." },
     { name: "Cultural immersion workshop",       category: "cultural", duration: "3h",  price: 65,  rating: 9.0, reviewCount: 3200, isLocalFavorite: false, description: "Hands-on traditional crafts, cooking, or art — a memorable way to connect with local culture." },
     { name: "Private photography walk",          category: "photography", duration: "4h", price: 150, rating: 9.5, reviewCount: 800, isLocalFavorite: false, description: "A pro photographer takes you to the best light and hidden spots — you leave with stunning shots." },

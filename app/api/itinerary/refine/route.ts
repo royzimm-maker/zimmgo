@@ -5,7 +5,7 @@ import type { TripPreferences } from "@/types/trip";
 
 interface RefineBody {
   question: string;
-  contextItem: string;      // name of activity or neighbourhood being asked about
+  contextItem: string;      // name of activity or neighborhood being asked about
   contextType: "activity" | "neighborhood";
   preferences: TripPreferences;
 }
@@ -23,13 +23,14 @@ export async function POST(request: NextRequest) {
     }
 
     const dest = preferences.destination?.displayName ?? "the destination";
-    const itemLabel = contextType === "neighborhood" ? "neighbourhood" : "activity";
+    const itemLabel = contextType === "neighborhood" ? "neighborhood" : "activity";
 
     const systemPrompt =
       `You are ZimmGo, an expert travel advisor. The traveller is planning a trip to ${dest}. ` +
       `Answer their question about the ${itemLabel} "${contextItem}" concisely and helpfully. ` +
       `Be specific, practical, and enthusiastic. Keep your answer under 120 words. ` +
-      `If asked for alternatives, suggest 2–3 comparable options with a one-line description each.`;
+      `If asked for alternatives, suggest 2–3 comparable options with a one-line description each. ` +
+      `Always write in American English spelling (e.g. "neighborhood", "harbor", "color"), regardless of the destination.`;
 
     const client = getAnthropicClient();
     const response = await client.messages.create({
