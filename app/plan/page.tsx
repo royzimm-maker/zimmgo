@@ -15,7 +15,7 @@ export default function PlanPage() {
           <span className="inline-flex items-center gap-1 font-semibold">
             <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Beta</span>
           </span>
-          {" "}ZimmGo is an early prototype — recommendations are illustrative and not live booking data.
+          {" "}ZimmGo is an early prototype powered by Claude AI — recommendations are illustrative, not live booking data, and AI can make mistakes, so double-check anything important before you travel.
           {" "}
           <a href="/privacy" className="underline hover:text-amber-900">Privacy</a>
         </p>

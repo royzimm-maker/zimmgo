@@ -303,7 +303,7 @@ export async function renderItineraryDocx(model: DocxModel): Promise<Buffer> {
           children: [new Paragraph({
             tabStops: [{ type: TabStopType.RIGHT, position: CONTENT_WIDTH }],
             children: [
-              new TextRun({ text: "Illustrative itinerary — not booking confirmations", font: BODY_FONT, size: 14, color: "8A8578" }),
+              new TextRun({ text: "AI-generated, illustrative itinerary — not booking confirmations, verify before you travel", font: BODY_FONT, size: 14, color: "8A8578" }),
               new TextRun({ children: [new Tab(), PageNumber.CURRENT], font: BODY_FONT, italics: true, size: 16, color: NAVY }),
             ],
           })],

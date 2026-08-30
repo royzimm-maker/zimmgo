@@ -57,12 +57,12 @@ export function LandingHero() {
           {hasMultipleTrips && <TripSwitcher />}
           <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 sm:inline-flex">
             <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Beta</span>
-            Early prototype — not live booking data
+            AI-powered — may be inaccurate, not live booking data
           </span>
         </div>
       </nav>
       <p className="border-b border-amber-100 bg-amber-50/60 px-4 py-1 text-center text-[11px] text-amber-700 sm:hidden">
-        <span className="font-bold uppercase tracking-wide">Beta</span> · Early prototype, not live booking data
+        <span className="font-bold uppercase tracking-wide">Beta</span> · AI-powered — may be inaccurate, not live booking data
       </p>
 
       {/* Hero */}
