@@ -45,6 +45,16 @@ export function ItineraryStep() {
 
   const [error, setError] = useState<string | null>(null);
   const [showPicksBanner, setShowPicksBanner] = useState(false);
+  // Visa info is only useful once, right when the itinerary lands — not
+  // pinned above every hotel/restaurant/activity screen the traveller
+  // clicks through in the wizard afterward. Shown again once review is
+  // done, alongside the final read-only view.
+  const [wizardStepIdx, setWizardStepIdx] = useState(0);
+  // Also forced visible whenever acknowledgment is still outstanding —
+  // otherwise a traveller who clicks past step 0 without acknowledging
+  // would have no way back to the box short of manually navigating the
+  // wizard backward, and Continue below stays disabled the whole time.
+  const showVisaInfo = wizardStepIdx === 0 || Boolean(latest?.reviewCompleted) || visaBlocked;
   const [editingSplit, setEditingSplit] = useState(false);
   const [draftCounts, setDraftCounts] = useState<Record<string, number>>({});
   const [editingDates, setEditingDates] = useState(false);
@@ -345,9 +355,11 @@ export function ItineraryStep() {
         </div>
       )}
 
-      {/* Visa requirements — shown as soon as the itinerary lands, and gates
-          Continue below when any destination on this trip requires one. */}
-      {latest && !showPicksBanner && (
+      {/* Visa requirements — shown as soon as the itinerary lands and again
+          in the final view, but not pinned above every wizard stage in
+          between. Continue below is still gated on acknowledgment
+          regardless of whether the box is currently visible. */}
+      {latest && !showPicksBanner && showVisaInfo && (
         <div className="mb-5">
           <VisaRequirements preferences={trip.preferences} />
         </div>
@@ -374,6 +386,7 @@ export function ItineraryStep() {
           itinerary={latest}
           onComplete={() => markItineraryReviewed(latest.id)}
           onRegenerate={generate}
+          onStepChange={setWizardStepIdx}
         />
       )}
       {latest && latest.reviewCompleted && (

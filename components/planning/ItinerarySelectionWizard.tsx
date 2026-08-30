@@ -24,6 +24,11 @@ interface Props {
   // date edit made here can trigger the same rebuild without navigating
   // away and losing the traveller's place in this wizard.
   onRegenerate: () => void;
+  // Lets ItineraryStep know which step the wizard is on — used to show the
+  // visa requirements box only on the first step (flights) rather than
+  // pinned above every hotel/restaurant/activity screen the traveller
+  // clicks through afterward.
+  onStepChange?: (stepIdx: number) => void;
 }
 
 type Stage = "flights" | "transport" | "hotels" | "restaurants" | "activities";
@@ -55,7 +60,7 @@ interface WizardStep {
   city: string | null;
 }
 
-export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }: Props) {
+export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, onStepChange }: Props) {
   const { trip, setSelectedFlight, setSelectedTransportForLeg, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity, setItineraryFlights, setDates, goToStep } = useTripStore();
   const preferences = trip.preferences;
 
@@ -162,6 +167,8 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
   // its own the way a fresh step normally does.
   useEffect(() => {
     scrollStepToTop();
+    onStepChange?.(stepIdx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIdx]);
   const [pickingHotel, setPickingHotel] = useState(false);
   const [hotelPickReasons, setHotelPickReasons] = useState<Record<string, string>>({});
@@ -169,6 +176,9 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
   const [pickingActivities, setPickingActivities] = useState(false);
   const [activityPickReasons, setActivityPickReasons] = useState<Record<string, string>>({});
   const [activityPickError, setActivityPickError] = useState<string | null>(null);
+  const [pickingRestaurants, setPickingRestaurants] = useState(false);
+  const [restaurantPickReasons, setRestaurantPickReasons] = useState<Record<string, string>>({});
+  const [restaurantPickError, setRestaurantPickError] = useState<string | null>(null);
 
   const step = steps[stepIdx];
   const stage = step.stage;
@@ -264,6 +274,18 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
     [itinerary.hotels, currentCity]
   );
 
+  // The traveller's (or ZiGy's) current pick for this city shown first —
+  // otherwise it can land anywhere in the raw search-result order, and a
+  // pick the traveller already has requires scrolling past other options
+  // to even see what was chosen.
+  const displayHotels = useMemo(() => {
+    const pickedId = preferences.selectedHotelsByCity?.[currentCity]?.id;
+    if (!pickedId) return hotelsForCity;
+    const picked = hotelsForCity.find((h) => h.id === pickedId);
+    if (!picked) return hotelsForCity;
+    return [picked, ...hotelsForCity.filter((h) => h.id !== pickedId)];
+  }, [hotelsForCity, preferences.selectedHotelsByCity, currentCity]);
+
   async function handleSmartPickHotel() {
     setPickingHotel(true);
     setHotelPickError(null);
@@ -319,6 +341,22 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
       setActivityPickError(e instanceof Error ? e.message : "ZiGy couldn't pick activities right now");
     } finally {
       setPickingActivities(false);
+    }
+  }
+
+  async function handleSmartPickRestaurants() {
+    setPickingRestaurants(true);
+    setRestaurantPickError(null);
+    try {
+      const data = await fetchSmartPick({ kind: "restaurants_for_city", city: currentCity, preferences, restaurants: restaurantsForCity });
+      for (const pick of data.picks) {
+        if (!(preferences.selectedRestaurantIds ?? []).includes(pick.id)) toggleSelectedRestaurant(pick.id);
+      }
+      setRestaurantPickReasons((prev) => ({ ...prev, [currentCity]: data.summary }));
+    } catch (e: unknown) {
+      setRestaurantPickError(e instanceof Error ? e.message : "ZiGy couldn't pick restaurants right now");
+    } finally {
+      setPickingRestaurants(false);
     }
   }
 
@@ -642,9 +680,9 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
                   ? "Ask ZiGy to pick a different hotel"
                   : `Let ZiGy choose the hotel for ${currentCity}`}
               </button>
-              {hotelPickReasons[currentCity] && !pickingHotel && (
+              {!pickingHotel && (
                 <p className="-mt-2 text-[11px] text-slate-400 text-center">
-                  This swaps your current hotel below for a new ZiGy pick — you can still change it manually after.
+                  Feel free to select a different hotel from the choices below — or ask ZiGy to make a different selection above.
                 </p>
               )}
               {hotelPickError && (
@@ -664,7 +702,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
                   </p>
                 </div>
               )}
-              {hotelsForCity.map((h) => {
+              {displayHotels.map((h) => {
                 const selected = preferences.selectedHotelsByCity?.[currentCity]?.id === h.id;
                 return (
                   <HotelCard
@@ -684,6 +722,38 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate }
         {stage === "restaurants" && (
           restaurantsForCity.length > 0 ? (
             <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={handleSmartPickRestaurants}
+                disabled={pickingRestaurants}
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
+              >
+                <Sparkles size={14} />
+                {pickingRestaurants
+                  ? "ZiGy is choosing…"
+                  : restaurantPickReasons[currentCity]
+                  ? "Ask ZiGy for more picks"
+                  : `Let ZiGy choose restaurants for ${currentCity}`}
+              </button>
+              {restaurantPickReasons[currentCity] && !pickingRestaurants && (
+                <p className="-mt-2 text-[11px] text-slate-400 text-center">
+                  This adds more ZiGy picks on top of what's already selected below — it won't remove anything.
+                </p>
+              )}
+              {restaurantPickError && (
+                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 -mt-1">
+                  <AlertCircle size={13} className="text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-700">{restaurantPickError}</p>
+                </div>
+              )}
+              {restaurantPickReasons[currentCity] && (
+                <div className="rounded-lg bg-brand-50 px-3 py-2 -mt-1">
+                  <p className="text-xs text-brand-600">
+                    <Sparkles size={11} className="inline mr-1" />
+                    {restaurantPickReasons[currentCity]}
+                  </p>
+                </div>
+              )}
               {visibleRestaurants.map((r) => (
                 <RestaurantCard
                   key={r.id}

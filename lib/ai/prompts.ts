@@ -331,6 +331,21 @@ export function buildActivitiesForCityPickPrompt(
     `Call make_selection with each pick's id and a one-sentence reason it's a good fit, plus a 1-2 sentence overall summary of your approach for this city.`;
 }
 
+export function buildRestaurantsForCityPickPrompt(
+  city: string,
+  preferences: TripPreferences,
+  restaurants: RestaurantOption[]
+): string {
+  const vibeStr = preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
+  const restaurantsDietaryLine = buildDietaryLine(preferences);
+  const list = restaurants.map((r) =>
+    `- id="${r.id}" ${r.name} | ${r.cuisine} | ${r.priceRange} | ${r.description}`
+  ).join("\n");
+
+  return `Pick 3-5 of the best restaurants in ${city} for this traveller from the options below.${vibeStr}${restaurantsDietaryLine}\n\nOptions:\n${list}\n\n` +
+    `Call make_selection with each pick's id and a one-sentence reason it's a good fit, plus a 1-2 sentence overall summary of your approach for this city.`;
+}
+
 // "Let ZiGy arrange" — assign a city's activities and restaurants across its days
 export function buildSchedulePickPrompt(
   city: string,

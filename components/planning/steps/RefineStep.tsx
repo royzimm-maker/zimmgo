@@ -231,7 +231,7 @@ function DroppableContainer({
 // ─── Main RefineStep ──────────────────────────────────────────────────────────
 
 export function RefineStep() {
-  const { trip, goToStep, saveFinalizedPlan, addWanderlogItem, setSelectedHotelForCity } = useTripStore();
+  const { trip, goToStep, saveFinalizedPlan, markItineraryReviewed, addWanderlogItem, setSelectedHotelForCity } = useTripStore();
   const itinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
   const activities = useMemo<ActivityOption[]>(
@@ -511,6 +511,13 @@ export function RefineStep() {
   function handleDone() {
     if (itinerary) {
       saveFinalizedPlan(itinerary.id, { dayCards, bankCards: bank });
+      // Reaching Refine at all (via the wizard's own "Finish review" or by
+      // jumping here directly from ItineraryStep's top-level Continue,
+      // which skips the wizard entirely) means the traveller is done
+      // reviewing — without this, a traveller who jumped straight here
+      // landed back on a wizard restarted from the flights stage instead
+      // of the finished itinerary view.
+      markItineraryReviewed(itinerary.id);
     }
     goToStep("itinerary");
   }
@@ -729,7 +736,15 @@ export function RefineStep() {
             className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
           >
             <Sparkles size={14} />
-            {arranging ? "ZiGy is arranging…" : `Let ZiGy arrange ${effectiveCity}`}
+            {arranging
+              ? "ZiGy is arranging…"
+              // Once a summary exists, ZiGy has already had a pass at this
+              // city — repeating the exact same "Let ZiGy arrange" prompt
+              // reads as if nothing happened, even though some items were
+              // placed and only what's left is still sitting in the bank.
+              : arrangeSummaries[effectiveCity]
+              ? `Ask ZiGy to arrange what's left in ${effectiveCity}`
+              : `Let ZiGy arrange ${effectiveCity}`}
           </button>
           <p className="text-[10px] text-slate-400 mt-1.5 text-center">
             ZiGy decides based on your inputs so far and everything we know about your destinations.
