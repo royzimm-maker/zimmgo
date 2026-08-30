@@ -25,8 +25,13 @@ export function BeliConnect() {
   }, []);
 
   function connect() {
+    // Strip a leading "@" if the user typed one themselves — the display
+    // below always prepends its own "@", so a stored "@royzimm" would
+    // otherwise render as "@@royzimm".
+    const username = beliUsername.trim().replace(/^@+/, "");
+    setBeliUsername(username);
     setBeliConnectedState(true);
-    setBeliPref({ connected: true, username: beliUsername.trim() });
+    setBeliPref({ connected: true, username });
   }
   function disconnect() {
     setBeliConnectedState(false);
@@ -43,7 +48,7 @@ export function BeliConnect() {
         <div className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2">
           <Check size={14} className="text-brand-600 shrink-0" />
           <p className="text-xs text-brand-700 flex-1">
-            Connected as <span className="font-semibold">@{beliUsername}</span>
+            Connected as <span className="font-semibold">@{beliUsername.replace(/^@+/, "")}</span>
           </p>
           <button
             type="button"
