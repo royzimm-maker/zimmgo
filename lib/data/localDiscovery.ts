@@ -519,6 +519,52 @@ const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscover
       ],
     },
   },
+
+  {
+    level: "region",
+    keywords: ["iceland", "reykjavik", "reykjavík"],
+    data: {
+      destination: "Iceland",
+      sceneIntro: "Reykjavík is a capital city with the population of a large town — which means the person pouring your coffee might also be in the band you saw last night. It runs on geothermal heat, disproportionate music output, and a genuine belief that a Saturday isn't complete without a soak in a public pool.",
+      events: [
+        { name: "Kolaportið flea market",     emoji: "🧦", type: "market",   description: "Reykjavík's weekend flea market on the Old Harbour waterfront — wool sweaters, vintage finds, and a food hall side selling dried fish, skyr, and kleinur doughnuts. Saturdays and Sundays, 11am–5pm only.", url: "https://kolaportid.is" },
+        { name: "Reykjavík Jazz Festival",    emoji: "🎷", type: "festival", description: "A long-running festival, usually held each autumn, bringing Icelandic and international jazz acts to venues across the city — small rooms, real crowds, not a stadium event." },
+        { name: "Þorrablót",                  emoji: "🍢", type: "festival", description: "The midwinter feast (roughly late January into February) built around Iceland's most notorious traditional foods — fermented shark, singed sheep's head, and rúgbrauð. Not every visitor's idea of a good time, but a genuine window into Icelandic culture if a restaurant or event is running one during your trip." },
+        { name: "Sunday at the sundlaug",     emoji: "♨️", type: "sport",    description: "Geothermal pools aren't a tourist activity here — they're where Reykjavík actually socializes. Skip the Blue Lagoon crowds at least once for a neighborhood pool like Vesturbæjarlaug or Sundhöllin, where the hot pots are full of locals debating politics." },
+      ],
+      music: {
+        intro: "For a country of about 390,000 people, Iceland's music output is wildly disproportionate — something in the isolation and the winters seems to produce an unusual density of serious musicians, from Björk's generation onward.",
+        artists: [
+          { name: "Björk",               genre: "Experimental / pop",  why: "Iceland's best-known export and still one of the most genuinely inventive artists working — her Reykjavík roots run through everything.", searchUrl: "https://open.spotify.com/search/Bjork" },
+          { name: "Sigur Rós",           genre: "Post-rock / ambient", why: "Formed in Reykjavík in 1994 — their sound is inseparable from Iceland's landscapes, made for the drive out of the city.", searchUrl: "https://open.spotify.com/search/Sigur%20Ros" },
+          { name: "Of Monsters and Men", genre: "Indie folk",          why: "Reykjavík natives who went from local clubs to worldwide festival stages without losing the folk-storytelling core.", searchUrl: "https://open.spotify.com/search/Of%20Monsters%20and%20Men" },
+          { name: "Ásgeir",              genre: "Indie folk / electronic", why: "One of the country's most-streamed contemporary artists — hushed, atmospheric, distinctly Icelandic.", searchUrl: "https://open.spotify.com/search/Asgeir" },
+        ],
+        venues: [
+          { name: "Kaffibarinn", vibe: "Reykjavík's most iconic bar since 1993 — café by day, packed DJ floor by night. Look for the London Underground sign.", genre: "DJ / Electronic" },
+          { name: "Húrra",       vibe: "The city's real live-music room — indie bands, jazz, DJ sets, and the occasional drag show or karaoke night.", genre: "Live / Indie" },
+          { name: "Iðnó",        vibe: "A wooden culture house on the pond dating to 1897 — theatre and music performances in one of the city's most atmospheric rooms.", genre: "Varied" },
+        ],
+        playlistSearchUrl: "https://open.spotify.com/search/icelandic%20music%20playlist",
+      },
+      apps: [
+        { name: "Hopp",             category: "taxi",     emoji: "🚕", description: "Uber and Bolt don't operate in Iceland — Hopp is the closest equivalent, an app-based taxi service in the Reykjavík area and from Keflavík Airport.", url: "https://hopp.rest", platform: "both" },
+        { name: "Strætó",           category: "transit",  emoji: "🚌", description: "Reykjavík's official city bus app — routes, live times, and tickets for the whole capital-area network.", url: "https://straeto.is", platform: "both" },
+        { name: "112 Iceland (SafeTravel)", category: "maps", emoji: "🆘", description: "The country's official safety app — sends your GPS location to emergency services with one tap, and lets you log a travel plan so rescuers know where to look if something goes wrong. Genuinely essential if you're driving or hiking outside the city.", url: "https://safetravel.is/safetravel-app/", platform: "both" },
+        { name: "Veður",            category: "maps",     emoji: "🌦️", description: "The Icelandic Met Office's own app — color-coded weather and road-condition warnings that are treated as real advisories here, not background noise.", url: "https://en.vedur.is", platform: "both" },
+      ],
+      airportTransfers: [
+        { option: "Flybus (Keflavík → BSÍ)", emoji: "🚌", timeEst: "~45 min", costEst: "~3,999 ISK one-way", recommended: true, description: "The standard way in — coaches are timed to depart 35–45 minutes after every arriving flight, and they'll wait if your flight is late. Drops at BSÍ bus terminal, with connecting transfers to most hotels.", tip: "Book the return leg at the same time — it's usually cheaper than buying two one-ways separately." },
+        { option: "Rental car",  emoji: "🚗", timeEst: "~45 min", costEst: "Varies", recommended: false, description: "Very common for this trip — most car rental counters are inside or a short shuttle from the terminal, and a car opens up day trips well beyond what the Flybus schedule allows.", tip: "Reserve well ahead in summer; peak-season cars sell out." },
+        { option: "Hopp / taxi", emoji: "🚕", timeEst: "~40 min", costEst: "Significantly more than the bus", recommended: false, description: "Convenient and door-to-door, but noticeably pricier than Flybus for the same route — worth it mainly for late-night arrivals or a group splitting the fare." },
+      ],
+      hiddenGems: [
+        { name: "Bæjarins Beztu Pylsur",  emoji: "🌭", type: "food",       description: "A red hot dog kiosk by the Old Harbour that's been a Reykjavík institution since 1937 — Bill Clinton famously stopped by. Order it \"eina með öllu\" (one with everything).", sourceUrl: "https://guidetoiceland.is" },
+        { name: "Grandi harbor district",  emoji: "🐳", type: "neighborhood", description: "Reykjavík's revitalized old harbor — home to the Whales of Iceland exhibition, the Aurora Reykjavik museum, a street-food market, and the Marshall House arts center. A quieter, more creative alternative to the main Laugavegur drag." },
+        { name: "Vesturbæjarlaug",         emoji: "♨️", type: "pool",        description: "The neighborhood pool actual Reykjavíkers go to — less crowded than Sundhöllin, with hot pots full of retirees and regulars rather than tourists." },
+      ],
+    },
+  },
 ];
 
 // Generic fallback for destinations without specific data

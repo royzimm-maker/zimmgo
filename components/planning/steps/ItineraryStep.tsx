@@ -221,7 +221,7 @@ export function ItineraryStep() {
   return (
     <StepShell
       stepId="itinerary"
-      continueLabel={isPersonalized ? "Update my schedule" : "Review & fine-tune my plan"}
+      continueLabel={isPersonalized ? "Fine-tune my schedule" : "Review & fine-tune my plan"}
       continueDisabled={!latest || visaBlocked}
       onContinue={() => goToStep("refine")}
       // "Skip" would go to the same next step ("refine") as the primary

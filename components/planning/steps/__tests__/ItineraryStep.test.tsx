@@ -260,12 +260,12 @@ describe("ItineraryStep — wizard vs. finalized view", () => {
     expect(screen.queryByTestId("wizard")).not.toBeInTheDocument();
   });
 
-  it("shows 'Update my schedule' instead of 'Review & fine-tune' once a plan is finalized", () => {
+  it("shows 'Fine-tune my schedule' instead of 'Review & fine-tune' once a plan is finalized", () => {
     const itinerary = makeItinerary({ finalizedPlan: { dayCards: {}, bankCards: [] } });
     useTripStore.setState({ trip: freshTrip({ itineraries: [itinerary] }) });
     render(<ItineraryStep />);
 
-    expect(screen.getByRole("button", { name: /update my schedule/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /fine-tune my schedule/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /review & fine-tune my plan/i })).not.toBeInTheDocument();
   });
 
