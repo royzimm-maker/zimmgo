@@ -21,10 +21,14 @@ import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, Ac
 import { rateLimit } from "@/lib/rateLimit";
 
 // Generation can take several agentic tool-call rounds against the real
-// Anthropic API — without this the platform's default function timeout
-// (as low as 10s) kills the connection mid-request, surfacing to the
-// client as an opaque "Failed to fetch" rather than a real error.
-export const maxDuration = 60;
+// Anthropic API (up to 8, each a real round trip) — without this the
+// platform's default function timeout (as low as 10s) kills the connection
+// mid-request, surfacing to the client as an opaque "Failed to fetch" or a
+// FUNCTION_INVOCATION_TIMEOUT rather than a real error. 60s wasn't enough in
+// practice — confirmed timing out even on a simple single-city trip — so
+// this uses real headroom instead, well under Vercel's Fluid Compute ceiling
+// (300s on Hobby) for this project.
+export const maxDuration = 150;
 
 // Keyed by name + location — cities that share a mock content pool (e.g. Rome and
 // Florence both draw from the "italy" pool) return identically-named items, and a
