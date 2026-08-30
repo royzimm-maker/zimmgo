@@ -17,7 +17,7 @@ import {
 import { X, Sparkles, Heart, ArrowRight, Hotel, UtensilsCrossed, Star, CalendarDays, CheckCircle2, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { fetchSmartPick } from "@/lib/api/smartPick";
-import { formatCurrency, formatDate, scrollStepToTop } from "@/lib/utils";
+import { formatCurrency, formatDate, fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityOption, RestaurantOption } from "@/types/trip";
 
@@ -57,6 +57,7 @@ function CardInner({
   overlay?: boolean;
 }) {
   const { activity, restaurant } = info;
+  const { trip } = useTripStore();
 
   const base = overlay
     ? "flex items-center gap-2 rounded-lg border px-2.5 py-2 shadow-2xl ring-2 select-none"
@@ -72,7 +73,7 @@ function CardInner({
           <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
             {activity.location && <span className="font-medium text-brand-600 truncate">{activity.location}</span>}
             {activity.duration && <span>{activity.duration}</span>}
-            {activity.price > 0 && <span>{formatCurrency(activity.price)}</span>}
+            {activity.price > 0 && <span>{formatCurrency(activity.price, trip.preferences.preferredCurrency)}</span>}
           </div>
         </div>
         {onSave && (
@@ -230,18 +231,23 @@ function DroppableContainer({
 // ─── Main RefineStep ──────────────────────────────────────────────────────────
 
 export function RefineStep() {
-  const { trip, goToStep, saveFinalizedPlan, addWanderlogItem } = useTripStore();
+  const { trip, goToStep, saveFinalizedPlan, markItineraryReviewed, addWanderlogItem, setSelectedHotelForCity } = useTripStore();
   const itinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
+  // Only the activities/restaurants the traveller actually picked in the
+  // review wizard belong on this board — the full generated list (including
+  // everything they skipped) would make it look like nothing was selected
+  // at all, and mismatch the "Where things stand" counts above, which are
+  // already scoped to these same selected-id lists.
   const activities = useMemo<ActivityOption[]>(
-    () => itinerary?.activities ?? [],
+    () => (itinerary?.activities ?? []).filter((a) => (trip.preferences.selectedActivityIds ?? []).includes(a.id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [itinerary?.id]
+    [itinerary?.id, trip.preferences.selectedActivityIds]
   );
   const restaurants = useMemo<RestaurantOption[]>(
-    () => itinerary?.restaurants ?? [],
+    () => (itinerary?.restaurants ?? []).filter((r) => (trip.preferences.selectedRestaurantIds ?? []).includes(r.id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [itinerary?.id]
+    [itinerary?.id, trip.preferences.selectedRestaurantIds]
   );
   const days = itinerary?.days ?? [];
 
@@ -296,6 +302,12 @@ export function RefineStep() {
   const [arrangeSummaries, setArrangeSummaries] = useState<Record<string, string>>({});
   const [arrangeError, setArrangeError] = useState<string | null>(null);
   const [autoPlanCities, setAutoPlanCities] = useState<Set<string>>(new Set());
+  // "Let ZiGy schedule every city" already covered every destination in one
+  // shot — once that's happened, the per-city "move on to {nextCity}" nudge
+  // below is misleading (it implies a sequential walk-through the user never
+  // asked for). Swaps that nudge for a single trip-wide message instead.
+  // Resets if the user goes back to arranging one city at a time by hand.
+  const [bulkArranged, setBulkArranged] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -384,13 +396,39 @@ export function RefineStep() {
     setBank((prev) => prev.filter((id) => id !== cardId));
   }
 
+  // "Let ZiGy arrange {city}" only used to handle day-by-day scheduling of
+  // already-picked restaurants/activities — it left a hotel gap completely
+  // untouched even though the same "Where things stand" panel right above it
+  // calls that gap out ("No hotel picked yet"). Fill it in here too, the same
+  // way the flights/hotels/restaurants/activities wizard's smart-pick does.
+  async function pickHotelIfNeeded(city: string): Promise<void> {
+    if (trip.preferences.selectedHotelsByCity?.[city]) return;
+    const airbnbOnly = Boolean(
+      trip.preferences.lodging?.types?.length && trip.preferences.lodging.types.every((t) => t === "airbnb")
+    );
+    if (airbnbOnly) return;
+    const cityHotels = (itinerary?.hotels ?? []).filter((h) => fuzzyCityMatch(h.city ?? h.location, city));
+    if (!cityHotels.length) return;
+
+    const data = await fetchSmartPick({ kind: "hotel", city, preferences: trip.preferences, hotels: cityHotels });
+    const pick = data.picks[0];
+    const hotel = pick && cityHotels.find((h) => h.id === pick.id);
+    if (hotel) setSelectedHotelForCity(city, hotel);
+  }
+
   async function arrangeCity(city: string): Promise<void> {
     const cityDays = days.filter((d) => !d.location || locationsMatch(d.location, city));
     const cityBankIds = bank.filter((id) => {
       const loc = getCardLocation(id);
       return !loc || getCardCity(id) === city;
     });
-    if (cityBankIds.length === 0) return;
+
+    const hotelPromise = pickHotelIfNeeded(city);
+
+    if (cityBankIds.length === 0) {
+      await hotelPromise;
+      return;
+    }
 
     const cityActivities = cityBankIds
       .map((id) => cardMap[id]?.activity)
@@ -399,14 +437,17 @@ export function RefineStep() {
       .map((id) => cardMap[id]?.restaurant)
       .filter((r): r is RestaurantOption => Boolean(r));
 
-    const data = await fetchSmartPick({
-      kind: "schedule",
-      city,
-      preferences: trip.preferences,
-      days: cityDays,
-      activities: cityActivities,
-      restaurants: cityRestaurants,
-    });
+    const [data] = await Promise.all([
+      fetchSmartPick({
+        kind: "schedule",
+        city,
+        preferences: trip.preferences,
+        days: cityDays,
+        activities: cityActivities,
+        restaurants: cityRestaurants,
+      }),
+      hotelPromise,
+    ]);
 
     const validDayNums = new Set(cityDays.map((d) => d.dayNumber));
     const toPlace = data.picks.filter(
@@ -431,6 +472,7 @@ export function RefineStep() {
     if (!effectiveCity) return;
     setArranging(true);
     setArrangeError(null);
+    setBulkArranged(false);
     try {
       await arrangeCity(effectiveCity);
     } catch (e: unknown) {
@@ -446,6 +488,7 @@ export function RefineStep() {
   async function handleAutoPlanAll() {
     setArranging(true);
     setArrangeError(null);
+    setBulkArranged(true);
     setAutoPlanCities(new Set(cities));
     try {
       const results = await Promise.allSettled(
@@ -473,6 +516,13 @@ export function RefineStep() {
   function handleDone() {
     if (itinerary) {
       saveFinalizedPlan(itinerary.id, { dayCards, bankCards: bank });
+      // Reaching Refine at all (via the wizard's own "Finish review" or by
+      // jumping here directly from ItineraryStep's top-level Continue,
+      // which skips the wizard entirely) means the traveller is done
+      // reviewing — without this, a traveller who jumped straight here
+      // landed back on a wizard restarted from the flights stage instead
+      // of the finished itinerary view.
+      markItineraryReviewed(itinerary.id);
     }
     goToStep("itinerary");
   }
@@ -644,26 +694,41 @@ export function RefineStep() {
         </div>
       )}
 
-      {/* Prompt to move to the next city — always available once you've placed
-          something here, not just once every last item is placed, so leaving
-          a few items unplaced on purpose doesn't strand you without a nudge. */}
-      {showNextCityPrompt && (
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-sage-200 bg-sage-50 px-3 py-2.5">
+      {/* Once "Let ZiGy schedule every city" has run, every destination was
+          already handled in one shot — a "move on to {nextCity}" nudge would
+          misleadingly imply a sequential walk-through the user never asked
+          for, so it's replaced with a single trip-wide message instead. */}
+      {bulkArranged ? (
+        <div className="mb-4 rounded-lg border border-sage-200 bg-sage-50 px-3 py-2.5">
           <p className="text-xs text-sage-700">
-            {activeCityComplete ? (
-              <><span className="font-semibold">{effectiveCity} is all set!</span> Ready to fine-tune {nextCity}?</>
-            ) : (
-              <>{effectiveCity} looks good — move on to {nextCity} whenever you're ready.</>
-            )}
+            <span className="font-semibold">ZiGy has arranged every city.</span>{" "}
+            {bank.length > 0
+              ? "A few items didn't fit and are still sitting unplaced below — drag them in if you'd like, or leave them and review your plan whenever you're ready."
+              : "Review your plan below, then finalize whenever you're ready."}
           </p>
-          <button
-            type="button"
-            onClick={() => setActiveCity(nextCity)}
-            className="shrink-0 flex items-center gap-1 rounded-md bg-sage-600 text-white px-3 py-1.5 text-xs font-semibold hover:bg-sage-700 transition-colors"
-          >
-            Next: {nextCity} <ArrowRight size={12} />
-          </button>
         </div>
+      ) : (
+        /* Prompt to move to the next city — always available once you've placed
+           something here, not just once every last item is placed, so leaving
+           a few items unplaced on purpose doesn't strand you without a nudge. */
+        showNextCityPrompt && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-sage-200 bg-sage-50 px-3 py-2.5">
+            <p className="text-xs text-sage-700">
+              {activeCityComplete ? (
+                <><span className="font-semibold">{effectiveCity} is all set!</span> Ready to fine-tune {nextCity}?</>
+              ) : (
+                <>{effectiveCity} looks good — move on to {nextCity} whenever you're ready.</>
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveCity(nextCity)}
+              className="shrink-0 flex items-center gap-1 rounded-md bg-sage-600 text-white px-3 py-1.5 text-xs font-semibold hover:bg-sage-700 transition-colors"
+            >
+              Next: {nextCity} <ArrowRight size={12} />
+            </button>
+          </div>
+        )
       )}
 
       {/* Let ZiGy auto-arrange the active city's unplaced items across its days */}
@@ -676,7 +741,15 @@ export function RefineStep() {
             className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
           >
             <Sparkles size={14} />
-            {arranging ? "ZiGy is arranging…" : `Let ZiGy arrange ${effectiveCity}`}
+            {arranging
+              ? "ZiGy is arranging…"
+              // Once a summary exists, ZiGy has already had a pass at this
+              // city — repeating the exact same "Let ZiGy arrange" prompt
+              // reads as if nothing happened, even though some items were
+              // placed and only what's left is still sitting in the bank.
+              : arrangeSummaries[effectiveCity]
+              ? `Ask ZiGy to arrange what's left in ${effectiveCity}`
+              : `Let ZiGy arrange ${effectiveCity}`}
           </button>
           <p className="text-[10px] text-slate-400 mt-1.5 text-center">
             ZiGy decides based on your inputs so far and everything we know about your destinations.

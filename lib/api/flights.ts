@@ -82,14 +82,18 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
 
   const basePrice = lowestFare ? randomInt(300, 900) : randomInt(600, 2400);
 
-  const results = airlines.map((airline, idx) => ({
+  const results = airlines.map((airline, idx) => {
+    const departureHM = { h: randomInt(6, 14), m: [0, 15, 30, 45][idx % 4] };
+    const arrivalHM = { h: randomInt(14, 23), m: [0, 30][idx % 2] };
+
+    return {
     id: uuid(),
     airline: airline.name,
     flightNumber: `${airline.code}${randomInt(100, 999)}`,
     origin: params.origin,
     destination: params.destination,
-    departureTime: `${params.departure_date}T${randomInt(6, 14).toString().padStart(2, "0")}:${["00","15","30","45"][idx % 4]}:00`,
-    arrivalTime: `${params.departure_date}T${randomInt(14, 23).toString().padStart(2, "0")}:${["00","30"][idx % 2]}:00`,
+    departureTime: `${params.departure_date}T${departureHM.h.toString().padStart(2, "0")}:${departureHM.m.toString().padStart(2, "0")}:00`,
+    arrivalTime: `${params.departure_date}T${arrivalHM.h.toString().padStart(2, "0")}:${arrivalHM.m.toString().padStart(2, "0")}:00`,
     duration: `${randomInt(9, 17)}h ${randomInt(0, 59)}m`,
     // Nonstop preference applies regardless of lowest-fare mode — the two
     // are independent filters, not mutually exclusive.
@@ -98,7 +102,8 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
     currency: "USD",
     cabinClass: effectiveCabin,
     bookingUrl: AIRLINE_BOOKING_URLS[airline.code] ?? `https://www.google.com/travel/flights`,
-  }));
+    };
+  });
 
   // In lowest-fare mode, sort cheapest first
   return lowestFare ? results.sort((a, b) => a.price - b.price) : results;

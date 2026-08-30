@@ -9,12 +9,13 @@ import { ActivitiesStep }     from "@/components/planning/steps/ActivitiesStep";
 import { VibeStep }           from "@/components/planning/steps/VibeStep";
 import { DatesStep }          from "@/components/planning/steps/DatesStep";
 import { BudgetStep }         from "@/components/planning/steps/BudgetStep";
+import { PlanningModeStep }   from "@/components/planning/steps/PlanningModeStep";
 import { LodgingStep }        from "@/components/planning/steps/LodgingStep";
 import { AirlinesStep }       from "@/components/planning/steps/AirlinesStep";
 import { TransportationStep } from "@/components/planning/steps/TransportationStep";
 import { ItineraryStep }      from "@/components/planning/steps/ItineraryStep";
 import { RefineStep }         from "@/components/planning/steps/RefineStep";
-import { ChatPanel }          from "@/components/chat/ChatPanel";
+import { ChatPanel, ZigyAvatar } from "@/components/chat/ChatPanel";
 import { WanderlogPanel }     from "@/components/planning/WanderlogPanel";
 import { Button }             from "@/components/ui/Button";
 import { MessageSquare, X }   from "lucide-react";
@@ -26,6 +27,7 @@ const STEP_COMPONENTS: Record<StepId, React.ComponentType> = {
   vibe:           VibeStep,
   dates:          DatesStep,
   budget:         BudgetStep,
+  planningMode:   PlanningModeStep,
   lodging:        LodgingStep,
   airlines:       AirlinesStep,
   transportation: TransportationStep,
@@ -122,9 +124,17 @@ export function PlanningFlow() {
           ${sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
         `}
       >
-        {/* Mobile close button */}
+        {/* Mobile header — ChatPanel's own avatar+title header only renders
+            at lg+ (hidden lg:block), so this narrower-width header needs its
+            own avatar rather than just a close button, or the avatar never
+            appears at all until a message has actually been sent. */}
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 lg:hidden">
-          <p className="font-semibold text-slate-700 text-sm">ZiGy</p>
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 overflow-hidden">
+              <ZigyAvatar size={28} />
+            </div>
+            <p className="font-semibold text-slate-700 text-sm">ZiGy</p>
+          </div>
           <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
             <X size={16} />
           </Button>

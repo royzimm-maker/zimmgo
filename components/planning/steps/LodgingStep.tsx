@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Star, ExternalLink, Check, Sparkles, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
@@ -8,6 +8,7 @@ import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
+import { fetchSmartPick } from "@/lib/api/smartPick";
 import { cn, scrollStepToTop } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -25,7 +26,7 @@ const TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[
 
 const AMENITIES = [
   "Free breakfast", "Pool", "Gym", "Concierge", "Airport transfer",
-  "Rooftop bar", "Spa", "City centre location", "Kitchen / kitchenette",
+  "Rooftop bar", "Spa", "City center location", "Kitchen / kitchenette",
   "High walkability",
 ];
 
@@ -36,9 +37,14 @@ const HOTEL_TIER: Record<number, string> = {
 };
 
 export function LodgingStep() {
-  const { trip, setLodging, setSelectedHotel, setReviewSourcePref } = useTripStore();
+  const { trip, setLodging, setSelectedHotel, setReviewSourcePref, setAutoPickHotels } = useTripStore();
   const existing = trip.preferences.lodging;
-  const [mode, setMode] = useState<"prompt" | "manual">(() => (existing ? "manual" : "prompt"));
+  // "zigy_review" is a transient state shown right after picking "Let ZiGy
+  // choose for me" on the initial prompt — a focused summary of the pick
+  // instead of dropping straight into the full editable form, which read as
+  // "the decision is still up to you" even though ZiGy had already decided.
+  const [mode, setMode] = useState<"prompt" | "manual" | "zigy_review">(() => (existing ? "manual" : "prompt"));
+  const [showMoreHotels, setShowMoreHotels] = useState(false);
   const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
   const { picking, pickSummary, error: pickError, run: runSmartPick } = useSmartPick();
   // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
@@ -78,6 +84,13 @@ export function LodgingStep() {
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(
     trip.preferences.selectedHotel?.id ?? null
   );
+  // Separate from `picking`/`pickSummary` (which cover the type/stars/amenity
+  // filters) — this covers the follow-up step of actually choosing one of the
+  // resulting hotels, so "let ZiGy pick" doesn't just narrow the filters and
+  // leave "Choose your stay" below sitting there unresolved.
+  const [pickingHotel,   setPickingHotel  ] = useState(false);
+  const [hotelPickReason, setHotelPickReason] = useState<string | null>(null);
+  const [hotelPickError,  setHotelPickError ] = useState<string | null>(null);
 
   // A custom type typed into "Other…" (e.g. "hostel") has to be included
   // here too — it previously only got merged into the *saved* preference
@@ -87,10 +100,11 @@ export function LodgingStep() {
     ? [...types, otherTypeValue.trim() as LodgingType]
     : types;
 
-  async function fetchHotels(stars: number) {
-    if (!destination) return;
+  async function fetchHotels(stars: number, typesOverride?: LodgingType[]): Promise<HotelOption[]> {
+    if (!destination) return [];
     setHotelsLoading(true);
     try {
+      const effTypes = typesOverride ?? effectiveTypes;
       const res = await fetch("/api/hotels/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,14 +112,17 @@ export function LodgingStep() {
           destination,
           min_stars: stars,
           max_price_per_night: budgetMax,
-          types: effectiveTypes.length > 0 ? effectiveTypes : undefined,
+          types: effTypes.length > 0 ? effTypes : undefined,
         }),
       });
       const data = await res.json() as HotelOption[];
-      setHotels(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setHotels(list);
       setVisibleHotelCount(3);
+      return list;
     } catch {
       setHotels([]);
+      return [];
     } finally {
       setHotelsLoading(false);
     }
@@ -113,6 +130,14 @@ export function LodgingStep() {
 
   // Only fetch hotels once the user has chosen an accommodation type — don't pre-load
   useEffect(() => {
+    // handleZigyPick's own setTypes/setMinStars calls land in the same batch
+    // as setPickingHotel(true), so this effect re-fires for the exact same
+    // type/star change it's already fetching for. Since the mock search
+    // hands out a fresh random id to every hotel on every call, whichever
+    // fetch's response lands last "wins" and can silently orphan the hotel
+    // ZiGy just picked — pickingHotel skips the redundant duplicate here so
+    // there's only ever one fetch in flight for a ZiGy-driven change.
+    if (pickingHotel) return;
     const onlyAirbnb = effectiveTypes.length > 0 && effectiveTypes.every((t) => t === "airbnb");
     if (effectiveTypes.length > 0 && !onlyAirbnb) fetchHotels(minStars);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,6 +210,11 @@ export function LodgingStep() {
   }
 
   async function handleZigyPick() {
+    // Marks the traveller's intent for every city, not just the one this
+    // step itself searches — the itinerary review wizard's per-city Hotels
+    // stage reads this to auto-run the same smart pick for the other
+    // stops instead of leaving each one on a blank picker.
+    setAutoPickHotels(true);
     const candidates = [
       ...TYPES.map((t) => ({ id: `type:${t.id}`, label: `Lodging type: ${t.label}` })),
       ...([3, 4, 5] as LodgingStarRating[]).map((s) => ({ id: `stars:${s}`, label: `${s}-star minimum` })),
@@ -210,8 +240,35 @@ export function LodgingStep() {
     if (pickedTypes.length) setTypes(pickedTypes);
     if (pickedStarsValue) setMinStars(nextStars);
     setAmenities(pickedAmenities);
-    setMode("manual");
     syncLodging({ types: nextTypes, minStars: nextStars, amenities: pickedAmenities });
+
+    // Also choose a specific hotel matching those filters — otherwise this
+    // only narrows "Choose your stay" below and still leaves it unresolved.
+    const onlyAirbnb = nextTypes.length > 0 && nextTypes.every((t) => t === "airbnb");
+    if (!onlyAirbnb && destination) {
+      setPickingHotel(true);
+      setHotelPickError(null);
+      try {
+        const fetchedHotels = await fetchHotels(nextStars, nextTypes);
+        if (fetchedHotels.length) {
+          const data = await fetchSmartPick({ kind: "hotel", city: destination, preferences: trip.preferences, hotels: fetchedHotels });
+          const pick = data.picks[0];
+          const hotel = pick && fetchedHotels.find((h) => h.id === pick.id);
+          if (hotel) {
+            setSelectedHotelId(hotel.id);
+            setHotelPickReason(pick.reason);
+            const idx = fetchedHotels.findIndex((h) => h.id === hotel.id);
+            if (idx >= 0) setVisibleHotelCount((c) => Math.max(c, idx + 1));
+          }
+        }
+      } catch (e: unknown) {
+        // Non-fatal — the type/stars/amenity filters above still applied
+        // successfully, the traveller just needs to pick a hotel manually.
+        setHotelPickError(e instanceof Error ? e.message : "ZiGy couldn't pick a specific hotel — the filters above are still set, pick one below.");
+      } finally {
+        setPickingHotel(false);
+      }
+    }
   }
 
   function handleContinue() {
@@ -252,10 +309,123 @@ export function LodgingStep() {
   const hasType = effectiveTypes.length > 0;
   // Only show hotel picker if accommodation type includes bookable hotel options
   const airbnbOnly = effectiveTypes.length > 0 && effectiveTypes.every((t) => t === "airbnb");
+  // Falls back to the persisted selection when the current `hotels` fetch
+  // hasn't (re-)included it yet — e.g. a returning visit before this step's
+  // own fetch effect has resolved.
+  const topPickedHotel = selectedHotelId
+    ? hotels.find((h) => h.id === selectedHotelId) ??
+      (trip.preferences.selectedHotel?.id === selectedHotelId ? trip.preferences.selectedHotel : null)
+    : null;
+
+  // Shared between the manual grid and the "show me other options" list on
+  // the ZiGy-review screen, so both read as the exact same picker.
+  function renderHotelCard(h: HotelOption) {
+    const selected = selectedHotelId === h.id;
+    const tierLabel = HOTEL_TIER[h.stars] ?? HOTEL_TIER[4];
+    return (
+      <div
+        key={h.id}
+        role="button"
+        tabIndex={0}
+        onClick={() => setSelectedHotelId((prev) => prev === h.id ? null : h.id)}
+        onKeyDown={(e) => e.key === "Enter" && setSelectedHotelId((prev) => prev === h.id ? null : h.id)}
+        className={cn(
+          "flex flex-col rounded-xl border overflow-hidden cursor-pointer transition-all duration-150",
+          selected
+            ? "border-brand-500 ring-2 ring-brand-200 bg-brand-50/40"
+            : "border-slate-200 hover:border-slate-300 bg-white"
+        )}
+      >
+        {h.imageUrl && (
+          <div className="relative w-full h-28 shrink-0 bg-slate-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={h.imageUrl} alt={h.name} className="w-full h-full object-cover" />
+            <span
+              className="absolute top-1.5 left-1.5 rounded-full px-2 py-0.5 text-[9px] font-semibold shadow-sm"
+              style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
+            >
+              {tierLabel}
+            </span>
+            {selected && (
+              <span className="absolute top-1.5 right-1.5 flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[9px] font-bold text-white shadow">
+                <Check size={9} /> Your pick
+              </span>
+            )}
+            <span className="absolute bottom-1 right-1.5 rounded bg-black/50 px-1.5 py-0.5 text-[8px] text-white/80 font-medium tracking-wide">
+              Illustrative
+            </span>
+          </div>
+        )}
+        <div className="flex flex-col flex-1 p-3">
+          <div className="flex items-center gap-1">
+            {Array.from({ length: h.stars }).map((_, i) => (
+              <Star key={i} size={10} className="fill-amber-400 text-amber-400" />
+            ))}
+          </div>
+          <span className={cn("mt-1 font-semibold text-sm leading-tight", selected ? "text-brand-700" : "text-slate-800")}>
+            {h.name}
+          </span>
+          {!h.imageUrl && <p className="text-[11px] text-slate-500 mt-0.5 italic">{tierLabel}</p>}
+          <p className="text-[11px] text-slate-400 mt-0.5">{h.location}</p>
+
+          <div className="flex-1" />
+
+          <div className="mt-3 flex items-end justify-between gap-2 pt-2 border-t border-slate-100">
+            <div>
+              <p className="font-bold text-slate-900 text-sm">
+                {formatCurrency(h.pricePerNight, trip.preferences.preferredCurrency)}<span className="font-normal text-xs text-slate-400">/night</span>
+              </p>
+              <p className="text-xs text-sage-700 font-medium">{h.rating}/10</p>
+              {h.ratingSource && (
+                <p className="text-[9px] text-slate-400">{h.ratingSource}</p>
+              )}
+            </div>
+            {selected ? (
+              !h.imageUrl && (
+                <span className="flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white shrink-0">
+                  <Check size={9} /> Your pick
+                </span>
+              )
+            ) : (
+              <a
+                href={h.bookingUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="shrink-0 flex items-center gap-0.5 text-[11px] text-brand-500 hover:underline"
+              >
+                View <ExternalLink size={9} />
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // "Let ZiGy plan my whole trip" (chosen on the Planning Mode step just
+  // before this one) means this step's own "I'll pick myself vs. let ZiGy
+  // choose" prompt would be redundant — auto-run the exact same ZiGy pick
+  // path a manual click on that card would trigger, once, so the traveller
+  // lands directly on the review screen instead of having to choose again.
+  const autoPlanRef = useRef(false);
+  useEffect(() => {
+    if (!trip.preferences.autoPlanEverything || existing || mode !== "prompt" || autoPlanRef.current) return;
+    autoPlanRef.current = true;
+    setModeChoice("zigy");
+    (async () => {
+      await handleZigyPick();
+      setMode("zigy_review");
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.preferences.autoPlanEverything, existing, mode]);
 
   async function handlePromptContinue() {
     if (modeChoice === "manual") setMode("manual");
-    else if (modeChoice === "zigy") await handleZigyPick();
+    else if (modeChoice === "zigy") {
+      await handleZigyPick();
+      setMode("zigy_review");
+    }
     scrollStepToTop(); // switching views here doesn't remount the step
     return false; // stay on this step — just switches to the picker view
   }
@@ -266,9 +436,10 @@ export function LodgingStep() {
         stepId="lodging"
         continueLabel="Continue"
         continueDisabled={!modeChoice}
-        continueLoading={picking}
+        continueLoading={picking || pickingHotel}
         onContinue={handlePromptContinue}
         subtitle="How do you want to choose your lodging preferences?"
+        headerImage="/zigy-lodging.png"
       >
         <ChooseModePrompt
           manualLabel="I'll pick myself"
@@ -283,25 +454,100 @@ export function LodgingStep() {
     );
   }
 
+  if (mode === "zigy_review") {
+    const pickedHotel = displayHotels.find((h) => h.id === selectedHotelId) ?? null;
+    const reasoning = [pickSummary, hotelPickReason].filter(Boolean).join(" ");
+
+    return (
+      <StepShell
+        stepId="lodging"
+        onContinue={handleContinue}
+        continueDisabled={!hasType}
+        subtitle="Here's what ZiGy picked for your stay."
+        headerImage="/zigy-lodging.png"
+      >
+        <div className="flex flex-col gap-4">
+          {reasoning && (
+            <div className="rounded-lg bg-brand-50 px-3 py-2">
+              <p className="text-xs text-brand-600">
+                <Sparkles size={11} className="inline mr-1" />
+                {reasoning}
+              </p>
+            </div>
+          )}
+          {(pickError || hotelPickError) && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+              <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-red-700">{pickError || hotelPickError}</p>
+            </div>
+          )}
+
+          {airbnbOnly ? (
+            <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+              <p className="font-medium">AirBnB options will be surfaced in your itinerary.</p>
+              <p className="text-xs text-brand-500 mt-0.5">We'll recommend apartments and local stays that match your destination and dates.</p>
+            </div>
+          ) : pickedHotel ? (
+            <div className="max-w-xs">{renderHotelCard(pickedHotel)}</div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
+              <p className="text-sm text-slate-500">ZiGy couldn&apos;t lock in a specific hotel.</p>
+              <p className="text-xs text-slate-400 mt-1">The type, star, and amenity picks above still applied — choose a hotel below or adjust the filters yourself.</p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setMode("manual")}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              I&apos;ll choose instead
+            </button>
+            {!airbnbOnly && hotels.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setShowMoreHotels((v) => !v)}
+                className="rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
+              >
+                {showMoreHotels ? "Hide other options" : "Show me other options"}
+              </button>
+            )}
+          </div>
+
+          {showMoreHotels && !airbnbOnly && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {displayHotels.map(renderHotelCard)}
+            </div>
+          )}
+        </div>
+      </StepShell>
+    );
+  }
+
   return (
     <StepShell
       stepId="lodging"
       onContinue={handleContinue}
       continueDisabled={!hasType}
       subtitle="We'll surface options that match your taste."
+      headerImage="/zigy-lodging.png"
     >
-      {modeChoice !== "zigy" && (
-        <ModeToggleBanner
-          label="Lodging preferences for you to choose from — or let ZiGy pick."
-          onZigy={handleZigyPick}
-          loading={picking}
-          error={pickError}
-        />
-      )}
-      {/* modeChoice === "zigy" hides the banner above (no redundant "let ZiGy
-          pick" prompt right after picking) — but that means a failure from
-          that exact path needs its own surface, not to vanish along with it. */}
-      {modeChoice === "zigy" && pickError && (
+      {/* Always rendered, regardless of modeChoice — a returning user whose
+          `mode` starts at "manual" directly (never visiting the initial
+          prompt) can still reach this button, and it needs to reflect
+          whether a pick has actually happened rather than only tracking
+          modeChoice, which that path never sets. */}
+      <ModeToggleBanner
+        label="Lodging preferences for you to choose from — or let ZiGy pick."
+        onZigy={handleZigyPick}
+        loading={picking || pickingHotel}
+        error={pickSummary ? null : pickError}
+        picked={!!pickSummary}
+      />
+      {/* A picked banner's own error slot is suppressed above — surface a
+          failure separately so it doesn't vanish along with the closed state. */}
+      {pickSummary && pickError && (
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
           <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
           <p className="text-xs text-red-700">{pickError}</p>
@@ -315,8 +561,26 @@ export function LodgingStep() {
               {pickSummary}
             </p>
             <p className="mt-1 text-[10px] text-brand-400">
-              You can still adjust these below — nothing here is locked in.
+              Nothing's locked in — tweak away below!
             </p>
+          </div>
+        )}
+        {/* Surfaces the actual selection right where the reasoning is, since
+            "Choose your stay" sits at the bottom of this long form — without
+            this, confirming what got picked meant scrolling past every
+            filter section below. */}
+        {topPickedHotel && (
+          <div>
+            <p className="mb-2 text-sm font-medium text-slate-700">Your selected stay</p>
+            {hotelPickReason && (
+              <div className="mb-2 rounded-lg bg-brand-50 px-3 py-2">
+                <p className="text-xs text-brand-600">
+                  <Sparkles size={11} className="inline mr-1" />
+                  {hotelPickReason}
+                </p>
+              </div>
+            )}
+            <div className="max-w-xs">{renderHotelCard(topPickedHotel)}</div>
           </div>
         )}
         {/* Type */}
@@ -493,7 +757,14 @@ export function LodgingStep() {
               Lock in a hotel now or skip — you can always choose later.
             </p>
 
-            {hotelsLoading ? (
+            {hotelPickError && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-red-700">{hotelPickError}</p>
+              </div>
+            )}
+
+            {hotelsLoading || pickingHotel ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="h-48 rounded-xl bg-slate-100 animate-pulse" />
@@ -508,65 +779,7 @@ export function LodgingStep() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {displayHotels.map((h) => {
-                  const selected = selectedHotelId === h.id;
-                  const tierLabel = HOTEL_TIER[h.stars] ?? HOTEL_TIER[4];
-                  return (
-                    <div
-                      key={h.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setSelectedHotelId((prev) => prev === h.id ? null : h.id)}
-                      onKeyDown={(e) => e.key === "Enter" && setSelectedHotelId((prev) => prev === h.id ? null : h.id)}
-                      className={cn(
-                        "flex flex-col rounded-xl border p-3 cursor-pointer transition-all duration-150",
-                        selected
-                          ? "border-brand-500 ring-2 ring-brand-200 bg-brand-50/40"
-                          : "border-slate-200 hover:border-slate-300 bg-white"
-                      )}
-                    >
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: h.stars }).map((_, i) => (
-                          <Star key={i} size={10} className="fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
-                      <span className={cn("mt-1 font-semibold text-sm leading-tight", selected ? "text-brand-700" : "text-slate-800")}>
-                        {h.name}
-                      </span>
-                      <p className="text-[11px] text-slate-500 mt-0.5 italic">{tierLabel}</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{h.location}</p>
-
-                      <div className="flex-1" />
-
-                      <div className="mt-3 flex items-end justify-between gap-2 pt-2 border-t border-slate-100">
-                        <div>
-                          <p className="font-bold text-slate-900 text-sm">
-                            {formatCurrency(h.pricePerNight)}<span className="font-normal text-xs text-slate-400">/night</span>
-                          </p>
-                          <p className="text-xs text-sage-700 font-medium">{h.rating}/10</p>
-                          {h.ratingSource && (
-                            <p className="text-[9px] text-slate-400">{h.ratingSource}</p>
-                          )}
-                        </div>
-                        {selected ? (
-                          <span className="flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white shrink-0">
-                            <Check size={9} /> Your pick
-                          </span>
-                        ) : (
-                          <a
-                            href={h.bookingUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="shrink-0 flex items-center gap-0.5 text-[11px] text-brand-500 hover:underline"
-                          >
-                            View <ExternalLink size={9} />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {displayHotels.map(renderHotelCard)}
               </div>
             )}
 

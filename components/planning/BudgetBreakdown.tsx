@@ -90,7 +90,7 @@ export function BudgetBreakdown({ itinerary, preferences }: Props) {
           <span className="text-sm font-semibold text-slate-800">Estimated Budget Breakdown</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-bold text-slate-900">{formatCurrency(total)}</span>
+          <span className="text-sm font-bold text-slate-900">{formatCurrency(total, preferences.preferredCurrency)}</span>
           {open ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
         </div>
       </button>
@@ -124,7 +124,7 @@ export function BudgetBreakdown({ itinerary, preferences }: Props) {
                       </p>
                       <p className="text-[10px] text-slate-400">{line.note}</p>
                     </div>
-                    <p className="text-xs font-semibold text-slate-800 shrink-0">{formatCurrency(line.amount)}</p>
+                    <p className="text-xs font-semibold text-slate-800 shrink-0">{formatCurrency(line.amount, preferences.preferredCurrency)}</p>
                   </button>
 
                   {isExpanded && line.id === "flights" && (
@@ -202,12 +202,12 @@ export function BudgetBreakdown({ itinerary, preferences }: Props) {
               <span className="text-sm font-bold text-slate-800">
                 {hasOverrides ? "Adjusted estimate" : "Total estimated"}
               </span>
-              <span className="text-sm font-bold text-slate-900">{formatCurrency(total)}</span>
+              <span className="text-sm font-bold text-slate-900">{formatCurrency(total, preferences.preferredCurrency)}</span>
             </div>
             {travelers > 1 && (
               <div className="flex justify-between items-center mt-0.5">
                 <span className="text-xs text-slate-500">Per person</span>
-                <span className="text-xs font-semibold text-slate-600">{formatCurrency(perPerson)}</span>
+                <span className="text-xs font-semibold text-slate-600">{formatCurrency(perPerson, preferences.preferredCurrency)}</span>
               </div>
             )}
             {hasOverrides && (
@@ -222,7 +222,7 @@ export function BudgetBreakdown({ itinerary, preferences }: Props) {
                 </button>
                 <span className={cn("text-[11px] font-semibold", delta > 0 ? "text-amber-600" : delta < 0 ? "text-sage-600" : "text-slate-400")}>
                   {delta > 0 ? "+" : ""}
-                  {formatCurrency(delta)} vs your picks
+                  {formatCurrency(delta, preferences.preferredCurrency)} vs your picks
                 </span>
               </div>
             )}

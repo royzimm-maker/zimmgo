@@ -14,8 +14,8 @@ const BELI_NOTES = [
   "Beli members in this city rank this among their favorites",
 ];
 
-// Restaurant `location` fields are neighbourhood-level (e.g. "Trastevere, Rome"),
-// so grouping by the raw string would treat every neighbourhood as its own city
+// Restaurant `location` fields are neighborhood-level (e.g. "Trastevere, Rome"),
+// so grouping by the raw string would treat every neighborhood as its own city
 // and tag nearly everything as a pick. Bucket by city instead: match against the
 // trip's known destination cities (via the same fuzzy matcher used elsewhere for
 // this exact problem — see locationsMatch in RefineStep), else fall back to the

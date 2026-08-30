@@ -1,6 +1,6 @@
 "use client";
 
-import { Plane, Hotel, Users, Calendar, MapPin, Check } from "lucide-react";
+import { Plane, Hotel, Users, Calendar, MapPin, Check, Ship } from "lucide-react";
 import { formatDate, formatCurrency, pairFlights, fuzzyCityMatch } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
@@ -100,12 +100,12 @@ export function TripGlance({ itinerary, preferences }: Props) {
                       </p>
                       {ret && (
                         <p className="text-[10px] text-slate-400 mt-0.5">
-                          Out: {formatCurrency(outbound.price)}/pp · Return: {formatCurrency(ret.price)}/pp
+                          Out: {formatCurrency(outbound.price, preferences.preferredCurrency)}/pp · Return: {formatCurrency(ret.price, preferences.preferredCurrency)}/pp
                         </p>
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-slate-900">{formatCurrency(roundtripPp)}</p>
+                      <p className="text-sm font-bold text-slate-900">{formatCurrency(roundtripPp, preferences.preferredCurrency)}</p>
                       <p className="text-[10px] text-slate-400">roundtrip/pp</p>
                     </div>
                   </div>
@@ -154,7 +154,31 @@ export function TripGlance({ itinerary, preferences }: Props) {
                   )}
                   {h.name}
                 </span>
-                <span className="text-slate-500">{h.location} · {formatCurrency(h.pricePerNight)}/night</span>
+                <span className="text-slate-500">{h.location} · {formatCurrency(h.pricePerNight, preferences.preferredCurrency)}/night</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ground transport summary — only for the handful of legs with a real
+          regional operator (see lib/data/groundTransportProviders.ts), and
+          only once the traveller has actually picked one; unlike flights/
+          hotels there's no "recommended default" shown here, since this is
+          an optional add-on most trips never touch. */}
+      {Object.keys(preferences.selectedTransportByLeg ?? {}).length > 0 && (
+        <div className="px-4 py-3 border-b border-slate-100">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1">
+            <Ship size={10} /> Getting There
+          </p>
+          <div className="flex flex-col gap-1">
+            {Object.entries(preferences.selectedTransportByLeg ?? {}).map(([city, t]) => (
+              <div key={city} className="flex items-center justify-between text-xs">
+                <span className="text-slate-700 font-medium flex items-center gap-1">
+                  <Check size={11} className="text-sage-600 shrink-0" />
+                  {t.provider} — {t.fromCity} → {t.toCity}
+                </span>
+                <span className="text-slate-500">{t.duration} · {formatCurrency(t.price, preferences.preferredCurrency)}</span>
               </div>
             ))}
           </div>

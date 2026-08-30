@@ -15,6 +15,7 @@ import type {
   DatePreference,
   HotelOption,
   FlightOption,
+  TransportOption,
   LodgingPreference,
   AirlinePreference,
   ActivityCategory,
@@ -25,6 +26,7 @@ import type {
   WanderlogItem,
   ReviewSourcePreference,
   BeliPreference,
+  SchedulePace,
 } from "@/types/trip";
 import { calcProgress } from "@/types/trip";
 
@@ -55,6 +57,10 @@ interface TripState {
   setDestination: (dest: Destination) => void;
   setActivities: (activities: (ActivityCategory | string)[]) => void;
   setVibes: (vibes: VibeTag[]) => void;
+  setSchedulePace: (pace: SchedulePace | undefined) => void;
+  setAutoPlanEverything: (value: boolean) => void;
+  setSelectedActivityIds: (ids: string[]) => void;
+  setSelectedRestaurantIds: (ids: string[]) => void;
   setDates: (dates: DatePreference) => void;
   setBudget: (ranges: BudgetRange[]) => void;
   setBudgetDetails: (details: {
@@ -69,10 +75,19 @@ interface TripState {
   setBeliPref: (pref: BeliPreference) => void;
   setSelectedHotel: (hotel: HotelOption | null) => void;
   setSelectedHotelForCity: (city: string, hotel: HotelOption | null) => void;
+  setSelectedTransportForLeg: (city: string, option: TransportOption | null) => void;
+  setAutoPickHotels: (value: boolean) => void;
   setSelectedFlight: (flight: import("@/types/trip").FlightOption | null) => void;
   toggleSelectedRestaurant: (id: string) => void;
   toggleSelectedActivity: (id: string) => void;
   setAirlines: (prefs: AirlinePreference) => void;
+  setNoFlightsNeeded: (value: boolean) => void;
+  setPreferredCurrency: (code: string | undefined) => void;
+  setDietaryRestrictions: (restrictions: string[], notes: string | undefined) => void;
+  setAvoidLongQueues: (value: boolean) => void;
+  setDayTripRequested: (value: boolean) => void;
+  setCityNights: (nights: Record<string, number> | undefined) => void;
+  setVisaAcknowledged: (value: boolean) => void;
   setTransportation: (modes: TransportMode[]) => void;
 
   // Itinerary
@@ -102,6 +117,9 @@ interface TripState {
   // Same idea for Beli — connecting is a one-time account link, not a
   // per-trip preference, so it shouldn't have to be redone every trip.
   defaultBeliPref?: BeliPreference;
+  // Same idea for currency — once a traveller picks a display currency it
+  // should stick around for their next trip too.
+  defaultCurrency?: string;
 }
 
 // ─── Initial values ────────────────────────────────────────────────────────────
@@ -248,6 +266,42 @@ export const useTripStore = create<TripState>()(
           },
         })),
 
+      setSchedulePace: (schedulePace) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, schedulePace },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setAutoPlanEverything: (autoPlanEverything) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, autoPlanEverything },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setSelectedActivityIds: (selectedActivityIds) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, selectedActivityIds },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setSelectedRestaurantIds: (selectedRestaurantIds) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, selectedRestaurantIds },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
       setDates: (dates) =>
         set((s) => ({
           trip: {
@@ -332,6 +386,29 @@ export const useTripStore = create<TripState>()(
           };
         }),
 
+      setSelectedTransportForLeg: (city, option) =>
+        set((s) => {
+          const next = { ...(s.trip.preferences.selectedTransportByLeg ?? {}) };
+          if (option) next[city] = option;
+          else delete next[city];
+          return {
+            trip: {
+              ...s.trip,
+              preferences: { ...s.trip.preferences, selectedTransportByLeg: next },
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }),
+
+      setAutoPickHotels: (autoPickHotels) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, autoPickHotels },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
       setSelectedFlight: (selectedFlight) =>
         set((s) => ({
           trip: {
@@ -375,6 +452,72 @@ export const useTripStore = create<TripState>()(
           trip: {
             ...s.trip,
             preferences: { ...s.trip.preferences, airlinePrefs },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setNoFlightsNeeded: (noFlightsNeeded) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, noFlightsNeeded },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      // Also updates the remembered default, same pattern as setBeliPref —
+      // a currency choice should stick for the traveller's next trip too.
+      setPreferredCurrency: (preferredCurrency) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, preferredCurrency },
+            updatedAt: new Date().toISOString(),
+          },
+          defaultCurrency: preferredCurrency,
+        })),
+
+      setDietaryRestrictions: (dietaryRestrictions, dietaryNotes) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, dietaryRestrictions, dietaryNotes },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setAvoidLongQueues: (avoidLongQueues) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, avoidLongQueues },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setDayTripRequested: (dayTripRequested) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, dayTripRequested },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setVisaAcknowledged: (visaAcknowledged) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, visaAcknowledged },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setCityNights: (cityNights) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, cityNights },
             updatedAt: new Date().toISOString(),
           },
         })),
@@ -501,6 +644,7 @@ export const useTripStore = create<TripState>()(
       defaultDepartureAirport: undefined,
       setDefaultDepartureAirport: (defaultDepartureAirport) => set({ defaultDepartureAirport }),
       defaultBeliPref: undefined,
+      defaultCurrency: undefined,
     }),
     {
       name: "zimmgo-trip",
@@ -515,6 +659,7 @@ export const useTripStore = create<TripState>()(
         // to the airport the user flies from most, unlike trip-scoped prefs.
         defaultDepartureAirport: state.defaultDepartureAirport,
         defaultBeliPref: state.defaultBeliPref,
+        defaultCurrency: state.defaultCurrency,
       }),
     }
   )

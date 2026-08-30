@@ -5,6 +5,7 @@ export type StepId =
   | "vibe"
   | "dates"
   | "budget"
+  | "planningMode"
   | "lodging"
   | "airlines"
   | "transportation"
@@ -70,6 +71,26 @@ export interface Destination {
   returnAirport?: string;      // return to a different airport (open-jaw), e.g. "MXP" for fly-in FCO / fly-out MXP
   arrivalAirport?: string;     // suggested gateway airport IATA code
   routingNote?: string;        // suggested routing with reasoning
+  // True only when it's unambiguous that flights (not driving) are required —
+  // crossing an ocean, an island region, intercontinental travel. Set by the
+  // AI at parse time (see PARSE_DESTINATION_TOOL / PARSE_FULL_TRIP_TOOL);
+  // mutually exclusive with a road-trip detection. Used to hide the "I'm
+  // driving — no flights needed" toggle on the Flights step when offering it
+  // would just be confusing.
+  flightsObviouslyRequired?: boolean;
+  // Set by the AI at parse time when the traveller mentioned a season-
+  // dependent draw with a well-known best-viewing window (Northern Lights,
+  // cherry blossoms, monsoon season, ski season, etc.) — a short plain-
+  // English heads-up, not a hard constraint. Shown on the Dates step so it's
+  // visible exactly when the decision it's relevant to gets made. Omitted
+  // when nothing like this was mentioned.
+  seasonalNote?: string;
+  // Machine-readable form of the same window, 1-12 — set together with
+  // seasonalNote so the Dates step can default the flexible-month picker
+  // into the window and warn when picked dates fall outside it. May wrap
+  // the new year (e.g. startMonth 9, endMonth 4 for Sept through April).
+  seasonalWindowStartMonth?: number;
+  seasonalWindowEndMonth?: number;
 }
 
 export interface DatePreference {
@@ -144,14 +165,69 @@ export interface TripPreferences {
   lodging?: LodgingPreference;
   selectedHotel?: HotelOption;
   selectedHotelsByCity?: Record<string, HotelOption>; // per-city picks for multi-destination trips
+  // Inter-city ferry/train picks, keyed by the arriving city — same
+  // per-leg convention as travelNoteByCity in the generate route.
+  selectedTransportByLeg?: Record<string, TransportOption>;
+  // Set when the traveller used "Let ZiGy choose for me" on the Lodging
+  // step — that step only ever searches/picks a hotel for the trip's
+  // primary city, so this tells the itinerary review wizard's per-city
+  // Hotels stage to auto-run the same smart pick for every other city too,
+  // instead of leaving each one sitting on a blank picker as if nothing
+  // had been decided.
+  autoPickHotels?: boolean;
   selectedFlight?: FlightOption;
   selectedRestaurantIds?: string[]; // restaurants the traveller picked in for their plan (vs. just Wanderlog-saved)
   selectedActivityIds?: string[];   // activities the traveller picked in for their plan (vs. just Wanderlog-saved)
   airlinePrefs?: AirlinePreference;
+  // Road trips and other no-flight itineraries — set on the Flights step
+  // when the traveller says they're driving. Suppresses the departure-
+  // airport requirement and skips flight search entirely.
+  noFlightsNeeded?: boolean;
   reviewSourcePref?: ReviewSourcePreference; // how hotel/restaurant/activity ratings are sourced
   beliPref?: BeliPreference; // optional Beli account to weight restaurant picks toward
   transportation: TransportMode[];
+  // ISO 4217 code, e.g. "EUR" — all displayed prices are converted to this
+  // from their USD source value (see lib/currency.ts). Undefined = USD.
+  preferredCurrency?: string;
+  // Free-form dietary tags (e.g. "vegetarian", "gluten-free") plus optional
+  // free-text notes — passed to ZiGy's restaurant/activity reasoning and
+  // itinerary prompts so meal suggestions actually account for them.
+  dietaryRestrictions?: string[];
+  dietaryNotes?: string;
+  // Sightseeing pace preference — when true, ZiGy favors skip-the-line/
+  // early-access/reserved-entry options over general-admission ones for the
+  // main sights, instead of treating that as incidental copy in the listing.
+  avoidLongQueues?: boolean;
+  // Traveller explicitly wants one day of the itinerary given over to an
+  // out-of-town excursion (e.g. "one day outside the city") — instructs the
+  // generator to include a "Full day" day-trip activity rather than keeping
+  // every day inside the main destination.
+  dayTripRequested?: boolean;
+  // User-adjusted day allocation per destination city, keyed by the exact
+  // city string from destination.cities — set from the itinerary step's leg
+  // editor to override however the AI split the days by default. Values
+  // must sum to the same total day count as the current itinerary; the
+  // generator is instructed to match this split exactly.
+  cityNights?: Record<string, number>;
+  // True once the traveller has checked the "I understand" box on the
+  // itinerary step's visa requirements notice — only meaningful (and only
+  // required to proceed) when getVisaRequirementsForTrip found at least one
+  // country that needs a visa. See lib/data/visaRequirements.ts.
+  visaAcknowledged?: boolean;
+  // How tightly the traveller wants each day scheduled — feeds ZiGy's
+  // day-by-day arranging (both initial generation and the "Let ZiGy
+  // arrange" smart-pick) so a "wide open" traveller doesn't get a packed
+  // itinerary and vice versa. Undefined = no stated preference.
+  schedulePace?: SchedulePace;
+  // Set on the Planning Mode step when the traveller chooses "Let ZiGy plan
+  // my whole trip" — tells the Itinerary step to run the full auto-plan
+  // orchestration (hotel/activities/restaurants picks + day-by-day
+  // scheduling, city by city) instead of showing the manual selection
+  // wizard, landing the traveller straight on the finished plan.
+  autoPlanEverything?: boolean;
 }
+
+export type SchedulePace = "wide_open" | "one_anchor" | "fully_programmed";
 
 // ─── Neighborhood option ──────────────────────────────────────────────────────
 export interface NeighborhoodOption {
@@ -178,6 +254,23 @@ export interface FlightOption {
   price: number;
   currency: string;
   cabinClass: string;
+  bookingUrl?: string;
+}
+
+// Inter-city ground/ferry transport for regions with a real regional
+// operator (e.g. Ferryhopper for the Greek islands, SNCF for France) —
+// see lib/data/groundTransportProviders.ts for which destinations match.
+export interface TransportOption {
+  id: string;
+  mode: "ferry" | "train";
+  provider: string;
+  fromCity: string;
+  toCity: string;
+  departureTime: string;
+  arrivalTime: string;
+  duration: string;
+  price: number;
+  currency: string;
   bookingUrl?: string;
 }
 
@@ -290,6 +383,9 @@ export interface GeneratedItinerary {
   days: ItineraryDay[];
   flights: FlightOption[];
   hotels: HotelOption[];
+  // Only populated for legs where a real regional operator matched (see
+  // lib/data/groundTransportProviders.ts) — most trips have none.
+  groundTransport?: TransportOption[];
   activities: ActivityOption[];
   restaurants?: RestaurantOption[];
   totalEstimatedCost: number;
@@ -352,6 +448,7 @@ export const ORDERED_STEPS: StepId[] = [
   "budget",
   "vibe",
   "activities",
+  "planningMode",
   "lodging",
   "transportation",
   "itinerary",
@@ -364,6 +461,7 @@ export const STEP_META: Record<StepId, Omit<PlanningStep, "completed">> = {
   vibe:           { id: "vibe",           label: "Vibe",           description: "What's the mood?",               skippable: false },
   dates:          { id: "dates",          label: "Dates",          description: "When are you going?",            skippable: false },
   budget:         { id: "budget",         label: "Budget",         description: "What's your daily spend?",       skippable: false },
+  planningMode:   { id: "planningMode",   label: "Planning Style", description: "Do it yourself or let ZiGy handle it?", skippable: false },
   lodging:        { id: "lodging",        label: "Lodging",        description: "Hotels or Airbnb?",              skippable: false },
   airlines:       { id: "airlines",       label: "Flights",        description: "Any airline preferences?",       skippable: true  },
   transportation: { id: "transportation", label: "Getting Around", description: "How will you move locally?",     skippable: false },

@@ -12,7 +12,7 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "plaka",
         name: "Plaka, Athens",
-        description: "The oldest continuously inhabited neighbourhood in Athens, draped beneath the Acropolis. Cobbled lanes lead to neoclassical mansions, Byzantine churches, and roof terraces with iconic views.",
+        description: "The oldest continuously inhabited neighborhood in Athens, draped beneath the Acropolis. Cobbled lanes lead to neoclassical mansions, Byzantine churches, and roof terraces with iconic views.",
         vibe: "Historic & romantic",
         bestFor: "First-time visitors, history lovers, couples",
         emoji: "🏛️",
@@ -53,7 +53,7 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "beyoglu-galata",
         name: "Beyoğlu & Galata",
-        description: "Istanbul's cosmopolitan heart on the European side, centred on the pedestrian İstiklal Avenue. Art galleries, independent coffee shops, rooftop bars, and a buzzing restaurant scene sit in the shadow of the medieval Galata Tower.",
+        description: "Istanbul's cosmopolitan heart on the European side, centered on the pedestrian İstiklal Avenue. Art galleries, independent coffee shops, rooftop bars, and a buzzing restaurant scene sit in the shadow of the medieval Galata Tower.",
         vibe: "Cosmopolitan & creative",
         bestFor: "Foodies, nightlife, art lovers, repeat visitors",
         emoji: "🗼",
@@ -94,7 +94,7 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "yanaka",
         name: "Yanaka",
-        description: "One of Tokyo's few neighbourhoods that survived WWII largely intact, Yanaka retains an Edo-period atmosphere of wooden shophouses, small temples, and unhurried alley cats. A slow-travel antidote to Tokyo's pace.",
+        description: "One of Tokyo's few neighborhoods that survived WWII largely intact, Yanaka retains an Edo-period atmosphere of wooden shophouses, small temples, and unhurried alley cats. A slow-travel antidote to Tokyo's pace.",
         vibe: "Old Tokyo & tranquil",
         bestFor: "Photographers, culture seekers, off-the-beaten-path travellers",
         emoji: "🏮",
@@ -108,7 +108,7 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "gion",
         name: "Gion",
-        description: "Kyoto's most iconic district, where machiya wooden townhouses line stone-paved lanes and geiko (geisha) still move between ochaya teahouses at dusk. Staying here puts you at the centre of traditional Japan.",
+        description: "Kyoto's most iconic district, where machiya wooden townhouses line stone-paved lanes and geiko (geisha) still move between ochaya teahouses at dusk. Staying here puts you at the center of traditional Japan.",
         vibe: "Traditional & cinematic",
         bestFor: "Culture lovers, photographers, Japan enthusiasts",
         emoji: "🏯",
@@ -158,7 +158,7 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "montmartre",
         name: "Montmartre",
-        description: "The hilltop village above Paris that retains the feel of a self-contained town. Artists' studios, the vineyard, tiny squares, and the white dome of Sacré-Cœur define the neighbourhood, along with spectacular city views.",
+        description: "The hilltop village above Paris that retains the feel of a self-contained town. Artists' studios, the vineyard, tiny squares, and the white dome of Sacré-Cœur define the neighborhood, along with spectacular city views.",
         vibe: "Bohemian & romantic",
         bestFor: "Romantics, artists, photographers, first-time visitors",
         emoji: "🎭",
@@ -172,7 +172,7 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "positano",
         name: "Positano",
-        description: "The cliff-hugging poster child of the Amalfi Coast: pastel-coloured houses tumbling to a pebble beach, bougainvillea-draped terraces, and a main street of boutique ceramics and linen shops. Steep stairs are part of the charm.",
+        description: "The cliff-hugging poster child of the Amalfi Coast: pastel-colored houses tumbling to a pebble beach, bougainvillea-draped terraces, and a main street of boutique ceramics and linen shops. Steep stairs are part of the charm.",
         vibe: "Iconic & glamorous",
         bestFor: "Couples, photographers, luxury travellers",
         emoji: "🌺",
@@ -236,7 +236,7 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "west-village",
         name: "West Village / SoHo",
-        description: "Cobblestone streets, brownstone townhouses, and a density of excellent independent restaurants make the West Village Manhattan's most charming neighbourhood. SoHo next door adds gallery hopping and flagship boutiques.",
+        description: "Cobblestone streets, brownstone townhouses, and a density of excellent independent restaurants make the West Village Manhattan's most charming neighborhood. SoHo next door adds gallery hopping and flagship boutiques.",
         vibe: "Charming & foodie",
         bestFor: "Foodies, shoppers, couples, boutique hotel lovers",
         emoji: "🗽",
@@ -254,7 +254,7 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "upper-west-side",
         name: "Upper West Side",
-        description: "A residential neighbourhood beloved by New Yorkers for its access to Central Park, the Natural History Museum, Lincoln Center, and excellent everyday dining. Quieter and more local-feeling than Midtown.",
+        description: "A residential neighborhood beloved by New Yorkers for its access to Central Park, the Natural History Museum, Lincoln Center, and excellent everyday dining. Quieter and more local-feeling than Midtown.",
         vibe: "Residential & cultured",
         bestFor: "Families, museum-goers, Central Park walkers",
         emoji: "🌳",
@@ -268,16 +268,16 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "downtown-101",
         name: "Downtown Reykjavik (101)",
-        description: "Iceland's compact capital is almost entirely walkable from the 101 postcode. Hallgrímskirkja church, Laugavegur shopping street, the harbour, and the best coffee and restaurants in the country are all within a 15-minute stroll.",
+        description: "Iceland's compact capital is almost entirely walkable from the 101 postcode. Hallgrímskirkja church, Laugavegur shopping street, the harbor, and the best coffee and restaurants in the country are all within a 15-minute stroll.",
         vibe: "Compact & vibrant",
         bestFor: "First-timers, those on short trips, foodies",
         emoji: "🌋",
         priceRange: "$$",
       },
       {
-        id: "grandi-harbour",
-        name: "Grandi Harbour District",
-        description: "Reykjavik's revitalised old harbour is now home to the Whales of Iceland exhibition, the Aurora Reykjavik museum, street-food market, and the Marshall House arts centre. A quieter, creative alternative to the main drag.",
+        id: "grandi-harbor",
+        name: "Grandi Harbor District",
+        description: "Reykjavik's revitalised old harbor is now home to the Whales of Iceland exhibition, the Aurora Reykjavik museum, street-food market, and the Marshall House arts center. A quieter, creative alternative to the main drag.",
         vibe: "Cultural & waterfront",
         bestFor: "Art and culture lovers, foodies, photographers",
         emoji: "🐋",
@@ -286,7 +286,7 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "laugardalur",
         name: "Laugardalur",
-        description: "A local residential valley east of downtown centred on Reykjavik's main geothermal swimming pool and botanic garden. Fewer tourists, great access to the hot-pot culture that defines Icelandic social life.",
+        description: "A local residential valley east of downtown centered on Reykjavik's main geothermal swimming pool and botanic garden. Fewer tourists, great access to the hot-pot culture that defines Icelandic social life.",
         vibe: "Local & relaxed",
         bestFor: "Those who want a local experience, families, wellness seekers",
         emoji: "♨️",
@@ -350,7 +350,7 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
       {
         id: "hanoi-old-quarter",
         name: "Hanoi Old Quarter",
-        description: "Vietnam's most atmospheric urban neighbourhood: 36 ancient guild streets, each historically specialising in a single craft or trade. Morning pho, bia hoi corner beer stands, and a tangle of motorbikes define the sensory experience.",
+        description: "Vietnam's most atmospheric urban neighborhood: 36 ancient guild streets, each historically specialising in a single craft or trade. Morning pho, bia hoi corner beer stands, and a tangle of motorbikes define the sensory experience.",
         vibe: "Authentic & chaotic",
         bestFor: "Adventurous travellers, foodies, those who want real Southeast Asia",
         emoji: "🍜",
@@ -362,9 +362,9 @@ const NEIGHBORHOOD_DATA: DestinationNeighborhoods[] = [
     keywords: ["queenstown", "new zealand"],
     neighborhoods: [
       {
-        id: "town-centre",
-        name: "Queenstown Town Centre",
-        description: "Queenstown's compact lakefront centre puts the gondola, bungee operators, restaurants, and the legendary Fergburger queue all within five minutes on foot. Best base for those who want everything immediately accessible.",
+        id: "town-center",
+        name: "Queenstown Town Center",
+        description: "Queenstown's compact lakefront center puts the gondola, bungee operators, restaurants, and the legendary Fergburger queue all within five minutes on foot. Best base for those who want everything immediately accessible.",
         vibe: "Energetic & convenient",
         bestFor: "Adventure seekers, first-timers, those on short stays",
         emoji: "🏔️",

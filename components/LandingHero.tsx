@@ -15,6 +15,7 @@ const STEPS = [
   { icon: "💰", label: "Budget" },
   { icon: "✨", label: "Vibe" },
   { icon: "🎯", label: "Activities" },
+  { icon: "🧭", label: "Planning Style" },
   { icon: "🏨", label: "Lodging" },
   { icon: "🚗", label: "Transport" },
   { icon: "🗺️", label: "Itinerary" },
@@ -53,7 +54,7 @@ export function LandingHero() {
       <nav className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
         <Logo size={64} showTagline />
         <div className="flex items-center gap-3">
-          {hasMultipleTrips && <TripSwitcher label="My Saved Trips" />}
+          {hasMultipleTrips && <TripSwitcher />}
           <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 sm:inline-flex">
             <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Beta</span>
             Early prototype — not live booking data
@@ -116,7 +117,7 @@ export function LandingHero() {
           ))}
         </div>
         <p className="mt-3 text-xs text-slate-400">
-          9 guided steps to help you plan everything you need for your next dream vacation
+          10 guided steps to help you plan everything you need for your next dream vacation
         </p>
       </div>
 
@@ -147,6 +148,11 @@ export function LandingHero() {
             Claude
           </a>
           {" "}· Built with the Anthropic API
+        </p>
+        <p className="mt-1.5 text-xs">
+          <a href="/privacy" className="text-slate-400 hover:text-slate-600 transition-colors">
+            Privacy
+          </a>
         </p>
       </div>
     </main>

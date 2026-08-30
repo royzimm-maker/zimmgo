@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { buildDestinationParsePrompt } from "@/lib/ai/prompts";
 import { PARSE_DESTINATION_TOOL } from "@/lib/ai/tools";
@@ -6,9 +7,17 @@ import { PARSE_DESTINATION_TOOL } from "@/lib/ai/tools";
 interface ParseDestinationResult {
   cities: string[];
   displayName: string;
+  likelyRoadTrip: boolean;
+  flightsObviouslyRequired: boolean;
+  seasonalNote?: string;
+  seasonalWindowStartMonth?: number;
+  seasonalWindowEndMonth?: number;
 }
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, { bucket: "destination-parse", limit: 20, windowMs: 5 * 60_000 });
+  if (limited) return limited;
+
   try {
     const { text } = await request.json() as { text: string };
 

@@ -171,8 +171,98 @@ export const PARSE_DESTINATION_TOOL: Anthropic.Tool = {
         type: "string",
         description: "A short, clean human-readable label for this trip, e.g. \"Barcelona, Spain\" or \"Italy — Rome, Florence & Amalfi Coast\".",
       },
+      likelyRoadTrip: {
+        type: "boolean",
+        description: "True ONLY if the traveller explicitly said they're driving/road-tripping (e.g. \"road trip\", \"driving up\", \"drive from Seattle\"). Never infer this from the destination or place names alone — a false positive would wrongly suppress flight search for someone who needs it. Default false when in doubt.",
+      },
+      flightsObviouslyRequired: {
+        type: "boolean",
+        description: "True whenever the destination is genuinely overseas from a North American departure (this app's default assumption unless stated otherwise) — anywhere in Europe, Asia, Africa, South America, Australia/Oceania, or an island (Hawaii, Iceland, etc.) — even if that region is easy to drive around once there, since reaching it at all requires a flight (e.g. \"Tuscany and the Amalfi Coast\", \"Scandinavia with a stopover in Iceland\", \"Japan and Thailand\"). False only when driving the whole trip is plausible (continental US/Canada/Mexico/Central America) or the traveller's own words place them already near the destination. Mutually exclusive with likelyRoadTrip; never set both true.",
+      },
+      seasonalNote: {
+        type: "string",
+        description: "A short, plain-English heads-up on timing — ONLY if the traveller mentioned a season-dependent draw with a well-established best-viewing window (e.g. Northern Lights, cherry blossoms, monsoon season, ski season). E.g. \"Northern Lights are typically visible late September through early April.\" Omit entirely if nothing like this was mentioned, or if the timing isn't a genuinely well-known pattern — don't invent one.",
+      },
+      seasonalWindowStartMonth: {
+        type: "number",
+        description: "1-12, the month the window in seasonalNote typically starts (e.g. 9 for September). Required together with seasonalNote — set both or neither.",
+      },
+      seasonalWindowEndMonth: {
+        type: "number",
+        description: "1-12, the month the window in seasonalNote typically ends (e.g. 4 for April). Can be less than seasonalWindowStartMonth if the window wraps around the new year. Required together with seasonalNote — set both or neither.",
+      },
     },
-    required: ["cities", "displayName"],
+    required: ["cities", "displayName", "likelyRoadTrip", "flightsObviouslyRequired"],
+  },
+};
+
+// Forced-tool-call schema for the free-text "describe your whole trip" intake
+// mode — a single natural-language paragraph parsed into as much of
+// TripPreferences as is actually stated. Every field except cities/
+// displayName/likelyRoadTrip/summary is optional and MUST be omitted rather
+// than guessed when the traveller didn't say it — the app pre-fills the
+// normal step-by-step wizard with whatever comes back and sends the
+// traveller through any step this couldn't fill, so a confident wrong guess
+// is worse than an honest gap.
+export const PARSE_FULL_TRIP_TOOL: Anthropic.Tool = {
+  name: "parse_full_trip",
+  description: "Extract as much of a complete trip plan as the traveller actually stated from one free-text description — destination, dates, travelers, budget, dietary needs, pace preferences, vibe, and activities. Omit any field not clearly stated; never guess.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      cities: {
+        type: "array",
+        items: { type: "string" },
+        description: "Real place names only, in a logical geographic visiting order. A single-city trip has exactly one entry.",
+      },
+      displayName: { type: "string", description: "A short, clean human-readable label for this trip, e.g. \"Rome, Italy\"." },
+      likelyRoadTrip: { type: "boolean", description: "True ONLY if the traveller explicitly said they're driving/road-tripping. Default false when in doubt." },
+      flightsObviouslyRequired: { type: "boolean", description: "True whenever the destination is genuinely overseas from a North American departure (this app's default assumption unless stated otherwise) — anywhere in Europe, Asia, Africa, South America, Australia/Oceania, or an island (Hawaii, Iceland, etc.) — even if that region is easy to drive around once there, since reaching it at all requires a flight. False only when driving the whole trip is plausible (continental US/Canada/Mexico/Central America) or the traveller's own words place them already near the destination. Mutually exclusive with likelyRoadTrip." },
+      seasonalNote: { type: "string", description: "A short heads-up on timing — ONLY if the traveller mentioned a season-dependent draw with a well-established best-viewing window (Northern Lights, cherry blossoms, monsoon season, ski season). Omit if nothing like this was mentioned or the pattern isn't well-known." },
+      seasonalWindowStartMonth: { type: "number", description: "1-12, the month the seasonalNote window typically starts. Required together with seasonalNote — set both or neither." },
+      seasonalWindowEndMonth: { type: "number", description: "1-12, the month the seasonalNote window typically ends. Can be less than seasonalWindowStartMonth if it wraps the new year. Required together with seasonalNote — set both or neither." },
+      departureAirport: { type: "string", description: "The traveller's departure city or airport, ONLY if explicitly stated (e.g. \"flying from Boston\", \"we're in JFK\"). Omit if not stated — do not guess a home airport." },
+      travelers: { type: "number", description: "Number of people on the trip, only if stated (e.g. \"we're two people\", \"a family of four\")." },
+      dates: {
+        type: "object",
+        description: "Omit entirely if no dates or timeframe were mentioned.",
+        properties: {
+          type: { type: "string", enum: ["exact", "flexible"], description: "\"exact\" if specific calendar dates were given, \"flexible\" if only a rough month/duration was given." },
+          startDate: { type: "string", description: "ISO date YYYY-MM-DD. Required when type is \"exact\". Resolve any relative or partial dates (e.g. \"next Tuesday\", \"Oct 13\") against the current date given in the prompt." },
+          endDate: { type: "string", description: "ISO date YYYY-MM-DD. Required when type is \"exact\"." },
+          flexibleMonth: { type: "string", description: "\"YYYY-MM\", required when type is \"flexible\"." },
+          flexibleDuration: { type: "number", description: "Trip length in days, required when type is \"flexible\"." },
+        },
+      },
+      budgetTier: {
+        type: "string",
+        enum: ["under_500", "500_750", "750_1000", "1000_plus"],
+        description: "Lodging budget tier per room/night, ONLY if the traveller gave enough signal to map it — under_500 = budget/value, 500_750 = mid-range (\"mid budget\", \"comfortable\"), 750_1000 = premium/upscale, 1000_plus = luxury/no-expense-spared. Omit if genuinely unclear.",
+      },
+      dietaryRestrictions: {
+        type: "array",
+        items: { type: "string" },
+        description: "Dietary tags actually stated (e.g. \"vegetarian\", \"gluten-free\", \"nut allergy\"). Omit if none mentioned.",
+      },
+      dietaryNotes: { type: "string", description: "Free-text dietary context that doesn't fit a simple tag, e.g. \"one of us is vegetarian\". Omit if none." },
+      avoidLongQueues: { type: "boolean", description: "True ONLY if the traveller expressed wanting to skip lines / avoid crowds / see sights efficiently (e.g. \"without queueing for hours\"). Omit if not mentioned." },
+      dayTripRequested: { type: "boolean", description: "True ONLY if the traveller explicitly asked for a day trip or day outside the main city/destination. Omit if not mentioned." },
+      vibes: {
+        type: "array",
+        items: { type: "string", enum: ["nightlife", "great_food", "outdoor", "shopping", "beaches", "architecture", "romantic", "family_friendly", "off_the_beaten_path"] },
+        description: "Trip mood/vibe tags actually implied by the text. Omit if nothing suggests a specific vibe.",
+      },
+      activities: {
+        type: "array",
+        items: { type: "string" },
+        description: "Activity categories or free-text interests actually stated or clearly implied (e.g. \"the main sights\" implies cultural). Omit if nothing specific was said.",
+      },
+      summary: {
+        type: "string",
+        description: "A friendly 1-2 sentence recap of the whole trip as understood, written for the traveller to confirm at a glance, e.g. \"A 4-night trip to Rome for two, mid-budget, landing Tue Oct 13 at 14:30 — main sights without long queues, one day trip, and one vegetarian traveller.\"",
+      },
+    },
+    required: ["cities", "displayName", "likelyRoadTrip", "flightsObviouslyRequired", "summary"],
   },
 };
 
@@ -193,7 +283,7 @@ export const ADD_TO_WANDERLOG_TOOL: Anthropic.Tool = {
           properties: {
             label: { type: "string", description: "Short name of the thing to save, e.g. a restaurant, activity, or place name" },
             source: { type: "string", enum: ["activity", "restaurant", "discovery", "custom"], description: "What kind of item this is — use \"custom\" if unsure" },
-            location: { type: "string", description: "City or neighbourhood, if known" },
+            location: { type: "string", description: "City or neighborhood, if known" },
             description: { type: "string", description: "One short sentence on what it actually is — enough that the traveller recognizes it when reading their Wanderlog months later, without having to remember this conversation." },
           },
           required: ["label", "source"],
@@ -228,7 +318,7 @@ export const UPDATE_LODGING_PREFERENCES_TOOL: Anthropic.Tool = {
         type: "array",
         items: { type: "string" },
         description:
-          "The traveller's full desired list of must-have amenities, drawn from: Free breakfast, Pool, Gym, Concierge, Airport transfer, Rooftop bar, Spa, City centre location, Kitchen / kitchenette, High walkability. Carry forward their existing selections unless they're clearly replacing them. Omit if not changing.",
+          "The traveller's full desired list of must-have amenities, drawn from: Free breakfast, Pool, Gym, Concierge, Airport transfer, Rooftop bar, Spa, City center location, Kitchen / kitchenette, High walkability. Carry forward their existing selections unless they're clearly replacing them. Omit if not changing.",
       },
       other_amenity: {
         type: "string",

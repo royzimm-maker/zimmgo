@@ -8,13 +8,16 @@ import { searchFlights } from "@/lib/api/flights";
 import { searchHotels } from "@/lib/api/hotels";
 import { searchActivities } from "@/lib/api/activities";
 import { searchRestaurants } from "@/lib/api/restaurants";
+import { searchGroundTransport } from "@/lib/api/groundTransport";
+import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
 import { applyReviewSourcePref } from "@/lib/data/reviewSources";
 import { applyBeliPreference } from "@/lib/data/beli";
-import { groupByLocation, parseLocalDate } from "@/lib/utils";
+import { groupByLocation, parseLocalDate, extractIataCode } from "@/lib/utils";
 import { estimateTripBudget } from "@/lib/budget";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
-import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
+import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay, TransportOption } from "@/types/trip";
+import { rateLimit } from "@/lib/rateLimit";
 
 // Generation can take several agentic tool-call rounds against the real
 // Anthropic API — without this the platform's default function timeout
@@ -75,6 +78,11 @@ async function dispatchTool(
 }
 
 export async function POST(request: NextRequest) {
+  // Full itinerary generation is the most expensive route here — several
+  // agentic tool-call rounds per request — so it gets the tightest limit.
+  const limited = rateLimit(request, { bucket: "itinerary-generate", limit: 8, windowMs: 10 * 60_000 });
+  if (limited) return limited;
+
   try {
     const body = await request.json() as { tripId: string; preferences: TripPreferences };
     const { tripId, preferences } = body;
@@ -206,13 +214,53 @@ export async function POST(request: NextRequest) {
       else                                               restaurants = [...restaurants, ...(result as RestaurantOption[])];
     }
 
+    // ── Ensure both flight legs exist ──
+    // The AI is instructed to call search_flights twice — once outbound, once
+    // return — but tool-use adherence isn't guaranteed, and a model that only
+    // makes the one call leaves the review screen showing a single one-way
+    // leg mislabeled "roundtrip". Backfill whichever leg is missing the same
+    // deterministic way the manual "search again" fallback does.
+    const flightDest = preferences.destination;
+    const flightDates = preferences.dates;
+    if (
+      !preferences.noFlightsNeeded &&
+      flightDest?.departureAirport && flightDest?.arrivalAirport &&
+      flightDates?.type === "exact" && flightDates.startDate && flightDates.endDate && !flightDates.skipFlightSearch
+    ) {
+      const arrivalCode = extractIataCode(flightDest.arrivalAirport);
+      const hasOutbound = flights.some((f) => (f.destination ?? "").toUpperCase().includes(arrivalCode));
+      const hasReturn   = flights.some((f) => !(f.destination ?? "").toUpperCase().includes(arrivalCode));
+      const airlinePrefs = preferences.airlinePrefs;
+      const common = {
+        cabin_class: airlinePrefs?.cabinClass,
+        preferred_airlines: airlinePrefs?.airlines,
+        nonstop_only: airlinePrefs?.preferNonstop,
+        lowest_fare_mode: airlinePrefs?.prioritizeLowestFare,
+      };
+      if (!hasOutbound) {
+        flights = [...flights, ...await searchFlights({
+          origin: flightDest.departureAirport,
+          destination: flightDest.arrivalAirport,
+          departure_date: flightDates.startDate,
+          ...common,
+        })];
+      }
+      if (!hasReturn) {
+        flights = [...flights, ...await searchFlights(
+          flightDest.returnAirport
+            ? { origin: flightDest.arrivalAirport, destination: flightDest.returnAirport, departure_date: flightDates.endDate, ...common }
+            : { origin: flightDest.arrivalAirport, destination: flightDest.departureAirport, departure_date: flightDates.endDate, ...common }
+        )];
+      }
+    }
+
     // ── Deduplicate by name across all cities ──
     activities  = dedup(activities);
     restaurants = dedup(restaurants);
     hotels      = dedup(hotels);
 
     // ── Synthesise final itinerary from collected data ──
-    const itinerary = assembleItinerary({
+    const itinerary = await assembleItinerary({
       tripId,
       preferences,
       flights,
@@ -250,7 +298,7 @@ interface AssembleParams {
   gatewayAdvisory?: string;
 }
 
-function assembleItinerary(p: AssembleParams): GeneratedItinerary {
+async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary> {
   const { preferences, flights, activities, restaurants, aiSummary, tripId, selectedHotelIdByCity, travelNoteByCity, gatewayAdvisory } = p;
   let hotels = p.hotels;
 
@@ -275,6 +323,18 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
 
   const days: ItineraryDay[] = buildDays(parseLocalDate(startDate), numDays, activities, restaurants, preferences, travelNoteByCity);
 
+  // ── Ground/ferry transport for inter-city legs with a real regional
+  // operator (see lib/data/groundTransportProviders.ts) — most legs match
+  // nothing here and stay covered only by the AI's prose travel note.
+  const groundTransport: TransportOption[] = [];
+  for (let i = 1; i < days.length; i++) {
+    const fromCity = days[i - 1].location;
+    const toCity = days[i].location;
+    if (!fromCity || !toCity || fromCity === toCity) continue;
+    if (!getGroundTransportProvider(`${fromCity} ${toCity}`)) continue;
+    groundTransport.push(...await searchGroundTransport(fromCity, toCity, days[i].date, preferences));
+  }
+
   // If user pre-selected a hotel in the Lodging step, use it; otherwise use AI-searched results
   if (preferences.selectedHotel) {
     hotels = [preferences.selectedHotel, ...hotels.filter((h) => h.id !== preferences.selectedHotel!.id)];
@@ -288,7 +348,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     `**${numDays}-day itinerary for ${dest}**\n\n` +
     `Your plan is built around what matters most to you:\n` +
     `- ${acts || "local experiences"}\n` +
-    `- Hand-picked restaurants and neighbourhood discoveries\n` +
+    `- Hand-picked restaurants and neighborhood discoveries\n` +
     `- Logical day-by-day sequencing to minimise travel time`;
 
   const budgetLabel = resolveBudget(preferences)?.label ?? "chosen";
@@ -341,6 +401,7 @@ function assembleItinerary(p: AssembleParams): GeneratedItinerary {
     createdAt: new Date().toISOString(),
     days,
     flights,
+    groundTransport: groundTransport.length ? groundTransport : undefined,
     hotels: ratedHotels,
     activities: ratedActivities,
     restaurants: ratedRestaurants.length ? ratedRestaurants : undefined,
@@ -371,6 +432,21 @@ function buildDays(
   const cities = preferences.destination?.cities?.filter(Boolean) ?? [];
   const themes = generateThemes(numDays, preferences);
 
+  // The traveller can manually rebalance how many days go to each city (the
+  // itinerary step's leg editor) — that override must actually change which
+  // city each day lands on, not just be described to the AI, since this
+  // function assigns `location` deterministically and ignores the AI's own
+  // day-by-day output entirely. Only trust it when it exactly accounts for
+  // every city and the full day count; otherwise fall back to even division.
+  const nights = preferences.cityNights;
+  const nightsValid = !!nights
+    && cities.length > 0
+    && cities.every((c) => Number.isInteger(nights[c]) && nights[c] > 0)
+    && cities.reduce((sum, c) => sum + nights[c], 0) === numDays;
+  const dayLocations: string[] | null = nightsValid
+    ? cities.flatMap((c) => Array(nights![c]).fill(c))
+    : null;
+
   // Days assigned to the same city so far, in order — used below to rotate
   // through that city's activities/restaurants instead of repeating day 1's
   // pick, without pulling in another city's content.
@@ -383,8 +459,12 @@ function buildDays(
     // UTC first, which would shift the date again in positive-offset zones.
     const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-    // Distribute cities evenly across days; fall back to full destination name
-    const location = cities.length > 1
+    // Use the traveller's manual day split when it's valid; otherwise
+    // distribute cities evenly across days. Falls back to full destination
+    // name for a single-city trip.
+    const location = dayLocations
+      ? dayLocations[i]
+      : cities.length > 1
       ? cities[Math.floor((i / numDays) * cities.length)]
       : (cities[0] ?? dest);
 
@@ -435,7 +515,7 @@ function generateThemes(numDays: number, preferences: TripPreferences): string[]
   const farewell = "Relaxation, Shopping & Farewell Dinner";
   const middle = [
     "Iconic Landmarks & Cultural Immersion",
-    "Local Neighbourhoods & Hidden Gems",
+    "Local Neighborhoods & Hidden Gems",
     "Day Trip & Natural Scenery",
     "Food, Markets & Evening Atmosphere",
     "Adventure & Active Exploration",
@@ -466,14 +546,14 @@ function buildTimeBlock(
       ["Sunrise viewpoint walk", "Visit a local food market"],
     ],
     afternoon: [
-      ["Rest and explore the immediate neighbourhood", "Light lunch at a recommended spot"],
+      ["Rest and explore the immediate neighborhood", "Light lunch at a recommended spot"],
       ["Guided museum or landmark tour", "Afternoon pick-me-up at an artisan coffee shop"],
       ["Scenic hike or guided activity", "Explore a design or arts district"],
     ],
     evening: [
       ["Early dinner to adjust to the timezone", "Easy stroll and early night"],
       ["Pre-dinner aperitivo at a rooftop bar", "Dinner at a highly-rated local restaurant"],
-      ["Night-time city walk or harbour cruise", "Late dinner followed by local bar scene"],
+      ["Night-time city walk or harbor cruise", "Late dinner followed by local bar scene"],
     ],
   };
 
@@ -526,11 +606,11 @@ function buildMeals(
     `Café near your hotel for coffee and a light bite`,
   ];
   const lunchFallbacks = isHighBudget
-    ? [`Neighbourhood bistro with a good-value set lunch`, `Rooftop restaurant with panoramic views`, `Award-winning spot recommended by your concierge`]
+    ? [`Neighborhood bistro with a good-value set lunch`, `Rooftop restaurant with panoramic views`, `Award-winning spot recommended by your concierge`]
     : [`Street food market — follow the locals`, `Casual trattoria or café away from tourist areas`, `Picnic from the local deli — great for outdoor spots`];
   const dinnerFallbacks = isHighBudget
     ? [`Michelin-recognised restaurant — book ahead`, `Chef's tasting menu experience`, `Celebrated local restaurant with strong reviews`]
-    : [`Neighbourhood restaurant popular with locals`, `A low-key spot serving regional specialities`, `Wine bar with small plates — great for grazing`];
+    : [`Neighborhood restaurant popular with locals`, `A low-key spot serving regional specialities`, `Wine bar with small plates — great for grazing`];
 
   const dinnerSuggestion = named(dinnerR, dayIndex, dinnerFallbacks[dayIndex % dinnerFallbacks.length]);
 

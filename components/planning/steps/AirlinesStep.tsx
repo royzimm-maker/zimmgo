@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Plane, TrendingDown, Check, Search, X } from "lucide-react";
+import { Plane, TrendingDown, Check, Search, X, Car } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { cn } from "@/lib/utils";
@@ -39,9 +39,26 @@ export const CABIN_LABELS: Record<string, string> = {
 };
 
 export function AirlinesStep() {
-  const { trip, setAirlines, setDestination, defaultDepartureAirport, setDefaultDepartureAirport } = useTripStore();
+  const { trip, setAirlines, setDestination, setNoFlightsNeeded, defaultDepartureAirport, setDefaultDepartureAirport } = useTripStore();
   const existing   = trip.preferences.airlinePrefs;
   const destination = trip.preferences.destination;
+
+  // Set at destination-parse time when flying is unmistakably required
+  // (crossing an ocean, an island region, intercontinental travel) — offering
+  // a "no flights needed" toggle in that case would just be confusing.
+  const flightsObviouslyRequired = destination?.flightsObviouslyRequired ?? false;
+
+  // Road trips and other no-flight itineraries — skips the departure-airport
+  // requirement below entirely and tells the AI not to search for flights.
+  const [noFlights, setNoFlights] = useState((trip.preferences.noFlightsNeeded ?? false) && !flightsObviouslyRequired);
+
+  // Defensive: if the destination was edited into something that obviously
+  // needs flights while "no flights needed" was already set from an earlier
+  // state, don't leave that stale preference silently in place.
+  useEffect(() => {
+    if (flightsObviouslyRequired && noFlights) setNoFlights(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flightsObviouslyRequired]);
 
   // ── Departure airport ──────────────────────────────────────────────────────
   // Falls back to the remembered default from a previous trip when this trip
@@ -167,27 +184,68 @@ export function AirlinesStep() {
   }
 
   function handleContinue() {
+    setNoFlightsNeeded(noFlights);
     if (destination) {
       setDestination({
         ...destination,
-        departureAirport: departure.trim() || undefined,
-        arrivalAirport:   selectedCode,
+        departureAirport: noFlights ? undefined : departure.trim() || undefined,
+        arrivalAirport:   noFlights ? undefined : selectedCode,
         // Open-jaw (returnAirport) is on hold — see Destination["returnAirport"] for the shelved implementation.
         returnAirport:    undefined,
       });
     }
-    setAirlines(assembleAirlines());
+    if (!noFlights) setAirlines(assembleAirlines());
   }
 
   return (
     <StepShell
       stepId="airlines"
       onContinue={handleContinue}
-      continueDisabled={!departure.trim()}
+      continueDisabled={!noFlights && !departure.trim()}
       subtitle="Tell us where you're flying from — we'll use this to find the best routes."
     >
       <div className="flex flex-col gap-6">
 
+        {/* ── Road trip / no flights — omitted entirely (not even a
+            "flights needed" notice) when flightsObviouslyRequired, rather
+            than replacing it with a statement nobody asked to see. ── */}
+        {!flightsObviouslyRequired && (
+          <button
+            type="button"
+            onClick={() => setNoFlights((v) => !v)}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
+              noFlights ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
+            )}
+          >
+            <span className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+              noFlights ? "bg-sage-500 text-white" : "bg-slate-100 text-slate-500"
+            )}>
+              {noFlights ? <Check size={16} /> : <Car size={16} />}
+            </span>
+            <div className="flex-1">
+              <p className={cn("font-semibold text-sm", noFlights ? "text-sage-800" : "text-slate-800")}>
+                I&rsquo;m driving — no flights needed
+              </p>
+              <p className={cn("text-xs mt-0.5", noFlights ? "text-sage-700" : "text-slate-500")}>
+                Road trips and other no-flight itineraries — skips flight search entirely.
+              </p>
+            </div>
+          </button>
+        )}
+
+        {noFlights && (
+          <p className="-mt-3 text-xs text-slate-400">
+            No problem — we&rsquo;ll skip flights and build your plan around hotels, activities, and getting around by road.
+          </p>
+        )}
+
+        {/* ── Everything below is irrelevant once "I'm driving" is on — hidden
+            entirely rather than just dimmed, so the step doesn't turn into a
+            long scroll of inert content before reaching Continue. ── */}
+        {!noFlights && (
+        <>
         {/* ── Departure airport ── */}
         <div>
           <p className="mb-1.5 text-sm font-medium text-slate-700">
@@ -255,6 +313,8 @@ export function AirlinesStep() {
             </div>
           )}
         </div>
+
+        <div className="flex flex-col gap-6">
 
         {/* ── Gateway airports ── */}
         {gateways.length > 0 && (
@@ -424,6 +484,9 @@ export function AirlinesStep() {
             ✈️ Prefer nonstop
           </button>
         </div>
+        </div>
+        </>
+        )}
       </div>
     </StepShell>
   );

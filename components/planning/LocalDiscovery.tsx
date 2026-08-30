@@ -127,10 +127,11 @@ function SceneTab({
                       <button
                         type="button"
                         onClick={() => onSave(ev.name, ev.description)}
-                        className="text-slate-300 hover:text-brand-500 transition-colors"
-                        title="Save to Wanderlog"
+                        className="flex items-center gap-1 text-[10px] font-medium text-slate-400 hover:text-brand-500 transition-colors"
+                        title="Add this to my Wanderlog for later reference"
                       >
-                        <Heart size={11} />
+                        <Heart size={10} />
+                        Save to Wanderlog
                       </button>
                     )}
                   </div>
@@ -169,10 +170,11 @@ function SceneTab({
                       <button
                         type="button"
                         onClick={() => onSave(gem.name, gem.description)}
-                        className="text-slate-300 hover:text-brand-500 transition-colors"
-                        title="Save to Wanderlog"
+                        className="flex items-center gap-1 text-[10px] font-medium text-slate-400 hover:text-brand-500 transition-colors"
+                        title="Add this to my Wanderlog for later reference"
                       >
-                        <Heart size={11} />
+                        <Heart size={10} />
+                        Save to Wanderlog
                       </button>
                     )}
                   </div>

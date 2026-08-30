@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar, Shuffle, Info, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Calendar, Shuffle, Info, AlertCircle, Sparkles } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SimpleDatePicker } from "@/components/ui/SimpleDatePicker";
 import { cn } from "@/lib/utils";
@@ -25,11 +25,21 @@ function generateMonths() {
 
 const MONTHS = generateMonths();
 
+// True if `month` (1-12) falls within [start, end] — wrapping the new year
+// when start > end (e.g. 9 through 4 means Sept, Oct, Nov, Dec, Jan..Apr).
+function isMonthInWindow(month: number, start: number, end: number): boolean {
+  return start <= end ? month >= start && month <= end : month >= start || month <= end;
+}
+
 export function DatesStep() {
-  const { trip, setDates } = useTripStore();
+  const { trip, setDates, completeStep, goToStep } = useTripStore();
   const existing = trip.preferences.dates;
+  const seasonalStart = trip.preferences.destination?.seasonalWindowStartMonth;
+  const seasonalEnd = trip.preferences.destination?.seasonalWindowEndMonth;
+  const hasSeasonalWindow = seasonalStart !== undefined && seasonalEnd !== undefined;
 
   const [mode, setMode] = useState<DateMode>(existing?.type ?? "exact");
+  const [showSeasonalWarning, setShowSeasonalWarning] = useState(false);
   // Local date, not toISOString() — UTC would give the wrong "today" for
   // users west of UTC in the evening (blocking same-day departures).
   const now = new Date();
@@ -47,7 +57,18 @@ export function DatesStep() {
   const hardMaxDate = `${hardMaxObj.getFullYear()}-${String(hardMaxObj.getMonth() + 1).padStart(2, "0")}-${String(hardMaxObj.getDate()).padStart(2, "0")}`;
   const [startDate, setStartDate] = useState(existing?.startDate?.slice(0, 10) ?? "");
   const [endDate,   setEndDate  ] = useState(existing?.endDate?.slice(0, 10) ?? "");
-  const [flexMonth, setFlexMonth] = useState(existing?.flexibleMonth ?? MONTHS[0].value);
+  const [returnLinkedMonth, setReturnLinkedMonth] = useState<{ year: number; month: number } | null>(null);
+  // Default into the seasonal window (the next upcoming month that falls in
+  // it) rather than always "this month" — only when nothing's been picked
+  // yet, so it never overrides a traveller's own earlier choice.
+  const [flexMonth, setFlexMonth] = useState(() => {
+    if (existing?.flexibleMonth) return existing.flexibleMonth;
+    if (hasSeasonalWindow) {
+      const inWindow = MONTHS.find((m) => isMonthInWindow(Number(m.value.split("-")[1]), seasonalStart!, seasonalEnd!));
+      if (inWindow) return inWindow.value;
+    }
+    return MONTHS[0].value;
+  });
   const [duration,     setDuration    ] = useState(existing?.flexibleDuration ?? 10);
   const [customDur,    setCustomDur   ] = useState(false);
   const [customDurVal, setCustomDurVal] = useState("");
@@ -84,13 +105,64 @@ export function DatesStep() {
   // (see MONTHS), so only exact dates can land beyond it.
   const isBeyondFlightWindow = mode === "exact" && !!startDate && startDate > maxDate;
 
-  function handleContinue() {
-    const pref: DatePreference =
-      mode === "exact"
-        ? { type: "exact", startDate, endDate, skipFlightSearch: isBeyondFlightWindow }
-        : { type: "flexible", flexibleMonth: flexMonth, flexibleDuration: duration };
-    setDates(pref);
+  function buildDatePref(): DatePreference {
+    return mode === "exact"
+      ? {
+          type: "exact",
+          startDate,
+          endDate,
+          skipFlightSearch: isBeyondFlightWindow,
+        }
+      : { type: "flexible", flexibleMonth: flexMonth, flexibleDuration: duration };
   }
+
+  // Every calendar month the trip actually spans — for flexible mode that's
+  // just the one chosen month; for exact mode a trip can cross several.
+  function monthsSpanned(): number[] {
+    if (mode === "flexible") return [Number(flexMonth.split("-")[1])];
+    if (!startDate || !endDate) return [];
+    const months = new Set<number>();
+    const cur = new Date(startDate + "T00:00:00");
+    const end = new Date(endDate + "T00:00:00");
+    while (cur <= end) {
+      months.add(cur.getMonth() + 1);
+      cur.setDate(cur.getDate() + 1);
+    }
+    return Array.from(months);
+  }
+
+  const spannedMonths = monthsSpanned();
+  const outOfSeasonalWindow =
+    hasSeasonalWindow &&
+    isValid() &&
+    spannedMonths.length > 0 &&
+    !spannedMonths.some((m) => isMonthInWindow(m, seasonalStart!, seasonalEnd!));
+
+  function handleContinue() {
+    if (outOfSeasonalWindow && !showSeasonalWarning) {
+      setShowSeasonalWarning(true);
+      return false;
+    }
+    setDates(buildDatePref());
+  }
+
+  // Mirrors DestinationStep's confirmRoadTrip — a custom action outside
+  // StepShell's own Continue button, so it has to complete+advance the step
+  // itself rather than relying on StepShell's wrapper to do it.
+  function continueAnyway() {
+    setDates(buildDatePref());
+    setShowSeasonalWarning(false);
+    completeStep("dates");
+    goToStep("airlines");
+  }
+
+  // If the traveller edits their way back into the window after seeing the
+  // warning, drop it instead of leaving a stale "outside the window" banner
+  // up once it's no longer true.
+  useEffect(() => {
+    if (showSeasonalWarning && !outOfSeasonalWindow) setShowSeasonalWarning(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outOfSeasonalWindow]);
 
   return (
     <StepShell
@@ -99,6 +171,48 @@ export function DatesStep() {
       continueDisabled={!isValid()}
       subtitle="Exact dates lock in your flights; flexible lets us find the sweet spot."
     >
+      {/* Seasonal heads-up — shown up front so it informs the pick in the
+          first place; picking dates outside the window still only prompts a
+          confirmation (below), never blocks outright, since the traveller's
+          real constraints (school breaks, work) always take priority over
+          an astronomical event. */}
+      {trip.preferences.destination?.seasonalNote && (
+        <div className="mb-5 flex items-start gap-2.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5">
+          <Sparkles size={15} className="text-brand-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-brand-800 leading-relaxed">{trip.preferences.destination.seasonalNote}</p>
+        </div>
+      )}
+
+      {/* Confirmation prompt — only appears after Continue is clicked with
+          dates outside the window, so it doesn't nag while the traveller is
+          still picking. */}
+      {showSeasonalWarning && (
+        <div className="mb-5 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <AlertCircle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-xs text-amber-800 leading-relaxed">
+              These dates don&apos;t fall within the window ZiGy mentioned — {trip.preferences.destination?.seasonalNote}
+            </p>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={continueAnyway}
+                className="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+              >
+                Continue anyway
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSeasonalWarning(false)}
+                className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 transition-colors"
+              >
+                Let me adjust the dates
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mode toggle */}
       <div className="mb-5 flex gap-2">
         {(["exact", "flexible"] as DateMode[]).map((m) => (
@@ -129,6 +243,7 @@ export function DatesStep() {
               min={today}
               max={hardMaxDate}
               softMax={maxDate}
+              onMonthChange={(year, month) => setReturnLinkedMonth({ year, month })}
             />
             <SimpleDatePicker
               label="Return"
@@ -137,6 +252,7 @@ export function DatesStep() {
               min={startDate || today}
               max={hardMaxDate}
               softMax={maxDate}
+              linkedMonth={returnLinkedMonth}
             />
           </div>
           {tooFewNights && (

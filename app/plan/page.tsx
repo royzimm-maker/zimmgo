@@ -16,6 +16,8 @@ export default function PlanPage() {
             <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Beta</span>
           </span>
           {" "}ZimmGo is an early prototype — recommendations are illustrative and not live booking data.
+          {" "}
+          <a href="/privacy" className="underline hover:text-amber-900">Privacy</a>
         </p>
       </div>
 
@@ -24,8 +26,8 @@ export default function PlanPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <a href="/" className="flex items-center gap-2">
-              <Logo size={30} />
-              <span className="hidden text-xs text-slate-400 sm:block">AI Travel Planner</span>
+              <Logo size={30} showTagline className="hidden sm:inline-flex" />
+              <Logo size={30} className="sm:hidden" />
             </a>
           </div>
           <TripSwitcher />

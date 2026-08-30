@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { FlightOption } from "@/types/trip";
+import { convertFromUsd } from "@/lib/currency";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -17,12 +18,17 @@ export function scrollStepToTop() {
   document.querySelector("main")?.scrollTo({ top: 0 });
 }
 
+// `amount` is always the USD source value stored on the option/estimate
+// (see lib/currency.ts) — pass a `currency` code to convert-and-format into
+// a traveller's preferred display currency. Omitting it keeps the existing
+// USD-in, USD-out behavior every pre-existing call site relies on.
 export function formatCurrency(amount: number, currency = "USD"): string {
+  const converted = convertFromUsd(amount, currency);
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(converted);
 }
 
 // `new Date("2026-08-12")` parses as UTC midnight, but reading it back with
@@ -54,29 +60,50 @@ export function randomInt(min: number, max: number): number {
 
 /**
  * Pair outbound and return flights so callers can display a roundtrip price.
- * Keyed off the destination's arrival airport (a reliable IATA code set by the
- * AI during destination inference) rather than the user's departure input,
- * which is often free text like "Seattle" — extractIataCode's fallback would
- * mangle that into a 3-letter code that never matches a real airport, leaving
- * every flight (both directions) treated as its own unpaired "outbound" leg.
+ * Groups flights by their exact route (origin -> destination) — a roundtrip
+ * search produces at most two such routes.
+ *
+ * `arrivalAirport` (destination.arrivalAirport) is a curated-routing-table
+ * lookup that's frequently unset for destinations outside that table, so
+ * it's only used as a hint when present, not required. The fallback trusts
+ * generation order instead — the backend (both the AI's own tool calls and
+ * the deterministic backfill) always fetches the outbound leg before the
+ * return leg, so the first-seen route is the outbound one. This is more
+ * reliable than inferring it from the routes' own airport codes: for a
+ * multi-city trip where the inter-city hop isn't flown (e.g. Copenhagen ->
+ * Stockholm by train), the only two flown routes are home->city1 and
+ * city2->home, which don't chain into each other the way a simple
+ * two-airport roundtrip's legs do.
  */
 export function pairFlights(
   flights: FlightOption[],
   arrivalAirport: string
 ): { outbound: FlightOption; ret: FlightOption | null }[] {
-  const arrivalCode = extractIataCode(arrivalAirport);
-  const isOutbound = (f: FlightOption) =>
-    arrivalAirport ? (f.destination ?? "").toUpperCase().includes(arrivalCode) : true;
-  const outbound = flights.filter(isOutbound);
-  const returns  = flights.filter((f) => !isOutbound(f));
-
-  if (outbound.length) {
-    return outbound.map((o) => ({
-      outbound: o,
-      ret: returns.find((r) => r.airline === o.airline) ?? returns[0] ?? null,
-    }));
+  const routeKey = (f: FlightOption) => `${(f.origin ?? "").toUpperCase()}::${(f.destination ?? "").toUpperCase()}`;
+  const routes = new Map<string, FlightOption[]>();
+  for (const f of flights) {
+    const k = routeKey(f);
+    if (!routes.has(k)) routes.set(k, []);
+    routes.get(k)!.push(f);
   }
-  return flights.map((f) => ({ outbound: f, ret: null }));
+
+  if (routes.size <= 1) {
+    return flights.map((f) => ({ outbound: f, ret: null }));
+  }
+
+  const routeEntries = Array.from(routes.entries());
+  const arrivalCode = arrivalAirport ? extractIataCode(arrivalAirport) : "";
+  const outboundKey =
+    (arrivalCode ? routeEntries.find(([k]) => k.split("::")[1].includes(arrivalCode))?.[0] : undefined) ??
+    routeEntries[0][0];
+
+  const outbound = routes.get(outboundKey) ?? [];
+  const returns  = routeEntries.filter(([k]) => k !== outboundKey).flatMap(([, v]) => v);
+
+  return outbound.map((o) => ({
+    outbound: o,
+    ret: returns.find((r) => r.airline === o.airline) ?? returns[0] ?? null,
+  }));
 }
 
 /** Loose city-name comparison — handles "Amalfi Coast" vs "the Amalfi Coast" style variance. */
@@ -104,6 +131,34 @@ export function extractApiErrorMessage(raw: string): string {
   } catch {
     return raw;
   }
+}
+
+export interface ItineraryLeg {
+  location: string;
+  dates: string[];
+  dayCount: number;
+}
+
+// Groups consecutive itinerary days by location — unlike groupByLocation
+// below, a repeated location that isn't consecutive (rare, but possible)
+// stays as separate legs, since that's what an actual day-by-day trip looks
+// like (visiting the same city twice on non-adjacent days is two legs, not one).
+export function groupItineraryDaysByLocation(
+  days: { date: string; location?: string }[],
+  fallbackLocation: string
+): ItineraryLeg[] {
+  const legs: ItineraryLeg[] = [];
+  for (const day of days) {
+    const loc = day.location ?? fallbackLocation;
+    const last = legs[legs.length - 1];
+    if (last && last.location === loc) {
+      last.dates.push(day.date);
+      last.dayCount++;
+    } else {
+      legs.push({ location: loc, dates: [day.date], dayCount: 1 });
+    }
+  }
+  return legs;
 }
 
 /** Group an array of items by location, preserving first-seen order. */

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles, User, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
+import { Send, User, CheckCircle2 } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
 import { cn } from "@/lib/utils";
 import { GENERAL as ACTIVITY_CATEGORIES } from "@/components/planning/steps/ActivitiesStep";
@@ -76,6 +77,18 @@ function summarizeAirlineUpdate(u: AirlineUpdatePayload): string {
   return parts.length ? `Updated flights: ${parts.join(" · ")}` : "Updated flight preferences";
 }
 
+export function ZigyAvatar({ size = 20 }: { size?: number }) {
+  return (
+    <Image
+      src="/zigy-avatar.png"
+      alt="ZiGy"
+      width={size}
+      height={size}
+      className="rounded-full object-cover"
+    />
+  );
+}
+
 const STARTER_PROMPTS = [
   "What's the best time of year to visit?",
   "What should I pack for this trip?",
@@ -91,12 +104,20 @@ export function ChatPanel() {
   const [input,   setInput  ] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // The newest message scrolls to the TOP of the panel rather than the
+  // container's bottom — a long assistant reply otherwise lands with its end
+  // in view, forcing a scroll back up just to read it from the start.
+  const lastMessageRef = useRef<HTMLDivElement>(null);
   const latestItinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
 
-  // Scroll to bottom whenever messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    lastMessageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [chatMessages]);
+
+  // Separately keep the typing indicator itself in view while it's showing.
+  useEffect(() => {
+    if (loading) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [loading]);
 
   // Welcome message on first load
   const hasMessages = chatMessages.length > 0;
@@ -212,13 +233,12 @@ export function ChatPanel() {
       {/* Header */}
       <div className="shrink-0 border-b border-slate-200 px-4 py-3 hidden lg:block">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-100">
-            <Sparkles size={13} className="text-brand-600" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 overflow-hidden">
+            <ZigyAvatar size={32} />
           </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-800">ZiGy</p>
-            <p className="text-xs text-slate-400">Your personal AI travel advisor</p>
-          </div>
+          <p className="text-sm font-semibold text-slate-800">
+            I&rsquo;m ZiGy, your personal AI travel advisor.
+          </p>
         </div>
       </div>
 
@@ -230,7 +250,7 @@ export function ChatPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask your travel advisor…"
+            placeholder="Ask ZiGy anything you want about your trip."
             className="flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 max-h-32"
             style={{ minHeight: "38px" }}
           />
@@ -272,9 +292,10 @@ export function ChatPanel() {
         )}
 
         {/* Message list */}
-        {chatMessages.map((msg) => (
+        {chatMessages.map((msg, idx) => (
           <div
             key={msg.id}
+            ref={idx === chatMessages.length - 1 ? lastMessageRef : undefined}
             className={cn(
               "flex gap-2 animate-fade-up",
               msg.role === "user" ? "flex-row-reverse" : "flex-row"
@@ -283,7 +304,7 @@ export function ChatPanel() {
             {/* Avatar */}
             <div
               className={cn(
-                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full mt-0.5",
+                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full mt-0.5 overflow-hidden",
                 msg.role === "user"
                   ? "bg-slate-200 text-slate-600"
                   : "bg-brand-100 text-brand-600"
@@ -291,7 +312,7 @@ export function ChatPanel() {
             >
               {msg.role === "user"
                 ? <User size={11} />
-                : <Sparkles size={11} />
+                : <ZigyAvatar size={24} />
               }
             </div>
 
@@ -323,8 +344,8 @@ export function ChatPanel() {
         {/* Typing indicator */}
         {loading && (
           <div className="flex gap-2 animate-fade-up">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600 mt-0.5">
-              <Sparkles size={11} />
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600 mt-0.5 overflow-hidden">
+              <ZigyAvatar size={24} />
             </div>
             <div className="flex items-center gap-1 rounded-xl rounded-tl-sm bg-slate-100 px-3 py-2.5">
               {[0, 1, 2].map((i) => (
