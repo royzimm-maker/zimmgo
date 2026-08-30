@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, Heart, Calendar, List, Lightbulb, Ship, TrainFront } from "lucide-react";
+import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, Heart, Calendar, List, Lightbulb, Ship, TrainFront, FileDown, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate, pairFlights, groupByLocation, groupItineraryDaysByLocation } from "@/lib/utils";
@@ -14,6 +14,7 @@ import { PreTripTasks } from "@/components/planning/PreTripTasks";
 import { Wanderlog } from "@/components/planning/Wanderlog";
 import { LocalDiscovery } from "@/components/planning/LocalDiscovery";
 import { ItineraryCalendarView } from "@/components/planning/ItineraryCalendarView";
+import { exportItineraryDocx } from "@/lib/api/exportItineraryDocx";
 import type { GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay, TripPreferences, TransportOption } from "@/types/trip";
 
 interface Props {
@@ -28,6 +29,8 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
   const [expandedDay, setExpandedDay] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(
     trip.preferences.selectedHotel?.id ?? null
   );
@@ -105,6 +108,18 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  }
+
+  async function handleExportDocx() {
+    setExportingDocx(true);
+    setExportError(null);
+    try {
+      await exportItineraryDocx(itinerary, preferences);
+    } catch (e: unknown) {
+      setExportError(e instanceof Error ? e.message : "Export failed — please try again.");
+    } finally {
+      setExportingDocx(false);
+    }
   }
 
   return (
@@ -354,7 +369,22 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
           {copied ? <CheckIcon size={13} className="text-sage-600" /> : <Copy size={13} />}
           {copied ? "Copied!" : "Copy itinerary"}
         </button>
+        <button
+          type="button"
+          onClick={handleExportDocx}
+          disabled={exportingDocx}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-60"
+        >
+          <FileDown size={13} />
+          {exportingDocx ? "Exporting…" : "Export as Word doc"}
+        </button>
       </div>
+      {exportError && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <AlertCircle size={13} className="shrink-0 mt-0.5" />
+          {exportError}
+        </div>
+      )}
       </div>
     </div>
   );
