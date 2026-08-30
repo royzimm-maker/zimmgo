@@ -1,9 +1,9 @@
 // docx-js construction for the itinerary export — the visual half of the
-// itinerary-format skill spec (~/.claude/skills/itinerary-format/SKILL.md).
-// Colors/fonts/box-table pattern ported from that skill's own reference
-// example build script, verified by rendering and visually comparing
-// against it (see the plan's verification section, not unit-tested here —
-// see assembleItineraryDocxModel.ts for the testable half).
+// itinerary-format skill spec (~/.claude/skills/itinerary-format/SKILL.md,
+// v2). Colors/fonts/box-table pattern ported from that skill's own
+// reference example, verified by rendering and visually comparing against
+// it (see the plan's verification section, not unit-tested here — see
+// assembleItineraryDocxModel.ts for the testable half).
 import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   WidthType, ShadingType, BorderStyle, AlignmentType,
@@ -15,6 +15,7 @@ const NAVY = "1A2744";
 const GOLD = "B8924A";
 const LIGHT_BLUE = "EEF2F8";
 const WHITE = "FFFFFF";
+const TAN = "F0EBE0";
 const BODY_FONT = "Georgia";
 const HEAD_FONT = "Gill Sans MT";
 
@@ -129,11 +130,24 @@ function dayHeading(weekday: string, dateLabel: string, theme: string) {
   ];
 }
 
-function highlightBox(title: string, text: string) {
-  return box(LIGHT_BLUE, NAVY, [
-    para([labelRun(`✨  HIGHLIGHT: `, { color: NAVY, size: 18 }), new TextRun({ text: title, font: BODY_FONT, bold: true, color: NAVY, size: 20 })], 100),
-    para([body(text, { size: 20 })], 0),
-  ]);
+function gettingThere(lines: string[]) {
+  return [
+    para([labelRun("GETTING THERE", { size: 17 })], 100),
+    ...lines.map((l) => bullet(l)),
+  ];
+}
+
+function hotelWriteup(hotel: { name: string; writeup: string; isTravellerPick: boolean }) {
+  return [
+    para([labelRun("HOTEL ACCOMMODATIONS", { size: 17 })], 100),
+    new Paragraph({
+      children: [
+        new TextRun({ text: hotel.isTravellerPick ? `${hotel.name} ✓ Your pick` : hotel.name, font: BODY_FONT, bold: true, size: 21, color: NAVY }),
+        new TextRun({ text: ` — ${hotel.writeup}`, font: BODY_FONT, size: 21 }),
+      ],
+      spacing: { after: 0 },
+    }),
+  ];
 }
 
 function hr() {
@@ -161,7 +175,10 @@ export async function renderItineraryDocx(model: DocxModel): Promise<Buffer> {
       ...model.glanceRows.map((r, i) => new TableRow({
         children: [r.dateLabel, r.weekday, r.location, r.hotel, r.notes].map((cell, ci) => new TableCell({
           width: { size: Math.round(CONTENT_WIDTH / 5), type: WidthType.DXA },
-          shading: { type: ShadingType.CLEAR, fill: i % 2 === 1 ? "F0EBE0" : WHITE },
+          // Transition days (arriving somewhere new) get a light-blue tint
+          // instead of the normal alternating banding, so travel days stand
+          // out at a glance — matches the reference example's convention.
+          shading: { type: ShadingType.CLEAR, fill: r.isTransitionDay ? LIGHT_BLUE : i % 2 === 1 ? TAN : WHITE },
           margins: { top: 90, bottom: 90, left: 120, right: 120 },
           children: [new Paragraph({ children: [new TextRun({ text: cell, font: BODY_FONT, size: 18, bold: ci === 2 })] })],
         })),
@@ -201,12 +218,11 @@ export async function renderItineraryDocx(model: DocxModel): Promise<Buffer> {
       sectionBanner(section.location, section.dateRangeLabel, section.nightCount, section.hotel?.name ?? null),
       spacer(220)
     );
+    if (section.gettingThere.length) {
+      bodyChildren.push(...gettingThere(section.gettingThere), spacer(220));
+    }
     if (section.hotel) {
-      bodyChildren.push(
-        para([labelRun("HOTEL", { size: 17 })], 100),
-        pickTable("Hotel", "Notes", [section.hotel]),
-        spacer(220)
-      );
+      bodyChildren.push(...hotelWriteup(section.hotel), spacer(220));
     }
     section.days.forEach((day) => {
       bodyChildren.push(...dayHeading(day.weekday, day.dateLabel, day.theme));
@@ -215,15 +231,26 @@ export async function renderItineraryDocx(model: DocxModel): Promise<Buffer> {
       } else {
         bodyChildren.push(new Paragraph({ children: [body("Open — nothing scheduled yet.", { italics: true, size: 20, color: "8A8578" })], spacing: { after: 90 } }));
       }
-      day.highlights.forEach((h) => {
-        bodyChildren.push(spacer(140), highlightBox(h.title, h.text));
-      });
       bodyChildren.push(spacer(220));
     });
-    if (section.restaurants.length) {
+    // One table if every restaurant here is in the same boat (all booked,
+    // or all just suggestions); split into two labeled tables only when
+    // there's an actual mix to distinguish.
+    const hasBooked = section.restaurantsBooked.length > 0;
+    const hasOptions = section.restaurantsOptions.length > 0;
+    if (hasBooked && hasOptions) {
       bodyChildren.push(
         para([labelRun(`RESTAURANTS — ${section.location.toUpperCase()}`, { size: 17 })], 100),
-        pickTable("Restaurant", "Notes", section.restaurants)
+        para([labelRun("BOOKED", { size: 15 })], 80),
+        pickTable("Restaurant", "Notes", section.restaurantsBooked),
+        spacer(160),
+        para([labelRun("OPTIONS — ZIGY'S RECOMMENDATIONS", { size: 15 })], 80),
+        pickTable("Restaurant", "Notes", section.restaurantsOptions)
+      );
+    } else if (hasBooked || hasOptions) {
+      bodyChildren.push(
+        para([labelRun(`RESTAURANTS — ${section.location.toUpperCase()}`, { size: 17 })], 100),
+        pickTable("Restaurant", "Notes", hasBooked ? section.restaurantsBooked : section.restaurantsOptions)
       );
     }
   });
@@ -246,7 +273,7 @@ export async function renderItineraryDocx(model: DocxModel): Promise<Buffer> {
     numbering: {
       config: [{
         reference: "day-bullets",
-        levels: [{ level: 0, format: "bullet", text: "•", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 360, hanging: 260 } } } }],
+        levels: [{ level: 0, format: "bullet", text: "–", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 360, hanging: 260 } } } }],
       }],
     },
     sections: [{

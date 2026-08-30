@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { assembleItineraryDocxModel } from "@/lib/docx/assembleItineraryDocxModel";
 import type {
-  GeneratedItinerary, TripPreferences, ActivityOption, RestaurantOption, HotelOption,
+  GeneratedItinerary, TripPreferences, ActivityOption, RestaurantOption, HotelOption, FlightOption, TransportOption,
 } from "@/types/trip";
 
 const act1: ActivityOption = {
@@ -18,13 +18,27 @@ const rest1: RestaurantOption = {
   id: "r1", name: "Tapas Bar", cuisine: "Spanish", tier: "casual", playfulCategory: "Casual",
   priceRange: "$$", rating: 9, reviewCount: 400, location: "Barcelona", description: "Tapas",
 };
+const rest2: RestaurantOption = {
+  id: "r2", name: "Unpicked Place", cuisine: "Spanish", tier: "casual", playfulCategory: "Casual",
+  priceRange: "$", rating: 8, reviewCount: 100, location: "Barcelona", description: "Also tapas",
+};
 const hotelBarcelona: HotelOption = {
-  id: "h1", name: "Hotel Neri", stars: 4, location: "Barcelona", city: "Barcelona",
-  pricePerNight: 250, currency: "USD", rating: 9, reviewCount: 700, highlights: [],
+  id: "h1", name: "Hotel Neri", stars: 4, location: "Gothic Quarter, Barcelona", city: "Barcelona",
+  pricePerNight: 250, currency: "USD", rating: 9, reviewCount: 700, highlights: ["Historic building", "Central location"],
 };
 const hotelAndalusia: HotelOption = {
   id: "h2", name: "Four Seasons", stars: 5, location: "Andalusia", city: "Andalusia",
   pricePerNight: 400, currency: "USD", rating: 9.4, reviewCount: 900, highlights: [],
+};
+const flight1: FlightOption = {
+  id: "f1", airline: "Delta", flightNumber: "DL1", origin: "JFK", destination: "BCN",
+  departureTime: "2026-09-08T08:00:00", arrivalTime: "2026-09-08T20:00:00", duration: "8h",
+  stops: 0, price: 800, currency: "USD", cabinClass: "economy",
+};
+const transportPick: TransportOption = {
+  id: "gt-1", mode: "train", provider: "Renfe", fromCity: "Barcelona", toCity: "Andalusia",
+  departureTime: "2026-09-10T08:00:00", arrivalTime: "2026-09-10T10:00:00", duration: "2h",
+  price: 45, currency: "USD",
 };
 
 function makeItinerary(overrides: Partial<GeneratedItinerary> = {}): GeneratedItinerary {
@@ -33,9 +47,9 @@ function makeItinerary(overrides: Partial<GeneratedItinerary> = {}): GeneratedIt
     days: [
       { date: "2026-09-08", dayNumber: 1, theme: "Arrival", location: "Barcelona", morning: ["Check in"], afternoon: ["Walk the Gothic Quarter"], evening: ["Dinner near the hotel"], meals: [] },
       { date: "2026-09-09", dayNumber: 2, theme: "Explore", location: "Barcelona", morning: [], afternoon: [], evening: [], meals: [] },
-      { date: "2026-09-10", dayNumber: 3, theme: "Andalusia arrival", location: "Andalusia", morning: [], afternoon: [], evening: [], meals: [] },
+      { date: "2026-09-10", dayNumber: 3, theme: "Andalusia arrival", location: "Andalusia", morning: [], afternoon: [], evening: [], meals: [], notes: "Take the AVE high-speed train to Andalusia." },
     ],
-    flights: [], hotels: [hotelBarcelona, hotelAndalusia], activities: [act1, act2], restaurants: [rest1],
+    flights: [flight1], hotels: [hotelBarcelona, hotelAndalusia], activities: [act1, act2], restaurants: [rest1, rest2],
     totalEstimatedCost: 1000, currency: "USD", aiSummary: "", whyThisWorks: "",
     ...overrides,
   };
@@ -81,32 +95,37 @@ describe("assembleItineraryDocxModel — day resolution", () => {
     expect(day1.bullets).toEqual(["Check in", "Walk the Gothic Quarter", "Dinner near the hotel"]);
   });
 
-  it("only turns an isLocalFavorite activity into a HIGHLIGHT, using its own real description", () => {
+  it("treats an isLocalFavorite activity as a plain bullet — no special box or callout", () => {
+    // v2 of the skill dropped HIGHLIGHT/OPTIONAL/TIP boxes entirely in
+    // favor of restraint; isLocalFavorite no longer produces anything
+    // beyond an ordinary bullet.
     const itinerary = makeItinerary({
       finalizedPlan: { dayCards: { 1: ["act-a1", "act-a2"], 2: [], 3: [] }, bankCards: [] },
     });
     const model = assembleItineraryDocxModel(itinerary, makePreferences());
     const day1 = model.sections[0].days[0];
-    expect(day1.highlights).toEqual([
-      { title: "Gaudi Tour", text: "A deep dive into Gaudi's most iconic Barcelona buildings." },
-    ]);
+    expect(day1.bullets).toEqual(["Gaudi Tour", "Tapas Crawl"]);
+    expect(day1).not.toHaveProperty("highlights");
   });
 });
 
-describe("assembleItineraryDocxModel — hotel resolution", () => {
-  it("prefers the per-city selected hotel over the raw search pool", () => {
+describe("assembleItineraryDocxModel — hotel writeup", () => {
+  it("builds a prose writeup from the hotel's own location and highlights, not invented text", () => {
     const model = assembleItineraryDocxModel(
       makeItinerary(),
       makePreferences({ selectedHotelsByCity: { Barcelona: hotelBarcelona } })
     );
-    expect(model.sections[0].hotel?.name).toBe("Hotel Neri");
-    expect(model.sections[0].hotel?.isTravellerPick).toBe(true);
+    expect(model.sections[0].hotel).toEqual({
+      name: "Hotel Neri",
+      writeup: "Gothic Quarter, Barcelona. Historic building · Central location.",
+      isTravellerPick: true,
+    });
   });
 
-  it("falls back to the first matching hotel in the pool when nothing is selected, and marks it not a traveller pick", () => {
-    const model = assembleItineraryDocxModel(makeItinerary(), makePreferences());
-    expect(model.sections[0].hotel?.name).toBe("Hotel Neri");
-    expect(model.sections[0].hotel?.isTravellerPick).toBe(false);
+  it("still writes up a hotel with no highlights, just from its location", () => {
+    const itinerary = makeItinerary({ days: [{ date: "2026-09-08", dayNumber: 1, theme: "Arrival", location: "Andalusia", morning: [], afternoon: [], evening: [], meals: [] }] });
+    const model = assembleItineraryDocxModel(itinerary, makePreferences());
+    expect(model.sections[0].hotel?.writeup).toBe("Andalusia.");
   });
 
   it("is null when no hotel exists at all for that leg", () => {
@@ -114,34 +133,82 @@ describe("assembleItineraryDocxModel — hotel resolution", () => {
     const model = assembleItineraryDocxModel(itinerary, makePreferences());
     expect(model.sections[0].hotel).toBeNull();
   });
+
+  it("falls back to the raw pool and marks it not a traveller pick when nothing is selected", () => {
+    const model = assembleItineraryDocxModel(makeItinerary(), makePreferences());
+    expect(model.sections[0].hotel?.name).toBe("Hotel Neri");
+    expect(model.sections[0].hotel?.isTravellerPick).toBe(false);
+  });
 });
 
-describe("assembleItineraryDocxModel — ground transport", () => {
-  it("adds a transport bullet only to the day a leg opens, only when a pick exists", () => {
+describe("assembleItineraryDocxModel — restaurants split into booked vs. options", () => {
+  it("puts a traveller-picked restaurant in restaurantsBooked and everything else in restaurantsOptions", () => {
     const model = assembleItineraryDocxModel(
       makeItinerary(),
-      makePreferences({
-        selectedTransportByLeg: {
-          Andalusia: {
-            id: "gt-1", mode: "train", provider: "Renfe", fromCity: "Barcelona", toCity: "Andalusia",
-            departureTime: "2026-09-10T08:00:00", arrivalTime: "2026-09-10T10:00:00", duration: "2h",
-            price: 45, currency: "USD",
-          },
-        },
-      })
+      makePreferences({ selectedRestaurantIds: ["r1"] })
     );
-    const andalusiaDay = model.sections[1].days[0];
-    expect(andalusiaDay.bullets[0]).toBe("🚆 Renfe to Andalusia, 2h");
-    // Barcelona never had a transport pick — no bullet fabricated for it.
-    expect(model.sections[0].days[0].bullets.some((b) => b.includes("Renfe"))).toBe(false);
+    expect(model.sections[0].restaurantsBooked.map((r) => r.name)).toEqual(["Tapas Bar"]);
+    expect(model.sections[0].restaurantsOptions.map((r) => r.name)).toEqual(["Unpicked Place"]);
+  });
+
+  it("puts everything in restaurantsOptions when nothing is confirmed", () => {
+    const model = assembleItineraryDocxModel(makeItinerary(), makePreferences());
+    expect(model.sections[0].restaurantsBooked).toEqual([]);
+    expect(model.sections[0].restaurantsOptions.map((r) => r.name)).toEqual(["Tapas Bar", "Unpicked Place"]);
+  });
+
+  it("caps restaurantsOptions at 5", () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({ ...rest2, id: `r${i + 10}`, name: `Place ${i}` }));
+    const itinerary = makeItinerary({ restaurants: many });
+    const model = assembleItineraryDocxModel(itinerary, makePreferences());
+    expect(model.sections[0].restaurantsOptions).toHaveLength(5);
+  });
+});
+
+describe("assembleItineraryDocxModel — getting there", () => {
+  it("describes the flight for the first section", () => {
+    const model = assembleItineraryDocxModel(makeItinerary(), makePreferences());
+    expect(model.sections[0].gettingThere).toEqual(["✈ Delta — JFK → BCN"]);
+  });
+
+  it("describes the ground-transport pick for a later section when one exists", () => {
+    const model = assembleItineraryDocxModel(
+      makeItinerary(),
+      makePreferences({ selectedTransportByLeg: { Andalusia: transportPick } })
+    );
+    expect(model.sections[1].gettingThere).toEqual(["🚆 Renfe to Andalusia, 2h"]);
+  });
+
+  it("falls back to the AI's own inter-city travel note when there's no transport pick", () => {
+    const model = assembleItineraryDocxModel(makeItinerary(), makePreferences());
+    expect(model.sections[1].gettingThere).toEqual(["Take the AVE high-speed train to Andalusia."]);
+  });
+
+  it("is empty (not fabricated) when there's no flight for the first section", () => {
+    const itinerary = makeItinerary({ flights: [] });
+    const model = assembleItineraryDocxModel(itinerary, makePreferences());
+    expect(model.sections[0].gettingThere).toEqual([]);
+  });
+
+  it("is empty for a later section with no transport pick and no travel note", () => {
+    const itinerary = makeItinerary();
+    itinerary.days[2].notes = undefined;
+    const model = assembleItineraryDocxModel(itinerary, makePreferences());
+    expect(model.sections[1].gettingThere).toEqual([]);
+  });
+});
+
+describe("assembleItineraryDocxModel — glance table transition days", () => {
+  it("flags the first day of every leg after the first as a transition day", () => {
+    const model = assembleItineraryDocxModel(makeItinerary(), makePreferences());
+    expect(model.glanceRows.map((r) => r.isTransitionDay)).toEqual([false, false, true]);
   });
 });
 
 describe("assembleItineraryDocxModel — no fabricated content", () => {
   it("only lists BOOK IN ADVANCE items the traveller actually picked, not the whole pool", () => {
-    const itinerary = makeItinerary({ restaurants: [rest1, { ...rest1, id: "r2", name: "Unpicked Place" }] });
     const model = assembleItineraryDocxModel(
-      itinerary,
+      makeItinerary(),
       makePreferences({ selectedHotelsByCity: { Barcelona: hotelBarcelona }, selectedRestaurantIds: ["r1"] })
     );
     expect(model.bookInAdvance).toContain("Hotel Neri — Barcelona");
