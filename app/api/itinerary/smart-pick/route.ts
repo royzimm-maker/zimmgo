@@ -3,6 +3,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { SMART_PICK_TOOL } from "@/lib/ai/tools";
 import { buildHotelPickPrompt, buildSchedulePickPrompt, buildPreferencePickPrompt, buildActivitiesForCityPickPrompt, buildRestaurantsForCityPickPrompt } from "@/lib/ai/prompts";
+import { logApiUsage } from "@/lib/ai/usageLog";
 import type { SmartPickKind, SmartPickRequestBody, SmartPickResponse } from "@/types/smartPick";
 
 const PREFERENCE_KINDS = new Set<SmartPickKind>(["activities", "vibes", "lodging"]);
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
       tool_choice: { type: "tool", name: "make_selection" },
       messages: [{ role: "user", content: prompt }],
     });
+    await logApiUsage("smart-pick", DEFAULT_MODEL, response.usage);
 
     const toolUse = response.content.find((b) => b.type === "tool_use");
     if (!toolUse || toolUse.type !== "tool_use") {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
+import { TripSyncProvider } from "@/components/TripSyncProvider";
 import "./globals.css";
 
 // Trying Poppins as the site-wide font to pair with the new ZimmGo branding —
@@ -26,7 +27,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={poppins.variable}>
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen">
+        <TripSyncProvider>{children}</TripSyncProvider>
+      </body>
     </html>
   );
 }

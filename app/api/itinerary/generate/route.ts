@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuid } from "uuid";
 import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { TRAVEL_TOOLS } from "@/lib/ai/tools";
+import { logApiUsage } from "@/lib/ai/usageLog";
 import { buildItineraryPrompt } from "@/lib/ai/prompts";
 import { searchFlights } from "@/lib/api/flights";
 import { searchHotels } from "@/lib/api/hotels";
@@ -120,6 +121,7 @@ export async function POST(request: NextRequest) {
         tools: TRAVEL_TOOLS,
         messages,
       });
+      await logApiUsage("itinerary-generate", DEFAULT_MODEL, response.usage);
 
       // Collect tool uses from this response
       const toolUses = response.content.filter((b) => b.type === "tool_use");

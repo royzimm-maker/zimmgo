@@ -1,5 +1,11 @@
 // Prisma schema — run `npx prisma db push` to sync to your Postgres database
 // See: https://pris.ly/d/prisma-schema
+//
+// Deliberately a single JSON-mirror table, not a normalized relational
+// schema: every trip's data model (types/trip.ts) is already fully JSON and
+// changes shape often, so this table just durably mirrors the exact blob
+// tripStore.ts already persists to localStorage, keyed by an anonymous
+// per-device cookie (see app/api/trip-sync/route.ts). No user accounts.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,55 +16,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
+model Device {
+  id        String   @id
+  data      Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  trips     Trip[]
 }
 
-model Trip {
-  id           String       @id @default(cuid())
-  userId       String?
-  name         String       @default("My Trip")
-  currentStep  String       @default("destination")
-  preferences  Json         // Serialised TripPreferences
-  completedSteps String[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  user         User?        @relation(fields: [userId], references: [id])
-  itineraries  Itinerary[]
+// One row per Anthropic API call, across every route that calls
+// client.messages.create (see lib/ai/usageLog.ts). Exists to turn cost
+// estimates into real measured numbers — see app/api/admin/usage-summary
+// for the aggregated view.
+model ApiUsageEvent {
+  id               String   @id @default(cuid())
+  route            String   // rateLimit's own `bucket` name, e.g. "itinerary-generate"
+  model            String
+  inputTokens      Int
+  outputTokens     Int
+  cacheReadTokens  Int      @default(0)
+  cacheWriteTokens Int      @default(0)
+  createdAt        DateTime @default(now())
 
-  @@index([userId])
-}
-
-model Itinerary {
-  id                  String   @id @default(cuid())
-  tripId              String
-  version             Int      @default(1)
-  days                Json     // Serialised ItineraryDay[]
-  flights             Json     // Serialised FlightOption[]
-  hotels              Json     // Serialised HotelOption[]
-  activities          Json     // Serialised ActivityOption[]
-  totalEstimatedCost  Float
-  currency            String   @default("USD")
-  aiSummary           String
-  whyThisWorks        String
-  createdAt           DateTime @default(now())
-  trip                Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
-
-  @@index([tripId])
-}
-
-model ChatMessage {
-  id          String   @id @default(cuid())
-  tripId      String
-  role        String   // "user" | "assistant"
-  content     String
-  stepContext String?
-  createdAt   DateTime @default(now())
-
-  @@index([tripId])
+  @@index([route])
+  @@index([createdAt])
 }

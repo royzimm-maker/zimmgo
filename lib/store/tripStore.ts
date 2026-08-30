@@ -146,7 +146,7 @@ function makeEmptyTrip(): Trip {
 // A trip only counts as "worth keeping" once the user has put real
 // information into it — an untouched blank trip shouldn't clutter the trip
 // switcher or silently survive as a phantom entry.
-function hasRealProgress(trip: Trip): boolean {
+export function hasRealProgress(trip: Trip): boolean {
   return (
     trip.completedSteps.length > 0 ||
     trip.itineraries.length > 0 ||

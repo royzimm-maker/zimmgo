@@ -3,6 +3,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { buildDestinationParsePrompt } from "@/lib/ai/prompts";
 import { PARSE_DESTINATION_TOOL } from "@/lib/ai/tools";
+import { logApiUsage } from "@/lib/ai/usageLog";
 
 interface ParseDestinationResult {
   cities: string[];
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
       tool_choice: { type: "tool", name: "parse_destination" },
       messages: [{ role: "user", content: buildDestinationParsePrompt(text) }],
     });
+    await logApiUsage("destination-parse", DEFAULT_MODEL, response.usage);
 
     const toolUse = response.content.find((b) => b.type === "tool_use");
     if (!toolUse || toolUse.type !== "tool_use") {

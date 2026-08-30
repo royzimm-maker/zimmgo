@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL } from "@/lib/ai/client";
+import { logApiUsage } from "@/lib/ai/usageLog";
 import type { TripPreferences } from "@/types/trip";
 
 interface RefineBody {
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest) {
       system: systemPrompt,
       messages: [{ role: "user", content: question }],
     });
+    await logApiUsage("itinerary-refine", DEFAULT_MODEL, response.usage);
 
     const reply = response.content
       .filter((b) => b.type === "text")
