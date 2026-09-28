@@ -19,6 +19,10 @@ datasource db {
 model Device {
   id        String   @id
   data      Json
+  // Optimistic-concurrency counter — a PUT only applies if the client's
+  // baseVersion still matches, so a stale tab can't blindly overwrite a
+  // newer save (see app/api/trip-sync/route.ts).
+  version   Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

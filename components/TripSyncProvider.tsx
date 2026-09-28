@@ -1,20 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useTripStore, hasRealProgress } from "@/lib/store/tripStore";
-import type { Trip } from "@/types/trip";
-
-// Mirrors the exact shape tripStore.ts's own `partialize` persists to
-// localStorage — this is the whole sync payload, both directions.
-interface SyncBlob {
-  trip: Trip;
-  savedTrips: Trip[];
-  chatMessages: ReturnType<typeof useTripStore.getState>["chatMessages"];
-  progress: number;
-  defaultDepartureAirport?: string;
-  defaultBeliPref?: ReturnType<typeof useTripStore.getState>["defaultBeliPref"];
-  defaultCurrency?: string;
-}
+import { isSyncBlob, mergeSyncBlobs, stableStringify, type SyncBlob } from "@/lib/sync/syncBlob";
 
 function currentBlob(): SyncBlob {
   const s = useTripStore.getState();
@@ -29,74 +17,156 @@ function currentBlob(): SyncBlob {
   };
 }
 
-// No per-trip/blob timestamp is stored anywhere — every Trip already carries
-// its own `updatedAt`, bumped by nearly every store setter, so freshness is
-// derived from that instead of adding a new field just for this.
-function newestUpdatedAt(blob: Pick<SyncBlob, "trip" | "savedTrips">): number {
-  const all = [blob.trip, ...blob.savedTrips];
-  return all.reduce((max, t) => Math.max(max, Date.parse(t.updatedAt) || 0), 0);
+function applyBlob(b: SyncBlob) {
+  useTripStore.setState({
+    trip: b.trip,
+    savedTrips: b.savedTrips,
+    chatMessages: b.chatMessages,
+    progress: b.progress,
+    defaultDepartureAirport: b.defaultDepartureAirport,
+    defaultBeliPref: b.defaultBeliPref,
+    defaultCurrency: b.defaultCurrency,
+  });
 }
 
-const DEBOUNCE_MS = 1500;
+export const DEBOUNCE_MS = 1500;
+// Delays before each GET attempt. After the last one fails, hydration is
+// retried only when the window regains focus or comes back online.
+export const HYDRATE_RETRY_DELAYS_MS = [0, 2_000, 5_000, 15_000];
+const PUT_RETRY_MS = 10_000;
 
-// Anonymous, device-linked backend sync — entirely additive on top of the
-// existing localStorage persistence, not a replacement for it. Never blocks
-// or throws into the UI: a failed sync (no DATABASE_URL configured yet, a
-// network blip) just means this device keeps working off localStorage like
-// it always has, silently retrying on the next change.
+// Anonymous, device-linked backend sync, layered on top of localStorage
+// persistence rather than replacing it. Two safety rules:
+//
+// 1. Nothing is ever PUT until a GET has actually succeeded. If the first
+//    GET failed (offline, blip, no DB) and we pushed anyway, a device whose
+//    localStorage had just been cleared would overwrite its full server copy
+//    with an empty trip — the exact loss persistence exists to prevent.
+// 2. Every PUT carries the version it was based on. If another tab saved in
+//    between, the server rejects it (409) with its copy; we merge trip by
+//    trip and retry, rather than one tab blindly clobbering the other.
+//
+// Failures never surface in the UI — the device just keeps working off
+// localStorage and syncs once the backend is reachable.
 export function TripSyncProvider({ children }: { children: React.ReactNode }) {
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
-  const hydratedRef = useRef(false);
-
   useEffect(() => {
     let cancelled = false;
+    // null = not hydrated yet; no PUTs allowed.
+    let version: number | null = null;
+    // JSON of the blob the server is known to hold — pushes of identical
+    // content are skipped, so hydration itself never triggers a write.
+    let lastSyncedJson: string | null = null;
+    let hydrating = false;
+    let inFlight = false;
+    let pending = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
-    (async () => {
-      try {
-        const res = await fetch("/api/trip-sync");
-        if (!res.ok || cancelled) return;
-        const { data } = (await res.json()) as { data: SyncBlob | null };
-        if (!data) return; // nothing on the server yet — local stays authoritative
+    function schedulePush(delay = DEBOUNCE_MS) {
+      if (version === null || cancelled) return;
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(push, delay);
+    }
 
-        const local = currentBlob();
-        const shouldHydrate = !hasRealProgress(local.trip) || newestUpdatedAt(data) > newestUpdatedAt(local);
-        if (shouldHydrate) {
-          useTripStore.setState({
-            trip: data.trip,
-            savedTrips: data.savedTrips,
-            chatMessages: data.chatMessages,
-            progress: data.progress,
-            defaultDepartureAirport: data.defaultDepartureAirport,
-            defaultBeliPref: data.defaultBeliPref,
-            defaultCurrency: data.defaultCurrency,
-          });
-        }
-      } catch {
-        // No backend configured yet, or offline — fine, localStorage still works.
-      } finally {
-        hydratedRef.current = true;
+    async function push() {
+      if (version === null || cancelled) return;
+      if (inFlight) {
+        pending = true;
+        return;
       }
-    })();
+      const blob = currentBlob();
+      const json = stableStringify(blob);
+      if (json === lastSyncedJson) return;
 
-    const unsubscribe = useTripStore.subscribe(() => {
-      if (!hydratedRef.current) return; // don't sync the pre-merge state back out
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        fetch("/api/trip-sync", {
+      inFlight = true;
+      try {
+        const res = await fetch("/api/trip-sync", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(currentBlob()),
-        }).catch(() => {
-          // Non-fatal — same reasoning as above, this device just falls back
-          // to localStorage-only until the next successful sync.
+          body: JSON.stringify({ baseVersion: version, data: blob }),
         });
-      }, DEBOUNCE_MS);
-    });
+        if (cancelled) return;
+        if (res.ok) {
+          const body = (await res.json()) as { version: number };
+          version = body.version;
+          lastSyncedJson = json;
+        } else if (res.status === 409) {
+          const body = (await res.json()) as { data: unknown; version: number };
+          version = body.version;
+          if (isSyncBlob(body.data)) {
+            lastSyncedJson = stableStringify(body.data);
+            const merged = mergeSyncBlobs(currentBlob(), body.data);
+            if (stableStringify(merged) !== stableStringify(currentBlob())) applyBlob(merged);
+          } else {
+            lastSyncedJson = null; // unusable server copy — ours replaces it
+          }
+          pending = true; // write the merged result on top of the new version
+        } else {
+          clearTimeout(retryTimer);
+          retryTimer = setTimeout(push, PUT_RETRY_MS);
+        }
+      } catch {
+        clearTimeout(retryTimer);
+        retryTimer = setTimeout(push, PUT_RETRY_MS);
+      } finally {
+        inFlight = false;
+        if (pending && !cancelled) {
+          pending = false;
+          push();
+        }
+      }
+    }
+
+    async function hydrate() {
+      if (hydrating || version !== null) return;
+      hydrating = true;
+      try {
+        for (const delay of HYDRATE_RETRY_DELAYS_MS) {
+          if (delay) await new Promise((r) => setTimeout(r, delay));
+          if (cancelled) return;
+          try {
+            const res = await fetch("/api/trip-sync");
+            if (!res.ok) continue;
+            const body = (await res.json()) as { data: unknown; version?: number };
+            if (cancelled) return;
+
+            const server = isSyncBlob(body.data) ? body.data : null;
+            const local = currentBlob();
+            lastSyncedJson = server ? stableStringify(server) : null;
+            version = body.version ?? 0;
+
+            if (server) {
+              const next = hasRealProgress(local.trip) ? mergeSyncBlobs(local, server) : server;
+              if (stableStringify(next) !== stableStringify(local)) applyBlob(next);
+            }
+            // Local may hold work the server hasn't seen — push once now that
+            // it's safe to. push() skips it if the content already matches,
+            // and a brand-new visitor with an untouched blank trip has
+            // nothing worth saving yet.
+            if (server || hasRealProgress(local.trip)) schedulePush();
+            return;
+          } catch {
+            // network error — fall through to the next attempt
+          }
+        }
+      } finally {
+        hydrating = false;
+      }
+    }
+
+    const unsubscribe = useTripStore.subscribe(() => schedulePush());
+    const onReconnect = () => hydrate();
+    window.addEventListener("focus", onReconnect);
+    window.addEventListener("online", onReconnect);
+    hydrate();
 
     return () => {
       cancelled = true;
       unsubscribe();
-      if (timerRef.current) clearTimeout(timerRef.current);
+      window.removeEventListener("focus", onReconnect);
+      window.removeEventListener("online", onReconnect);
+      clearTimeout(debounceTimer);
+      clearTimeout(retryTimer);
     };
   }, []);
 
