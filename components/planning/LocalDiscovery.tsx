@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Music, Sparkles, Smartphone, ChevronDown, ChevronUp,
   ExternalLink, MapPin, Bus, Ticket, Heart,
 } from "lucide-react";
-import { getLocalDiscovery } from "@/lib/data/localDiscovery";
+import { fetchLocalDiscovery } from "@/lib/api/localDiscovery";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { TripPreferences } from "@/types/trip";
+import type { LocalDiscovery as Discovery } from "@/types/localDiscovery";
 
 interface Props {
   preferences: TripPreferences;
@@ -28,13 +29,22 @@ export function LocalDiscovery({ preferences, itineraryId }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("scene");
   const { addWanderlogItem } = useTripStore();
 
-  const destName  = preferences.destination?.displayName ?? "";
-  const cities    = useMemo(() => preferences.destination?.cities ?? [], [preferences.destination?.cities]);
-  const cityCount = cities.length || 1;
-  const discovery = useMemo(
-    () => getLocalDiscovery(destName, cityCount, cities),
-    [destName, cityCount, cities]
-  );
+  const destName = preferences.destination?.displayName ?? "";
+  const citiesKey = (preferences.destination?.cities ?? []).join("\u0000");
+
+  // The guide is fetched per destination (see app/api/local-discovery) rather
+  // than bundled — the full curated set is too large to ship to every visitor.
+  const [discovery, setDiscovery] = useState<Discovery | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    setLoadError(false);
+    fetchLocalDiscovery(destName, citiesKey ? citiesKey.split("\u0000") : [])
+      .then((d) => { if (!cancelled) setDiscovery(d); })
+      .catch(() => { if (!cancelled) setLoadError(true); });
+    return () => { cancelled = true; };
+  }, [destName, citiesKey, attempt]);
 
   const onSave = itineraryId
     ? (label: string, description?: string) => addWanderlogItem(itineraryId, { label, source: "discovery", description })
@@ -52,13 +62,31 @@ export function LocalDiscovery({ preferences, itineraryId }: Props) {
           <Sparkles size={15} className="text-brand-500" />
           <div>
             <span className="text-sm font-semibold text-slate-800">Local Discovery</span>
-            <span className="ml-2 text-xs text-slate-400">— the inside track on {discovery.destination}</span>
+            <span className="ml-2 text-xs text-slate-400">— the inside track on {discovery?.destination ?? (destName || "your destination")}</span>
           </div>
         </div>
         {open ? <ChevronUp size={14} className="text-slate-400 shrink-0" /> : <ChevronDown size={14} className="text-slate-400 shrink-0" />}
       </button>
 
-      {open && (
+      {open && !discovery && (
+        <div className="px-4 py-4 border-t border-brand-100">
+          {loadError ? (
+            <p className="text-xs text-slate-500">
+              Couldn&apos;t load local tips right now.{" "}
+              <button type="button" onClick={() => setAttempt((n) => n + 1)} className="font-medium text-brand-600 hover:underline">
+                Try again
+              </button>
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2" aria-label="Loading local tips">
+              <div className="h-3 w-3/4 rounded bg-slate-100 animate-pulse" />
+              <div className="h-3 w-1/2 rounded bg-slate-100 animate-pulse" />
+            </div>
+          )}
+        </div>
+      )}
+
+      {open && discovery && (
         <>
           {/* Intro */}
           <div className="px-4 pt-1 pb-3 border-t border-brand-100 bg-gradient-to-br from-brand-50 to-slate-50">
@@ -103,7 +131,7 @@ function SceneTab({
   discovery,
   onSave,
 }: {
-  discovery: ReturnType<typeof getLocalDiscovery>;
+  discovery: Discovery;
   onSave?: (label: string, description?: string) => void;
 }) {
   const { events, hiddenGems } = discovery;
@@ -197,7 +225,7 @@ function SceneTab({
 
 // ── Music tab ────────────────────────────────────────────────────────────────
 
-function MusicTab({ discovery }: { discovery: ReturnType<typeof getLocalDiscovery> }) {
+function MusicTab({ discovery }: { discovery: Discovery }) {
   const { music } = discovery;
 
   return (
@@ -287,7 +315,7 @@ const APP_CATEGORY_LABELS: Record<string, string> = {
   maps: "Navigation",
 };
 
-function AppsTab({ discovery }: { discovery: ReturnType<typeof getLocalDiscovery> }) {
+function AppsTab({ discovery }: { discovery: Discovery }) {
   const { apps } = discovery;
 
   const grouped = useMemo(
@@ -336,7 +364,7 @@ function AppsTab({ discovery }: { discovery: ReturnType<typeof getLocalDiscovery
 
 // ── Transfers tab ────────────────────────────────────────────────────────────
 
-function TransfersTab({ discovery }: { discovery: ReturnType<typeof getLocalDiscovery> }) {
+function TransfersTab({ discovery }: { discovery: Discovery }) {
   const { airportTransfers } = discovery;
 
   return (

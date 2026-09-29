@@ -1,71 +1,13 @@
 // Curated local discovery data — matched by keyword against destination displayName.
 // Covers: local scene/events, music, essential apps, airport transfers, hidden gems.
 // Tone: friendly and a little whimsical — the advice a well-connected local friend would give.
+//
+// SERVER-ONLY: this module holds every destination's guide (~85 KB). It's
+// served per destination by app/api/local-discovery/route.ts — never import
+// it from client code, or all of it ships to every visitor's browser
+// (enforced by lib/data/__tests__/localDiscovery.test.ts).
 
-export interface LocalEvent {
-  name: string;
-  description: string;
-  emoji: string;
-  type: "music" | "theater" | "dance" | "market" | "festival" | "literary" | "art" | "food" | "sport";
-  url?: string;
-  tipNote?: string;
-}
-
-export interface LocalArtist {
-  name: string;
-  genre: string;
-  why: string;
-  searchUrl: string;
-}
-
-export interface MusicVenue {
-  name: string;
-  vibe: string;
-  genre: string;
-  url?: string;
-}
-
-export interface LocalApp {
-  name: string;
-  category: "transit" | "taxi" | "food" | "payment" | "language" | "events" | "maps";
-  description: string;
-  emoji: string;
-  url: string;
-  platform: "iOS" | "Android" | "both";
-}
-
-export interface AirportTransfer {
-  option: string;
-  emoji: string;
-  timeEst: string;
-  costEst: string;
-  recommended: boolean;
-  description: string;
-  tip?: string;
-}
-
-export interface HiddenGem {
-  name: string;
-  description: string;
-  emoji: string;
-  type: string;
-  sourceUrl?: string;
-}
-
-export interface LocalDiscovery {
-  destination: string;
-  sceneIntro: string;
-  events: LocalEvent[];
-  music: {
-    intro: string;
-    artists: LocalArtist[];
-    venues: MusicVenue[];
-    playlistSearchUrl: string;
-  };
-  apps: LocalApp[];
-  airportTransfers: AirportTransfer[];
-  hiddenGems: HiddenGem[];
-}
+import type { LocalDiscovery } from "@/types/localDiscovery";
 
 const DB: { keywords: string[]; level: "region" | "country"; data: LocalDiscovery }[] = [
   // ── Region-specific entries (matched first for single-city trips) ───────────
