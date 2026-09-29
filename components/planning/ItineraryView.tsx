@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, Calendar, List, Lightbulb, FileDown, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { formatCurrency, formatDate, groupItineraryDaysByLocation } from "@/lib/utils";
@@ -320,7 +321,7 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
       {/* Saved indicator + download bar */}
       <div className="flex items-center gap-2 rounded-lg bg-sage-50 border border-sage-100 px-3 py-2 text-xs text-sage-700">
         <Check size={12} className="text-sage-500 shrink-0" />
-        <span><span className="font-semibold">Saved to this device.</span> Your trip is stored in your browser — just return to this page to pick up where you left off.</span>
+        <span><span className="font-semibold">Saved automatically.</span> Your trip is stored in this browser and backed up to ZimmGo, linked to this device — just return to this page to pick up where you left off. <Link href="/privacy" className="underline hover:text-sage-900">Privacy &amp; deleting your data</Link></span>
       </div>
 
       {/* Download / share bar */}

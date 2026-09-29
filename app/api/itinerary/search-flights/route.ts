@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverError } from "@/lib/api/errors";
 import { searchFlights } from "@/lib/api/flights";
+import { rateLimit } from "@/lib/rateLimit";
+import { readJsonBody } from "@/lib/api/readJsonBody";
+import { parseWithSchema, type JsonSchema } from "@/lib/ai/toolInput";
 import type { TripPreferences } from "@/types/trip";
 
 // Deterministic, non-AI flight search — used by the review wizard's manual
@@ -8,9 +11,50 @@ import type { TripPreferences } from "@/types/trip";
 // flight options (e.g. the AI's search_flights call came back empty). Mirrors
 // the same outbound/return construction buildItineraryPrompt asks the AI to
 // follow, just invoked directly instead of through a tool-use loop.
+
+const ISO_DATE = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" } as const;
+const AIRPORT = { type: "string", maxLength: 120 } as const;
+
+// Only the preference fields this search reads — anything else is ignored.
+const BODY_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    preferences: {
+      type: "object",
+      properties: {
+        destination: {
+          type: "object",
+          properties: { departureAirport: AIRPORT, arrivalAirport: AIRPORT, returnAirport: AIRPORT },
+        },
+        dates: {
+          type: "object",
+          properties: { type: { type: "string", enum: ["exact", "flexible"] }, startDate: ISO_DATE, endDate: ISO_DATE },
+        },
+        airlinePrefs: {
+          type: "object",
+          properties: {
+            cabinClass: { type: "string", enum: ["economy", "premium_economy", "business", "first"] },
+            airlines: { type: "array", items: { type: "string", maxLength: 60 }, maxItems: 20 },
+            preferNonstop: { type: "boolean" },
+            prioritizeLowestFare: { type: "boolean" },
+          },
+        },
+      },
+    },
+  },
+  required: ["preferences"],
+};
+
 export async function POST(request: NextRequest) {
+  const limited = await rateLimit(request, { bucket: "search", limit: 60, windowMs: 5 * 60_000 });
+  if (limited) return limited;
+
   try {
-    const { preferences } = (await request.json()) as { preferences: TripPreferences };
+    const parsed = await readJsonBody<unknown>(request, 100_000);
+    if (!parsed.ok) return parsed.response;
+    const body = parseWithSchema<{ preferences: TripPreferences }>(BODY_SCHEMA, parsed.body);
+    if (!body) return NextResponse.json({ error: "Trip preferences are required" }, { status: 400 });
+    const { preferences } = body;
     const dest = preferences.destination;
     const dates = preferences.dates;
 

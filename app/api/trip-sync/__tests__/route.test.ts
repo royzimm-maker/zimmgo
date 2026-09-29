@@ -5,15 +5,16 @@ import { Prisma } from "@prisma/client";
 
 const { mockCookieStore, mockDevice } = vi.hoisted(() => ({
   mockCookieStore: { get: vi.fn(), set: vi.fn() },
-  mockDevice: { findUnique: vi.fn(), updateMany: vi.fn(), create: vi.fn() },
+  mockDevice: { findUnique: vi.fn(), updateMany: vi.fn(), create: vi.fn(), deleteMany: vi.fn() },
 }));
 vi.mock("next/headers", () => ({
   cookies: async () => mockCookieStore,
 }));
 vi.mock("@/lib/db", () => ({ prisma: { device: mockDevice } }));
 
-import { GET, PUT } from "@/app/api/trip-sync/route";
+import { GET, PUT, DELETE } from "@/app/api/trip-sync/route";
 import { SCHEMA_VERSION } from "@/lib/sync/schema";
+import { DEVICE_COOKIE_MAX_AGE_S } from "@/lib/sync/retention";
 
 const now = "2026-09-28T12:00:00.000Z";
 function trip(id: string) {
@@ -62,7 +63,7 @@ describe("GET /api/trip-sync", () => {
     expect(JSON.stringify(body)).not.toContain("neon.tech");
   });
 
-  it("returns the stored blob and its version for an existing device, without re-setting its cookie", async () => {
+  it("returns the stored blob and its version, and renews the same device cookie so an active traveller's never lapses", async () => {
     mockCookieStore.get.mockReturnValue({ value: "device-1" });
     mockDevice.findUnique.mockResolvedValue({ id: "device-1", data: blob, version: 7 });
 
@@ -70,7 +71,31 @@ describe("GET /api/trip-sync", () => {
     const body = await res.json();
 
     expect(body).toEqual({ data: blob, version: 7 });
-    expect(res.cookies.get("zimmgo-device")).toBeUndefined();
+    const cookie = res.cookies.get("zimmgo-device");
+    expect(cookie?.value).toBe("device-1");
+    expect(cookie?.maxAge).toBe(DEVICE_COOKIE_MAX_AGE_S);
+  });
+});
+
+describe("DELETE /api/trip-sync", () => {
+  it("deletes this device's synced trips and forgets its cookie", async () => {
+    mockCookieStore.get.mockReturnValue({ value: "device-1" });
+    mockDevice.deleteMany.mockResolvedValue({ count: 1 });
+
+    const res = await DELETE(new NextRequest("http://localhost/api/trip-sync", { method: "DELETE" }));
+
+    expect(await res.json()).toEqual({ ok: true, deleted: true });
+    expect(mockDevice.deleteMany).toHaveBeenCalledWith({ where: { id: "device-1" } });
+    expect(res.cookies.get("zimmgo-device")?.maxAge).toBe(0);
+  });
+
+  it("succeeds with nothing to delete when the device never synced", async () => {
+    mockCookieStore.get.mockReturnValue(undefined);
+
+    const res = await DELETE(new NextRequest("http://localhost/api/trip-sync", { method: "DELETE" }));
+
+    expect(await res.json()).toEqual({ ok: true, deleted: false });
+    expect(mockDevice.deleteMany).not.toHaveBeenCalled();
   });
 });
 

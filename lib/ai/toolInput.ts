@@ -13,12 +13,12 @@ import type Anthropic from "@anthropic-ai/sdk";
 // required), array (items, maxItems), string (enum, pattern, maxLength),
 // number/integer (enum, minimum, maximum) and boolean.
 
-interface Schema {
+export interface JsonSchema {
   type?: string;
   enum?: readonly unknown[];
-  properties?: Record<string, Schema>;
+  properties?: Record<string, JsonSchema>;
   required?: readonly string[];
-  items?: Schema;
+  items?: JsonSchema;
   maxItems?: number;
   minimum?: number;
   maximum?: number;
@@ -33,7 +33,7 @@ type Result = unknown | typeof INVALID;
 const DEFAULT_MAX_ITEMS = 200;
 const DEFAULT_MAX_STRING = 5_000;
 
-function conform(value: unknown, schema: Schema): Result {
+function conform(value: unknown, schema: JsonSchema): Result {
   switch (schema.type) {
     case "object": {
       if (!value || typeof value !== "object" || Array.isArray(value)) return INVALID;
@@ -92,7 +92,16 @@ function conform(value: unknown, schema: Schema): Result {
  * field is missing or unusable. Typed by the caller, which is then true.
  */
 export function parseToolInput<T>(tool: Anthropic.Tool, input: unknown): T | null {
-  const result = conform(input, tool.input_schema as Schema);
+  const result = conform(input, tool.input_schema as JsonSchema);
+  return result === INVALID ? null : (result as T);
+}
+
+/**
+ * Any JSON input conformed to `schema` with the same rules — also used to
+ * validate API request bodies (see the search routes).
+ */
+export function parseWithSchema<T>(schema: JsonSchema, input: unknown): T | null {
+  const result = conform(input, schema);
   return result === INVALID ? null : (result as T);
 }
 

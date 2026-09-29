@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/branding/Logo";
+import { DeleteMyData } from "@/components/DeleteMyData";
 
 export const metadata = {
   title: "Privacy — ZimmGo",
@@ -29,7 +30,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-sm font-semibold text-slate-900 mb-1.5">Where your trip data lives</h2>
             <p>
-              There are no user accounts. Your trip — destination, dates, budget, dietary needs, hotel and activity picks, chat history, everything — is saved in your own browser&apos;s local storage, the same as always. It&apos;s also mirrored to a database, keyed to an anonymous cookie tied to this device (not to you personally, and not linked to any account), so your trip survives a cleared browser cache. Nobody else can see it without that same device and cookie.
+              There are no user accounts. Your trip — destination, dates, budget, dietary needs, hotel and activity picks, chat history, everything — is saved in your own browser&apos;s local storage, the same as always. It&apos;s also mirrored to a database (see below for how long it&apos;s kept and how to delete it), keyed to an anonymous cookie tied to this device (not to you personally, and not linked to any account), so your trip survives a cleared browser cache. Nobody else can see it without that same device and cookie.
             </p>
           </section>
 
@@ -54,6 +55,32 @@ export default function PrivacyPage() {
               <li>A short list of your recent destination searches, so you can quickly re-select one</li>
               <li>A couple of small UI preferences, like panel sizing, that have nothing to do with your trip content</li>
             </ul>
+          </section>
+
+          <section>
+            <h2 className="text-sm font-semibold text-slate-900 mb-1.5">How long it&apos;s kept</h2>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li>
+                <span className="font-medium">Your synced trips:</span> until you delete them, or 12 months after they were last changed. The anonymous device cookie lasts the same time and renews every time you visit, so this only removes copies nobody has touched in a year.
+              </li>
+              <li>
+                <span className="font-medium">Itineraries being generated:</span> the working copy is deleted after a day.
+              </li>
+              <li>
+                <span className="font-medium">Rate limiting:</span> to prevent abuse, ZimmGo counts requests per IP address in short windows; those counts are deleted after a day.
+              </li>
+              <li>
+                <span className="font-medium">AI usage records:</span> token counts per feature, for cost tracking — no trip content and nothing that identifies you.
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-sm font-semibold text-slate-900 mb-1.5">Deleting your data</h2>
+            <p className="mb-3">
+              You can remove individual trips from <span className="font-medium">My Saved Trips</span>. To remove everything at once — every trip, itinerary and chat, from this browser and from ZimmGo&apos;s database — use the button below. Your device&apos;s anonymous cookie is forgotten too, so your next visit starts completely fresh.
+            </p>
+            <DeleteMyData />
           </section>
 
           <section>

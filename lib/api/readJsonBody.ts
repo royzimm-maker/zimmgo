@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Every AI route forwards request fields straight into a prompt, so an
-// unbounded body is an unbounded token bill. Reads the body as text, rejects
-// anything over `maxBytes` (413) or unparseable (400) before any AI call.
+// Every route reads its JSON body through this, with a size cap suited to the
+// route: AI routes forward fields into a prompt (an unbounded body is an
+// unbounded token bill), and the rest do real work with it (searches, Word
+// export). Reads the body as text and rejects anything over `maxBytes` (413)
+// or unparseable (400) before doing anything with it.
 export async function readJsonBody<T>(
   request: NextRequest,
   maxBytes: number

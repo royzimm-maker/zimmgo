@@ -6,33 +6,33 @@ import { Prisma } from "@prisma/client";
 import { rateLimit } from "@/lib/rateLimit";
 import { prisma } from "@/lib/db";
 import { SCHEMA_VERSION, migrateSyncBlob } from "@/lib/sync/schema";
+import { DEVICE_COOKIE_MAX_AGE_S, sweepInactiveDevices } from "@/lib/sync/retention";
 
 const COOKIE_NAME = "zimmgo-device";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // ~1 year
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  maxAge: DEVICE_COOKIE_MAX_AGE_S,
+  path: "/",
+};
 // Generous for a device's trips + chat, well under Vercel's 4.5MB body limit.
 const MAX_BODY_BYTES = 2_000_000;
 
 // GET creates the device cookie if it's missing — this is the only place
 // that happens, since the client always GETs once on mount before it ever
-// PUTs, so by the time a PUT fires the cookie is guaranteed to exist.
+// PUTs, so by the time a PUT fires the cookie is guaranteed to exist. It's
+// re-set on every visit so an active traveller's cookie never lapses (it
+// lasts as long as the retention period — see lib/sync/retention.ts).
 export async function GET() {
   try {
     const store = await cookies();
-    let deviceId = store.get(COOKIE_NAME)?.value;
-    const isNew = !deviceId;
-    if (!deviceId) deviceId = randomUUID();
+    const deviceId = store.get(COOKIE_NAME)?.value ?? randomUUID();
 
     const device = await prisma.device.findUnique({ where: { id: deviceId } });
+    sweepInactiveDevices();
     const res = NextResponse.json({ data: device?.data ?? null, version: device?.version ?? 0 });
-    if (isNew) {
-      res.cookies.set(COOKIE_NAME, deviceId, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: COOKIE_MAX_AGE,
-        path: "/",
-      });
-    }
+    res.cookies.set(COOKIE_NAME, deviceId, COOKIE_OPTIONS);
     return res;
   } catch (error: unknown) {
     return serverError("trip-sync GET", error);
@@ -117,5 +117,25 @@ export async function PUT(request: NextRequest) {
     }
   } catch (error: unknown) {
     return serverError("trip-sync PUT", error);
+  }
+}
+
+// "Delete my data": removes this device's synced trips and forgets the
+// device cookie, so the next visit starts as a brand-new anonymous device.
+// The browser's own copy is cleared by the client (components/DeleteMyData.tsx).
+export async function DELETE(request: NextRequest) {
+  const limited = await rateLimit(request, { bucket: "trip-sync", limit: 60, windowMs: 5 * 60_000 });
+  if (limited) return limited;
+
+  try {
+    const deviceId = (await cookies()).get(COOKIE_NAME)?.value;
+    const { count } = deviceId
+      ? await prisma.device.deleteMany({ where: { id: deviceId } })
+      : { count: 0 };
+    const res = NextResponse.json({ ok: true, deleted: count > 0 });
+    res.cookies.set(COOKIE_NAME, "", { ...COOKIE_OPTIONS, maxAge: 0 });
+    return res;
+  } catch (error: unknown) {
+    return serverError("trip-sync DELETE", error);
   }
 }
