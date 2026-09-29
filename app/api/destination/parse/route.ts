@@ -4,6 +4,7 @@ import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from 
 import { buildDestinationParsePrompt } from "@/lib/ai/prompts";
 import { PARSE_DESTINATION_TOOL } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
+import { readJsonBody, tooLong } from "@/lib/api/readJsonBody";
 
 interface ParseDestinationResult {
   cities: string[];
@@ -16,15 +17,18 @@ interface ParseDestinationResult {
 }
 
 export async function POST(request: NextRequest) {
-  const limited = rateLimit(request, { bucket: "destination-parse", limit: 20, windowMs: 5 * 60_000 });
+  const limited = await rateLimit(request, { bucket: "destination-parse", limit: 20, windowMs: 5 * 60_000 });
   if (limited) return limited;
 
   try {
-    const { text } = await request.json() as { text: string };
+    const parsed = await readJsonBody<{ text: string }>(request, 20_000);
+    if (!parsed.ok) return parsed.response;
+    const { text } = parsed.body;
 
-    if (!text?.trim()) {
+    if (typeof text !== "string" || !text.trim()) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
+    if (text.length > 2_000) return tooLong("Destination text", 2_000);
 
     const client = getAnthropicClient();
     const response = await client.messages.create({

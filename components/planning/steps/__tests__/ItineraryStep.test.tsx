@@ -62,8 +62,22 @@ function makeItinerary(overrides: Partial<GeneratedItinerary> = {}): GeneratedIt
   };
 }
 
+// Generation is a background job: POST starts it, GET polls it. This mock
+// finishes the job on the first poll.
+function jobFetchMock(itinerary: GeneratedItinerary) {
+  return vi.fn(async (url: string, init?: RequestInit) => {
+    expect(url.startsWith("/api/itinerary/generate")).toBe(true);
+    if (init?.method === "POST") return new Response(JSON.stringify({ jobId: "job-1", status: "running" }), { status: 202 });
+    return new Response(JSON.stringify({ jobId: "job-1", status: "done", stage: null, result: itinerary, error: null }), { status: 200 });
+  });
+}
+function posts(fetchMock: ReturnType<typeof vi.fn>) {
+  return fetchMock.mock.calls.filter((c) => (c[1] as RequestInit | undefined)?.method === "POST");
+}
+
 beforeEach(() => {
   useTripStore.setState({ trip: freshTrip(), isGenerating: false });
+  localStorage.removeItem("zimmgo-pending-generation");
 });
 
 afterEach(() => {
@@ -74,10 +88,7 @@ afterEach(() => {
 describe("ItineraryStep — generation", () => {
   it("auto-generates on mount when there's no itinerary yet", async () => {
     const itinerary = makeItinerary();
-    const fetchMock = vi.fn(async (url: string) => {
-      expect(url).toBe("/api/itinerary/generate");
-      return new Response(JSON.stringify(itinerary), { status: 200 });
-    });
+    const fetchMock = jobFetchMock(itinerary);
     vi.stubGlobal("fetch", fetchMock);
 
     render(<ItineraryStep />);
@@ -85,11 +96,64 @@ describe("ItineraryStep — generation", () => {
     await waitFor(() => {
       expect(screen.getByTestId("wizard")).toHaveAttribute("data-itinerary-id", "itin-1");
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(posts(fetchMock)).toHaveLength(1);
+    expect(localStorage.getItem("zimmgo-pending-generation")).toBeNull();
 
     const state = useTripStore.getState().trip;
     expect(state.itineraries).toHaveLength(1);
     expect(state.completedSteps).toContain("itinerary");
+  });
+
+  it("resumes a job still pending from before a refresh instead of starting (and paying for) a new one", async () => {
+    const itinerary = makeItinerary();
+    localStorage.setItem(
+      "zimmgo-pending-generation",
+      JSON.stringify({ requestId: "req-abcdefgh", jobId: "job-1", tripId: "trip-1" })
+    );
+    const fetchMock = jobFetchMock(itinerary);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ItineraryStep />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("wizard")).toHaveAttribute("data-itinerary-id", "itin-1");
+    });
+    expect(posts(fetchMock)).toHaveLength(0);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/itinerary/generate?jobId=job-1");
+  });
+
+  it("doesn't resume another trip's pending job", async () => {
+    localStorage.setItem(
+      "zimmgo-pending-generation",
+      JSON.stringify({ requestId: "req-abcdefgh", jobId: "job-other", tripId: "some-other-trip" })
+    );
+    const fetchMock = jobFetchMock(makeItinerary());
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ItineraryStep />);
+
+    await waitFor(() => expect(posts(fetchMock)).toHaveLength(1));
+    expect(fetchMock.mock.calls.some((c) => String(c[0]).includes("job-other"))).toBe(false);
+  });
+
+  it("shows the job's real progress stage while it runs", async () => {
+    let polls = 0;
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "POST") return new Response(JSON.stringify({ jobId: "job-1", status: "running" }), { status: 202 });
+      polls += 1;
+      return new Response(
+        JSON.stringify(polls === 1
+          ? { jobId: "job-1", status: "running", stage: "Finding hotels that fit your trip…", result: null, error: null }
+          : { jobId: "job-1", status: "done", stage: null, result: makeItinerary(), error: null }),
+        { status: 200 }
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ItineraryStep />);
+
+    expect(await screen.findByText("Finding hotels that fit your trip…")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("wizard")).toBeInTheDocument(), { timeout: 5_000 });
   });
 
   it("doesn't auto-generate again once an itinerary already exists", () => {
@@ -167,7 +231,7 @@ describe("ItineraryStep — visa gating", () => {
 describe("ItineraryStep — day split and dates editors", () => {
   it("rebuilds with a new day split once the counts add up to the total", async () => {
     const itinerary = makeItinerary();
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify(itinerary), { status: 200 }));
+    const fetchMock = jobFetchMock(itinerary);
     vi.stubGlobal("fetch", fetchMock);
     useTripStore.setState({
       trip: freshTrip({
@@ -207,12 +271,12 @@ describe("ItineraryStep — day split and dates editors", () => {
     await user.click(saveBtn);
 
     expect(useTripStore.getState().trip.preferences.cityNights).toEqual({ Barcelona: 3, Andalusia: 1 });
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(posts(fetchMock)).toHaveLength(1));
   });
 
   it("validates the date range before saving and rebuilding", async () => {
     const itinerary = makeItinerary();
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify(itinerary), { status: 200 }));
+    const fetchMock = jobFetchMock(itinerary);
     vi.stubGlobal("fetch", fetchMock);
     useTripStore.setState({ trip: freshTrip({ itineraries: [itinerary] }) });
 
@@ -237,7 +301,7 @@ describe("ItineraryStep — day split and dates editors", () => {
       startDate: "2026-09-08",
       endDate: "2026-09-15",
     });
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(posts(fetchMock)).toHaveLength(1));
   });
 });
 

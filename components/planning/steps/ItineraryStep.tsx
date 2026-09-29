@@ -10,9 +10,12 @@ import { ItineraryView } from "@/components/planning/ItineraryView";
 import { ItinerarySelectionWizard } from "@/components/planning/ItinerarySelectionWizard";
 import { VisaRequirements } from "@/components/planning/VisaRequirements";
 import { useTripStore } from "@/lib/store/tripStore";
-import { cn, extractApiErrorMessage, formatDate, groupItineraryDaysByLocation, parseLocalDate } from "@/lib/utils";
+import { cn, formatDate, groupItineraryDaysByLocation, parseLocalDate } from "@/lib/utils";
 import { getVisaRequirementsForTrip } from "@/lib/data/visaRequirements";
 import { autoPlanTrip } from "@/lib/planning/autoPlanTrip";
+import {
+  startGeneration, waitForGeneration, loadPendingGeneration, clearPendingGeneration, type PendingGeneration,
+} from "@/lib/api/generateItinerary";
 import type { GeneratedItinerary } from "@/types/trip";
 
 // Sourced from the generated days themselves, not the raw preferences — the
@@ -66,28 +69,36 @@ export function ItineraryStep() {
   const [draftEnd, setDraftEnd] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
 
-  async function generate() {
+  // Real progress from the server-side job (e.g. "Finding hotels…"); null
+  // until the first poll comes back.
+  const [generationStage, setGenerationStage] = useState<string | null>(null);
+
+  // Starts a generation job — or, given `resume`, picks up one this browser
+  // was already waiting on before a refresh, without starting (or paying
+  // for) a second run.
+  async function generate(resume?: PendingGeneration) {
     setGenerating(true);
     setError(null);
+    setGenerationStage(null);
     try {
       // Read fresh from the store rather than the closed-over `trip` — this
       // gets called immediately after saving a day-split edit, and a stale
       // closure would regenerate against the preferences from before that
       // edit landed.
       const current = useTripStore.getState().trip;
-      const res = await fetch("/api/itinerary/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tripId: current.id, preferences: current.preferences }),
-      });
-      if (!res.ok) throw new Error(extractApiErrorMessage(await res.text()));
-      const data: GeneratedItinerary = await res.json();
+      const pending = resume ?? (await startGeneration(current.id, current.preferences));
+      const data = await waitForGeneration(pending.jobId, setGenerationStage);
+      clearPendingGeneration();
+      // The traveller may have switched trips while this was running — don't
+      // attach one trip's itinerary to another.
+      if (useTripStore.getState().trip.id !== pending.tripId) return;
       addItinerary(data);
       completeStep("itinerary");
     } catch (e: unknown) {
-      // A raw "Failed to fetch" means the connection dropped (e.g. a server
-      // timeout) rather than the API returning an error — that message is
-      // meaningless to a user, so give them something actionable instead.
+      clearPendingGeneration();
+      // A raw "Failed to fetch" means the connection dropped rather than the
+      // API returning an error — that message is meaningless to a user, so
+      // give them something actionable instead.
       const message = e instanceof Error ? e.message : "Something went wrong";
       setError(
         message === "Failed to fetch"
@@ -96,6 +107,7 @@ export function ItineraryStep() {
       );
     } finally {
       setGenerating(false);
+      setGenerationStage(null);
     }
   }
 
@@ -203,7 +215,10 @@ export function ItineraryStep() {
     const hasItinerary = state.trip.itineraries.length > 0;
     if (!hasItinerary && !state.isGenerating && !autoStartRef.current) {
       autoStartRef.current = true;
-      generate();
+      // A job this browser started before a refresh is still running (or
+      // finished) server-side — pick it back up instead of starting over.
+      const pending = loadPendingGeneration();
+      generate(pending && pending.tripId === state.trip.id ? pending : undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -265,7 +280,7 @@ export function ItineraryStep() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={generate}
+              onClick={() => generate()}
               loading={isGenerating}
               className="shrink-0 text-slate-500"
             >
@@ -419,14 +434,14 @@ export function ItineraryStep() {
       )}
 
       {/* Loading state */}
-      {isGenerating && !latest && <GeneratingProgress />}
+      {isGenerating && !latest && <GeneratingProgress stage={generationStage} />}
 
       {/* Error state */}
       {error && (
         <Card className="border-red-200 bg-red-50 mb-4">
           <p className="text-sm text-red-700 font-medium">Failed to generate itinerary</p>
           <p className="text-xs text-red-600 mt-1">{error}</p>
-          <Button variant="outline" size="sm" onClick={generate} className="mt-3">
+          <Button variant="outline" size="sm" onClick={() => generate()} className="mt-3">
             Try again
           </Button>
         </Card>
@@ -454,7 +469,7 @@ export function ItineraryStep() {
           key={latest.id}
           itinerary={latest}
           onComplete={() => markItineraryReviewed(latest.id)}
-          onRegenerate={generate}
+          onRegenerate={() => generate()}
           onStepChange={setWizardStepIdx}
         />
       )}
@@ -484,7 +499,9 @@ const STATUS_MESSAGES = [
 const RING_R = 34;
 const RING_CIRC = 2 * Math.PI * RING_R;
 
-function GeneratingProgress() {
+// `stage` is the server job's real progress label when available; the
+// rotating playful messages fill in before the first poll returns.
+function GeneratingProgress({ stage }: { stage: string | null }) {
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
@@ -524,7 +541,7 @@ function GeneratingProgress() {
         </div>
       </div>
       <div>
-        <p className="font-semibold text-slate-800">{STATUS_MESSAGES[statusIdx]}</p>
+        <p className="font-semibold text-slate-800">{stage ?? STATUS_MESSAGES[statusIdx]}</p>
         <p className="text-sm text-slate-500 mt-1">
           This usually takes a minute or two — good trips take time to build.
         </p>

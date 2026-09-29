@@ -4,17 +4,27 @@ import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from 
 import { SMART_PICK_TOOL } from "@/lib/ai/tools";
 import { buildHotelPickPrompt, buildSchedulePickPrompt, buildPreferencePickPrompt, buildActivitiesForCityPickPrompt, buildRestaurantsForCityPickPrompt } from "@/lib/ai/prompts";
 import { logApiUsage } from "@/lib/ai/usageLog";
+import { readJsonBody, tooMany } from "@/lib/api/readJsonBody";
 import type { SmartPickKind, SmartPickRequestBody, SmartPickResponse } from "@/types/smartPick";
 
 const PREFERENCE_KINDS = new Set<SmartPickKind>(["activities", "vibes", "lodging"]);
 
 export async function POST(request: NextRequest) {
-  const limited = rateLimit(request, { bucket: "smart-pick", limit: 30, windowMs: 5 * 60_000 });
+  const limited = await rateLimit(request, { bucket: "smart-pick", limit: 30, windowMs: 5 * 60_000 });
   if (limited) return limited;
 
   try {
-    const body: SmartPickRequestBody = await request.json();
+    const parsed = await readJsonBody<SmartPickRequestBody>(request, 400_000);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.body;
     const { kind, preferences } = body;
+
+    // Every option in these lists is serialized into the prompt — cap them
+    // well above what the app ever sends for a real trip.
+    for (const [field, max] of [["hotels", 60], ["activities", 150], ["restaurants", 150], ["days", 60], ["candidates", 100]] as const) {
+      const list = body[field];
+      if (list !== undefined && (!Array.isArray(list) || list.length > max)) return tooMany(field, max);
+    }
 
     const prompt = kind === "hotel"
       ? buildHotelPickPrompt(body.city ?? "", preferences, body.hotels ?? [])

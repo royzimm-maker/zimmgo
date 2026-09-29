@@ -45,7 +45,7 @@ export async function GET() {
 // with the current server copy so the client can merge and retry, instead of
 // silently overwriting newer work.
 export async function PUT(request: NextRequest) {
-  const limited = rateLimit(request, { bucket: "trip-sync", limit: 60, windowMs: 5 * 60_000 });
+  const limited = await rateLimit(request, { bucket: "trip-sync", limit: 60, windowMs: 5 * 60_000 });
   if (limited) return limited;
 
   try {

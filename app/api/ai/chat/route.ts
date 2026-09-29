@@ -10,6 +10,7 @@ import {
   UPDATE_AIRLINE_PREFERENCES_TOOL,
 } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
+import { readJsonBody, tooLong, tooMany } from "@/lib/api/readJsonBody";
 import type { TripPreferences, ChatMessage, StepId, LodgingType, AirlineAlliance } from "@/types/trip";
 
 interface ChatRequest {
@@ -53,25 +54,38 @@ interface AirlineUpdateToolInput {
   reply: string;
 }
 
+const MAX_MESSAGE_CHARS = 4_000;
+const MAX_CONTEXT_ITEMS = 200;
+
 export async function POST(request: NextRequest) {
-  const limited = rateLimit(request, { bucket: "chat", limit: 20, windowMs: 5 * 60_000 });
+  const limited = await rateLimit(request, { bucket: "chat", limit: 20, windowMs: 5 * 60_000 });
   if (limited) return limited;
 
   try {
-    const { message, history, preferences, itineraryContext, stepContext }: ChatRequest = await request.json();
+    const parsed = await readJsonBody<ChatRequest>(request, 200_000);
+    if (!parsed.ok) return parsed.response;
+    const { message, history, preferences, itineraryContext, stepContext } = parsed.body;
 
-    if (!message?.trim()) {
+    if (typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    }
+    if (message.length > MAX_MESSAGE_CHARS) return tooLong("Message", MAX_MESSAGE_CHARS);
+    if (
+      (itineraryContext?.activities?.length ?? 0) > MAX_CONTEXT_ITEMS ||
+      (itineraryContext?.restaurants?.length ?? 0) > MAX_CONTEXT_ITEMS
+    ) {
+      return tooMany("itinerary context items", MAX_CONTEXT_ITEMS);
     }
 
     const client = getAnthropicClient();
     const system = buildChatSystemPrompt(preferences, itineraryContext, stepContext);
 
-    // Convert stored chat history to Anthropic message format
+    // Convert stored chat history to Anthropic message format. History is
+    // client-supplied, so each entry is length-capped like the new message.
     const messages = [
-      ...history.slice(-12).map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
+      ...(Array.isArray(history) ? history : []).slice(-12).map((m) => ({
+        role: (m.role === "assistant" ? "assistant" : "user") as "user" | "assistant",
+        content: String(m.content ?? "").slice(0, MAX_MESSAGE_CHARS),
       })),
       { role: "user" as const, content: message },
     ];

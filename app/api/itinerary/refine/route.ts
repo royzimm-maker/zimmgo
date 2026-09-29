@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL } from "@/lib/ai/client";
 import { logApiUsage } from "@/lib/ai/usageLog";
+import { readJsonBody, tooLong } from "@/lib/api/readJsonBody";
 import type { TripPreferences } from "@/types/trip";
 
 interface RefineBody {
@@ -12,16 +13,19 @@ interface RefineBody {
 }
 
 export async function POST(request: NextRequest) {
-  const limited = rateLimit(request, { bucket: "itinerary-refine", limit: 20, windowMs: 5 * 60_000 });
+  const limited = await rateLimit(request, { bucket: "itinerary-refine", limit: 20, windowMs: 5 * 60_000 });
   if (limited) return limited;
 
   try {
-    const body = await request.json() as RefineBody;
-    const { question, contextItem, contextType, preferences } = body;
+    const parsed = await readJsonBody<RefineBody>(request, 60_000);
+    if (!parsed.ok) return parsed.response;
+    const { question, contextItem, contextType, preferences } = parsed.body;
 
-    if (!question?.trim() || !contextItem) {
+    if (typeof question !== "string" || !question.trim() || typeof contextItem !== "string" || !contextItem) {
       return NextResponse.json({ error: "question and contextItem are required" }, { status: 400 });
     }
+    if (question.length > 2_000) return tooLong("Question", 2_000);
+    if (contextItem.length > 300) return tooLong("contextItem", 300);
 
     const dest = preferences.destination?.displayName ?? "the destination";
     const itemLabel = contextType === "neighborhood" ? "neighborhood" : "activity";

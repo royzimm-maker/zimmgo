@@ -6,7 +6,7 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 90; // ~90 days
 
 export async function POST(request: NextRequest) {
   // Cheap insurance against brute-forcing a shared password.
-  const limited = rateLimit(request, { bucket: "gate", limit: 10, windowMs: 5 * 60_000 });
+  const limited = await rateLimit(request, { bucket: "gate", limit: 10, windowMs: 5 * 60_000 });
   if (limited) return limited;
 
   const sitePassword = process.env.SITE_PASSWORD;

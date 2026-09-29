@@ -4,6 +4,7 @@ import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from 
 import { buildFullTripParsePrompt } from "@/lib/ai/prompts";
 import { PARSE_FULL_TRIP_TOOL } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
+import { readJsonBody, tooLong } from "@/lib/api/readJsonBody";
 
 export interface ParseFullTripResult {
   cities: string[];
@@ -33,15 +34,18 @@ export interface ParseFullTripResult {
 }
 
 export async function POST(request: NextRequest) {
-  const limited = rateLimit(request, { bucket: "trip-parse-full", limit: 10, windowMs: 5 * 60_000 });
+  const limited = await rateLimit(request, { bucket: "trip-parse-full", limit: 10, windowMs: 5 * 60_000 });
   if (limited) return limited;
 
   try {
-    const { text } = await request.json() as { text: string };
+    const parsed = await readJsonBody<{ text: string }>(request, 40_000);
+    if (!parsed.ok) return parsed.response;
+    const { text } = parsed.body;
 
-    if (!text?.trim()) {
+    if (typeof text !== "string" || !text.trim()) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
+    if (text.length > 5_000) return tooLong("Trip description", 5_000);
 
     const todayISO = new Date().toISOString().slice(0, 10);
     const client = getAnthropicClient();

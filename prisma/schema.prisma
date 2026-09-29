@@ -27,6 +27,33 @@ model Device {
   updatedAt DateTime @updatedAt
 }
 
+// Fixed-window request counters shared by every serverless instance — an
+// in-memory Map would give each instance its own count (see lib/rateLimit.ts).
+model RateLimitWindow {
+  key         String   // "<bucket>:<client ip>"
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+}
+
+// Itinerary generation runs as a background job the client polls, so a
+// dropped connection or page refresh resumes the same run instead of paying
+// for a new one (see app/api/itinerary/generate/route.ts).
+model GenerationJob {
+  id         String   @id @default(cuid())
+  requestKey String   @unique // client-generated id for this generation intent
+  status     String   // "running" | "done" | "error"
+  stage      String?  // human-readable progress label
+  result     Json?
+  error      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
 // One row per Anthropic API call, across every route that calls
 // client.messages.create (see lib/ai/usageLog.ts). Exists to turn cost
 // estimates into real measured numbers — see app/api/admin/usage-summary
