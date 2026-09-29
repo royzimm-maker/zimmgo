@@ -520,7 +520,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
             <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50 px-4 py-6 text-center">
               <p className="text-sm text-amber-800">Flight search was skipped for this trip.</p>
               <p className="text-xs text-amber-700 mt-1">
-                Your dates are further out than airlines typically open bookings for — but you can search now anyway if you'd like.
+                Your dates are further out than airlines typically open bookings for — but you can search now anyway if you&apos;d like.
               </p>
               <SearchFlightsButton
                 onClick={handleSearchFlights}
@@ -609,7 +609,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
               <p className="text-sm text-slate-500">Flight search needs a departure airport.</p>
               <p className="text-xs text-slate-400 mt-1">
-                You haven't set where you're flying from yet — add it on the Flights step to see options here.
+                You haven&apos;t set where you&apos;re flying from yet — add it on the Flights step to see options here.
               </p>
               <button
                 type="button"
@@ -646,7 +646,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
               <p className="text-sm text-slate-500">
                 {searchingTransport ? "Searching…" : "No specific options found yet."}
               </p>
-              <p className="text-xs text-slate-400 mt-1">This leg is entirely optional to book here — skip it and arrange it yourself if you'd rather.</p>
+              <p className="text-xs text-slate-400 mt-1">This leg is entirely optional to book here — skip it and arrange it yourself if you&apos;d rather.</p>
               <div className="mt-3">
                 <button
                   type="button"
@@ -699,7 +699,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
                     {hotelPickReasons[currentCity]}
                   </p>
                   <p className="mt-1 text-[10px] text-brand-400">
-                    Nothing's locked in — tweak away below!
+                    Nothing&apos;s locked in — tweak away below!
                   </p>
                 </div>
               )}
@@ -738,7 +738,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
               </button>
               {restaurantPickReasons[currentCity] && !pickingRestaurants && (
                 <p className="-mt-2 text-[11px] text-slate-400 text-center">
-                  This adds more ZiGy picks on top of what's already selected below — it won't remove anything.
+                  This adds more ZiGy picks on top of what&apos;s already selected below — it won&apos;t remove anything.
                 </p>
               )}
               {restaurantPickError && (
@@ -799,7 +799,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
               </button>
               {activityPickReasons[currentCity] && !pickingActivities && (
                 <p className="-mt-2 text-[11px] text-slate-400 text-center">
-                  This adds more ZiGy picks on top of what's already selected below — it won't remove anything.
+                  This adds more ZiGy picks on top of what&apos;s already selected below — it won&apos;t remove anything.
                 </p>
               )}
               {activityPickError && (
@@ -815,7 +815,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
                     {activityPickReasons[currentCity]}
                   </p>
                   <p className="mt-1 text-[10px] text-brand-400">
-                    Nothing's locked in — tweak away below!
+                    Nothing&apos;s locked in — tweak away below!
                   </p>
                 </div>
               )}

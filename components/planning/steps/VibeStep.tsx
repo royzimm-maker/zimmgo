@@ -48,7 +48,6 @@ export function VibeStep() {
       setOtherOpen(true);
       setOtherValue(custom);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.preferences.vibes]);
 
   // Write every change straight to the store instead of only on Continue —
@@ -99,7 +98,7 @@ export function VibeStep() {
       headerImage="/zigy-vibe.png"
       headerExtra={
         <p className="text-xs text-slate-400">
-          2–4 tends to work best — picking almost everything won't narrow things down much.
+          2–4 tends to work best — picking almost everything won&apos;t narrow things down much.
         </p>
       }
     >

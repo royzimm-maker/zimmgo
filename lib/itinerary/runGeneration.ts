@@ -83,6 +83,39 @@ async function dispatchTool(
   }
 }
 
+// ── Prompt caching ──
+// Each round of the loop re-sends the tool schemas, the system prompt and the
+// whole conversation so far, including every earlier search result. Without
+// caching all of it is billed as fresh input every round; with it, the
+// repeated prefix is read from cache at ~10% of the input price.
+//
+// Requests are assembled tools → system → messages, so a breakpoint on the
+// system block caches the tool schemas along with it, and a second one on
+// the newest message caches the conversation up to that point for the next
+// round. (Two of the four breakpoints the API allows.)
+const CACHED_SYSTEM: Anthropic.TextBlockParam[] = [
+  { type: "text", text: TRAVEL_ADVISOR_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+];
+
+export function withCacheBreakpoint(messages: Anthropic.MessageParam[]): Anthropic.MessageParam[] {
+  if (!messages.length) return messages;
+  const last = messages[messages.length - 1];
+  const blocks = typeof last.content === "string"
+    ? [{ type: "text" as const, text: last.content }]
+    : last.content;
+  const marked = blocks.map((b, i) =>
+    i === blocks.length - 1 ? { ...b, cache_control: { type: "ephemeral" as const } } : b
+  ) as Anthropic.MessageParam["content"];
+  return [...messages.slice(0, -1), { ...last, content: marked }];
+}
+
+// Search results as the model sees them. Booking/image/menu URLs are only
+// for the UI (the full results are kept for the itinerary) — dropping them
+// keeps every later round's re-sent context smaller.
+export function toolResultForModel(result: unknown): string {
+  return JSON.stringify(result, (key, value) => (/url$/i.test(key) ? undefined : value));
+}
+
 export async function runGeneration(
   tripId: string,
   preferences: TripPreferences,
@@ -103,10 +136,10 @@ export async function runGeneration(
   // The specific hotel per city the AI names in its final written summary —
   // set by its generate_itinerary call so the "Recommended Lodging" card
   // can show that same hotel instead of an arbitrary search result.
-  let selectedHotelIdByCity: Record<string, string> = {};
+  const selectedHotelIdByCity: Record<string, string> = {};
   // How to actually get from the previous city to this one — shown on the
   // first day of each new city leg.
-  let travelNoteByCity: Record<string, string> = {};
+  const travelNoteByCity: Record<string, string> = {};
   let gatewayAdvisory: string | undefined;
 
   // We allow up to 8 tool-call rounds to prevent infinite loops
@@ -114,9 +147,9 @@ export async function runGeneration(
     const response = await client.messages.create({
       model: DEFAULT_MODEL,
       max_tokens: 4096,
-      system: TRAVEL_ADVISOR_SYSTEM_PROMPT,
+      system: CACHED_SYSTEM,
       tools: TRAVEL_TOOLS,
-      messages,
+      messages: withCacheBreakpoint(messages),
     });
     logApiUsage("itinerary-generate", DEFAULT_MODEL, response.usage);
 
@@ -184,7 +217,7 @@ export async function runGeneration(
       toolResults.push({
         type: "tool_result",
         tool_use_id: block.id,
-        content: JSON.stringify(result),
+        content: toolResultForModel(result),
       });
     }
 

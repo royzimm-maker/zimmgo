@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useTripStore } from "@/lib/store/tripStore";
 import { safeLocalStorage } from "@/lib/store/safeStorage";
 import { MAX_CHAT_MESSAGES, SCHEMA_VERSION, migratePersistedState } from "@/lib/sync/schema";
+import type { SyncBlob } from "@/lib/sync/syncBlob";
 import type { GeneratedItinerary } from "@/types/trip";
 
 const itin = (id: string) => ({ id, tripId: "t", version: 1, createdAt: "", days: [], flights: [], hotels: [], activities: [] }) as unknown as GeneratedItinerary;
@@ -38,7 +39,7 @@ describe("saved trip size stays bounded", () => {
     });
     const v1 = { trip: trip("a"), savedTrips: [trip("b")], chatMessages: Array.from({ length: 250 }, (_, i) => msg(i)), progress: 0 };
 
-    const s = migratePersistedState(v1, 1) as any;
+    const s = migratePersistedState(v1, 1) as unknown as SyncBlob;
 
     expect(SCHEMA_VERSION).toBe(2);
     expect(s.trip.itineraries.map((i: { id: string }) => i.id)).toEqual(["a-latest"]);

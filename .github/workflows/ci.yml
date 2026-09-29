@@ -1,0 +1,37 @@
+name: CI
+
+# Typecheck, lint, test and build on every push to master and every pull
+# request — the same checks to run locally before pushing. Vercel deploys
+# independently; to make a failing run block a deploy, require this check in
+# GitHub branch protection or Vercel's deployment checks.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Never connected to. Prisma reads the variable when generating the
+      # client (npm ci's postinstall); every test mocks the database.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

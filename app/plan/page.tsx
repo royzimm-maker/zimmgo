@@ -1,5 +1,6 @@
 import { PlanningFlow } from "@/components/planning/PlanningFlow";
 import { TripSwitcher } from "@/components/TripSwitcher";
+import Link from "next/link";
 import { Logo } from "@/components/branding/Logo";
 
 export const metadata = {
@@ -25,10 +26,10 @@ export default function PlanPage() {
       <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-3 print:hidden">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <a href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <Logo size={30} showTagline className="hidden sm:inline-flex" />
               <Logo size={30} className="sm:hidden" />
-            </a>
+            </Link>
           </div>
           <TripSwitcher />
         </div>

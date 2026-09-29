@@ -459,7 +459,7 @@ export function RefineStep() {
           })}
         </div>
         <p className="px-4 py-2 text-[10px] text-slate-400 border-t border-slate-100">
-          An empty day just means nothing's scheduled for it yet — that's fine if you'd rather keep things open. Drag items below to fill it in, or ask ZiGy.
+          An empty day just means nothing&apos;s scheduled for it yet — that&apos;s fine if you&apos;d rather keep things open. Drag items below to fill it in, or ask ZiGy.
         </p>
       </div>
 
@@ -523,7 +523,7 @@ export function RefineStep() {
               {activeCityComplete ? (
                 <><span className="font-semibold">{effectiveCity} is all set!</span> Ready to fine-tune {nextCity}?</>
               ) : (
-                <>{effectiveCity} looks good — move on to {nextCity} whenever you're ready.</>
+                <>{effectiveCity} looks good — move on to {nextCity} whenever you&apos;re ready.</>
               )}
             </p>
             <button

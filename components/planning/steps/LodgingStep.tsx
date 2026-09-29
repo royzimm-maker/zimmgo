@@ -71,7 +71,6 @@ export function LodgingStep() {
     setTypes(existing.types);
     setMinStars(existing.minStars);
     setAmenities(existing.amenities);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existing]);
 
   const existingReviewPref = trip.preferences.reviewSourcePref;
@@ -485,7 +484,7 @@ export function LodgingStep() {
           {airbnbOnly ? (
             <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700">
               <p className="font-medium">AirBnB options will be surfaced in your itinerary.</p>
-              <p className="text-xs text-brand-500 mt-0.5">We'll recommend apartments and local stays that match your destination and dates.</p>
+              <p className="text-xs text-brand-500 mt-0.5">We&apos;ll recommend apartments and local stays that match your destination and dates.</p>
             </div>
           ) : pickedHotel ? (
             <div className="max-w-xs">{renderHotelCard(pickedHotel)}</div>
@@ -561,7 +560,7 @@ export function LodgingStep() {
               {pickSummary}
             </p>
             <p className="mt-1 text-[10px] text-brand-400">
-              Nothing's locked in — tweak away below!
+              Nothing&apos;s locked in — tweak away below!
             </p>
           </div>
         )}
@@ -745,7 +744,7 @@ export function LodgingStep() {
         {airbnbOnly && (
           <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700">
             <p className="font-medium">AirBnB options will be surfaced in your itinerary.</p>
-            <p className="text-xs text-brand-500 mt-0.5">We'll recommend apartments and local stays that match your destination and dates.</p>
+            <p className="text-xs text-brand-500 mt-0.5">We&apos;ll recommend apartments and local stays that match your destination and dates.</p>
           </div>
         )}
 

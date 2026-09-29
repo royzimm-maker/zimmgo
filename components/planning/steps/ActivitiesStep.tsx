@@ -77,7 +77,6 @@ export function ActivitiesStep() {
       setOtherOpen(true);
       setOtherValue(custom);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.preferences.activities]);
 
   // Write every change straight to the store instead of only on Continue —
@@ -170,7 +169,7 @@ export function ActivitiesStep() {
                 {pickSummary}
               </p>
               <p className="mt-1 text-[10px] text-brand-400">
-                Nothing's locked in — tweak away below!
+                Nothing&apos;s locked in — tweak away below!
               </p>
             </div>
           )}

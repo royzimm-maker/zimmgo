@@ -38,6 +38,7 @@ export function ErrorRecovery({
     }
     // A full reload rather than reset(): every component starts clean on the
     // new, empty trip. The store has already saved it to localStorage.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- a full reload is the point: nothing from the crashed render survives
     window.location.assign("/plan");
   }
 
@@ -69,6 +70,8 @@ export function ErrorRecovery({
             If trying again keeps failing, start a fresh trip — the one you were working on is kept in
             My Saved Trips, nothing is deleted.
           </p>
+          {/* A plain link on purpose: a full page load leaves the crashed app state behind. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/" className="mt-1 text-center text-xs text-slate-500 underline hover:text-slate-700">
             Back to the home page
           </a>

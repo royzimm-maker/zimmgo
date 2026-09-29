@@ -127,7 +127,6 @@ export function AirlinesStep() {
     setSelectedAlliances(existing.alliances);
     setPreferNonstop(existing.preferNonstop);
     setCabins(existing.cabinClasses ?? []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existing]);
 
   // Write every change straight to the store instead of only on Continue —
@@ -323,7 +322,7 @@ export function AirlinesStep() {
               Do you have a preferred airport to fly into? <span className="text-slate-400 font-normal">(optional)</span>
             </p>
             <p className="mb-2.5 text-[11px] text-slate-400">
-              We've pre-selected the best gateway based on your destination — change it if you have a preference.
+              We&apos;ve pre-selected the best gateway based on your destination — change it if you have a preference.
             </p>
             <div className="flex flex-col gap-2">
               {gateways.map((ap) => (

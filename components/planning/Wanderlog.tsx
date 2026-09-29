@@ -59,7 +59,7 @@ export function Wanderlog({ itinerary }: Props) {
       {open && (
         <div className="border-t border-slate-100 px-4 py-3">
           <p className="text-xs text-slate-500 mb-3">
-            A save-for-later list, separate from your day-by-day plan. Tap the <Heart size={10} className="inline -mt-0.5" /> heart on any restaurant or activity to add it here instead of scheduling it — good for backups, "if we have time" ideas, or things you want to remember without committing to a day. Been already? Leave yourself a note for next time.
+            A save-for-later list, separate from your day-by-day plan. Tap the <Heart size={10} className="inline -mt-0.5" /> heart on any restaurant or activity to add it here instead of scheduling it — good for backups, &quot;if we have time&quot; ideas, or things you want to remember without committing to a day. Been already? Leave yourself a note for next time.
           </p>
 
           {items.length > 0 && (

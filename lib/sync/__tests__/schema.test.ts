@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { SCHEMA_VERSION, migratePersistedState, migrateSyncBlob } from "@/lib/sync/schema";
+import type { SyncBlob } from "@/lib/sync/syncBlob";
 import { useTripStore } from "@/lib/store/tripStore";
 
 const now = "2026-09-28T12:00:00.000Z";
@@ -19,10 +20,10 @@ function v0State() {
 
 describe("migratePersistedState", () => {
   it("repairs pre-versioning state to the current shape without losing data", () => {
-    const s = migratePersistedState(v0State(), 0) as any;
+    const s = migratePersistedState(v0State(), 0) as unknown as SyncBlob;
 
     expect(s.trip.name).toBe("Lisbon");
-    expect(s.trip.preferences.destination.displayName).toBe("Lisbon");
+    expect(s.trip.preferences.destination?.displayName).toBe("Lisbon");
     expect(s.trip.preferences).toMatchObject({ activities: [], activityRankings: {}, vibes: [], transportation: [] });
     expect(s.trip.completedSteps).toEqual(["destination"]);
     expect(s.trip.currentStep).toBe("destination");
@@ -35,12 +36,12 @@ describe("migratePersistedState", () => {
   it("gives trips missing timestamps the oldest possible time, so they never win a sync merge", () => {
     const state = v0State();
     delete (state.trip as Partial<typeof state.trip>).updatedAt;
-    const s = migratePersistedState(state, 0) as any;
+    const s = migratePersistedState(state, 0) as unknown as SyncBlob;
     expect(Date.parse(s.trip.updatedAt)).toBe(0);
   });
 
   it("drops unreadable trips but keeps the readable ones", () => {
-    const s = migratePersistedState({ trip: "garbage", savedTrips: [v0State().trip, { nope: true }] }, 0) as any;
+    const s = migratePersistedState({ trip: "garbage", savedTrips: [v0State().trip, { nope: true }] }, 0) as unknown as SyncBlob;
     expect(s.trip).toBeUndefined(); // the store falls back to a fresh trip
     expect(s.savedTrips.map((t: { id: string }) => t.id)).toEqual(["t1"]);
   });

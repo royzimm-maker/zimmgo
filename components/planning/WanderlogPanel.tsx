@@ -43,7 +43,7 @@ export function WanderlogPanel({ itinerary }: { itinerary: GeneratedItinerary })
           )}
         </div>
         <p className="mt-1 text-[10px] text-slate-400 leading-snug">
-          Your save-for-later list — click <Heart size={9} className="inline -mt-0.5" /> on any suggestion to save it here for when you're actually travelling.
+          Your save-for-later list — click <Heart size={9} className="inline -mt-0.5" /> on any suggestion to save it here for when you&apos;re actually travelling.
         </p>
       </div>
 
