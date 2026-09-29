@@ -47,8 +47,9 @@ describe("POST /api/itinerary/generate", () => {
     expect(m.waitUntil).toHaveBeenCalledTimes(1);
     // The job's work is this trip's generation, reporting stages as it goes.
     const onStage = vi.fn();
-    await m.executeJob.mock.calls[0][1](onStage);
-    expect(m.runGeneration).toHaveBeenCalledWith("t1", prefs, onStage);
+    await m.executeJob.mock.calls[0][1](onStage, 12345);
+    // …budgeted against the job's deadline.
+    expect(m.runGeneration).toHaveBeenCalledWith("t1", prefs, onStage, 12345);
   });
 
   it("returns the existing job for a repeated requestId without starting, billing, or rate-limiting a new run", async () => {

@@ -4,7 +4,7 @@
 // human-readable stage as it goes so the client can show real progress.
 import type Anthropic from "@anthropic-ai/sdk";
 import { v4 as uuid } from "uuid";
-import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
+import { getAnthropicClient, withinDeadline, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { TRAVEL_TOOLS } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
 import { parseToolInput } from "@/lib/ai/toolInput";
@@ -116,10 +116,16 @@ export function toolResultForModel(result: unknown): string {
   return JSON.stringify(result, (key, value) => (/url$/i.test(key) ? undefined : value));
 }
 
+// Per-round cap on an AI call when running against a job deadline.
+const ROUND_TIMEOUT_MS = 75_000;
+
 export async function runGeneration(
   tripId: string,
   preferences: TripPreferences,
-  onStage: (stage: string) => Promise<void> = async () => {}
+  onStage: (stage: string) => Promise<void> = async () => {},
+  // When set (by the background job), each round's AI call is budgeted to
+  // finish before it; without it, calls use the client's standard timeout.
+  deadline?: number
 ): Promise<GeneratedItinerary> {
   await onStage("Planning your trip…");
   const client   = getAnthropicClient();
@@ -144,13 +150,16 @@ export async function runGeneration(
 
   // We allow up to 8 tool-call rounds to prevent infinite loops
   for (let round = 0; round < 8; round++) {
+    // A round can write a few thousand tokens, so it gets more than the
+    // interactive 30s — but never past the job's deadline.
+    const options = deadline === undefined ? undefined : withinDeadline(deadline, ROUND_TIMEOUT_MS);
     const response = await client.messages.create({
       model: DEFAULT_MODEL,
       max_tokens: 4096,
       system: CACHED_SYSTEM,
       tools: TRAVEL_TOOLS,
       messages: withCacheBreakpoint(messages),
-    });
+    }, options);
     logApiUsage("itinerary-generate", DEFAULT_MODEL, response.usage);
 
     // Collect tool uses from this response

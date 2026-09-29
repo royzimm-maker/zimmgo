@@ -47,8 +47,12 @@ describe("POST /api/itinerary/auto-plan", () => {
     expect(m.createJob).toHaveBeenCalledWith("autoplan:req-12345678");
     expect(m.waitUntil).toHaveBeenCalledTimes(1);
     const onStage = vi.fn();
-    await m.executeJob.mock.calls[0][1](onStage);
-    expect(m.autoPlanTrip).toHaveBeenCalledWith(expect.objectContaining({ id: "itin-1" }), prefs, m.runSmartPick, onStage);
+    await m.executeJob.mock.calls[0][1](onStage, 12345);
+    expect(m.autoPlanTrip).toHaveBeenCalledWith(expect.objectContaining({ id: "itin-1" }), prefs, expect.any(Function), onStage);
+    // Each pick is budgeted against the job's deadline.
+    const pick = m.autoPlanTrip.mock.calls[0][2];
+    await pick({ kind: "hotel" });
+    expect(m.runSmartPick).toHaveBeenCalledWith({ kind: "hotel" }, 12345);
   });
 
   it("resumes an existing job without rate-limiting or re-running it", async () => {

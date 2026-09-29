@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { searchFlights } from "@/lib/api/flights";
 import type { TripPreferences } from "@/types/trip";
 
@@ -42,7 +43,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ flights: [...outbound, ...returnLeg] });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("itinerary/search-flights", error);
   }
 }

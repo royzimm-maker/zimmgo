@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { buildFullTripParsePrompt } from "@/lib/ai/prompts";
@@ -67,8 +68,6 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json(result);
   } catch (error: unknown) {
-    console.error("[trip/parse-full]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("trip/parse-full", error);
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { waitUntil } from "@vercel/functions";
 import { rateLimit } from "@/lib/rateLimit";
 import { readJsonBody } from "@/lib/api/readJsonBody";
@@ -46,13 +47,11 @@ export async function POST(request: NextRequest) {
 
     const { job, created } = await createJob(requestId);
     if (created) {
-      waitUntil(executeJob(job.jobId, (onStage) => runGeneration(String(tripId ?? ""), preferences, onStage)));
+      waitUntil(executeJob(job.jobId, (onStage, deadline) => runGeneration(String(tripId ?? ""), preferences, onStage, deadline)));
     }
     return NextResponse.json({ jobId: job.jobId, status: job.status }, { status: created ? 202 : 200 });
   } catch (error: unknown) {
-    console.error("[itinerary/generate POST]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("itinerary/generate POST", error);
   }
 }
 
@@ -65,8 +64,6 @@ export async function GET(request: NextRequest) {
     if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
     return NextResponse.json(job, { headers: { "Cache-Control": "no-store" } });
   } catch (error: unknown) {
-    console.error("[itinerary/generate GET]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("itinerary/generate GET", error);
   }
 }

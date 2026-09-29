@@ -32,6 +32,10 @@ export function estimateCostUsd(
   );
 }
 
+// Just the token counts this logs — narrower than the SDK's full Usage type,
+// which grows with every API release.
+export type UsageCounts = Pick<Anthropic.Usage, "input_tokens" | "output_tokens" | "cache_read_input_tokens" | "cache_creation_input_tokens">;
+
 // Call right after every client.messages.create(...) across the app so real
 // token counts accumulate instead of the cost estimates staying guesses
 // forever. `route` should match that route's own rateLimit `bucket` name, so
@@ -41,13 +45,13 @@ export function estimateCostUsd(
 // background (kept alive past the response by waitUntil on Vercel) so it
 // never adds a database round trip to an AI request or a generation turn.
 // The returned promise never rejects; it's there for tests.
-export function logApiUsage(route: string, model: string, usage: Anthropic.Usage): Promise<void> {
+export function logApiUsage(route: string, model: string, usage: UsageCounts): Promise<void> {
   const write = writeUsage(route, model, usage);
   waitUntil(write);
   return write;
 }
 
-async function writeUsage(route: string, model: string, usage: Anthropic.Usage): Promise<void> {
+async function writeUsage(route: string, model: string, usage: UsageCounts): Promise<void> {
   try {
     await prisma.apiUsageEvent.create({
       data: {

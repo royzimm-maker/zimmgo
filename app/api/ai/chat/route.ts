@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL } from "@/lib/ai/client";
 import { buildChatSystemPrompt } from "@/lib/ai/prompts";
@@ -167,8 +168,6 @@ export async function POST(request: NextRequest) {
       reply: unusableToolCall ? "Sorry — I couldn't apply that change. Could you say it a different way?" : text,
     });
   } catch (error: unknown) {
-    console.error("[ai/chat]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("ai/chat", error);
   }
 }

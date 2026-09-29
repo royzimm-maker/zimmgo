@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { prisma } from "@/lib/db";
 import { estimateCostUsd } from "@/lib/ai/usageLog";
 
@@ -57,8 +58,6 @@ export async function GET(request: NextRequest) {
       ),
     });
   } catch (error: unknown) {
-    console.error("[admin/usage-summary]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("admin/usage-summary", error);
   }
 }

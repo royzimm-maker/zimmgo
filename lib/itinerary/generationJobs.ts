@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { logServerError, toPublicError } from "@/lib/api/errors";
 
 // Background jobs (itinerary generation, auto-plan) kept in the GenerationJob
 // table so the client can poll them and resume after a refresh.
@@ -8,6 +9,12 @@ import { prisma } from "@/lib/db";
 // — the functions' maxDuration (150s) has passed — so it's reported as failed
 // instead of leaving the client polling forever.
 export const STALE_AFTER_MS = 180_000;
+
+// How long a job's own work may run: the job routes' maxDuration (150s) less
+// headroom to save the result. AI calls are budgeted against this deadline
+// (lib/ai/client.ts withinDeadline), so running out of time fails the job
+// with a clear message instead of the platform killing it mid-call.
+export const JOB_TIME_BUDGET_MS = 130_000;
 const KEEP_JOBS_MS = 86_400_000;
 
 export interface JobView {
@@ -56,22 +63,25 @@ export async function createJob(requestKey: string): Promise<{ job: JobView; cre
   }
 }
 
-export type JobWork = (onStage: (stage: string) => Promise<void>) => Promise<unknown>;
+export type JobWork = (onStage: (stage: string) => Promise<void>, deadline: number) => Promise<unknown>;
 
 // Runs `work` to completion, recording each progress stage and then the
-// result (or the failure) on the job row. Never throws.
+// result (or the failure) on the job row. Never throws. The traveller polls
+// this row, so a failure is stored as a safe message — the full error is
+// logged with a reference.
 export async function executeJob(jobId: string, work: JobWork): Promise<void> {
+  const deadline = Date.now() + JOB_TIME_BUDGET_MS;
   try {
     const result = await work(async (stage) => {
       await prisma.generationJob.update({ where: { id: jobId }, data: { stage } }).catch(() => {});
-    });
+    }, deadline);
     await prisma.generationJob.update({
       where: { id: jobId },
       data: { status: "done", stage: null, result: result as Prisma.InputJsonValue },
     });
   } catch (error: unknown) {
-    console.error("[job]", jobId, error);
-    const message = error instanceof Error ? error.message : "Something went wrong";
+    logServerError(`job ${jobId}`, error);
+    const { message } = toPublicError(error);
     await prisma.generationJob
       .update({ where: { id: jobId }, data: { status: "error", error: message } })
       .catch(() => {});

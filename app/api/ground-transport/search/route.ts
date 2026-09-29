@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { searchGroundTransport } from "@/lib/api/groundTransport";
 import type { TripPreferences } from "@/types/trip";
 
@@ -16,7 +17,6 @@ export async function POST(request: NextRequest) {
     const transport = await searchGroundTransport(fromCity, toCity, date, preferences);
     return NextResponse.json({ transport });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("ground-transport/search", error);
   }
 }

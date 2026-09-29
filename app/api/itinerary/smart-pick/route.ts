@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { rateLimit } from "@/lib/rateLimit";
 import { runSmartPick, SmartPickError } from "@/lib/ai/smartPick";
 import { readJsonBody, tooMany } from "@/lib/api/readJsonBody";
@@ -23,8 +24,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(await runSmartPick(body));
   } catch (error: unknown) {
     if (error instanceof SmartPickError) return NextResponse.json({ error: error.message }, { status: error.status });
-    console.error("[itinerary/smart-pick]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("itinerary/smart-pick", error);
   }
 }

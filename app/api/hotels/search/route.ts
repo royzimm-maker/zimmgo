@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { searchHotels } from "@/lib/api/hotels";
 
 export async function POST(request: NextRequest) {
@@ -7,7 +8,6 @@ export async function POST(request: NextRequest) {
     const hotels = await searchHotels(body);
     return NextResponse.json(hotels);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("hotels/search", error);
   }
 }

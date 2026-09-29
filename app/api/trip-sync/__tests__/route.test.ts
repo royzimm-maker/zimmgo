@@ -49,6 +49,19 @@ describe("GET /api/trip-sync", () => {
     expect(res.cookies.get("zimmgo-device")?.value).toBeTruthy();
   });
 
+  it("hides database errors from the client", async () => {
+    mockCookieStore.get.mockReturnValue({ value: "device-1" });
+    mockDevice.findUnique.mockRejectedValue(new Error("Can't reach database server at ep-secret-host.neon.tech:5432"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const res = await GET();
+    const body = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(body.error).toBe("Something went wrong on our side — please try again.");
+    expect(JSON.stringify(body)).not.toContain("neon.tech");
+  });
+
   it("returns the stored blob and its version for an existing device, without re-setting its cookie", async () => {
     mockCookieStore.get.mockReturnValue({ value: "device-1" });
     mockDevice.findUnique.mockResolvedValue({ id: "device-1", data: blob, version: 7 });

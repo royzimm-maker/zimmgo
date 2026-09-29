@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { waitUntil } from "@vercel/functions";
 import { rateLimit } from "@/lib/rateLimit";
 import { readJsonBody, tooMany } from "@/lib/api/readJsonBody";
@@ -51,13 +52,12 @@ export async function POST(request: NextRequest) {
     const { job, created } = await createJob(jobKey(requestId));
     if (created) {
       const normalized = { ...itinerary, hotels: itinerary.hotels ?? [], activities: itinerary.activities ?? [] };
-      waitUntil(executeJob(job.jobId, (onStage) => autoPlanTrip(normalized, preferences, runSmartPick, onStage)));
+      waitUntil(executeJob(job.jobId, (onStage, deadline) =>
+        autoPlanTrip(normalized, preferences, (body) => runSmartPick(body, deadline), onStage)));
     }
     return NextResponse.json({ jobId: job.jobId, status: job.status }, { status: created ? 202 : 200 });
   } catch (error: unknown) {
-    console.error("[itinerary/auto-plan POST]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("itinerary/auto-plan POST", error);
   }
 }
 
@@ -70,8 +70,6 @@ export async function GET(request: NextRequest) {
     if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
     return NextResponse.json(job, { headers: { "Cache-Control": "no-store" } });
   } catch (error: unknown) {
-    console.error("[itinerary/auto-plan GET]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("itinerary/auto-plan GET", error);
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { rateLimit } from "@/lib/rateLimit";
 import { readJsonBody } from "@/lib/api/readJsonBody";
 import {
@@ -38,8 +39,6 @@ export async function POST(request: NextRequest) {
     });
     return res;
   } catch (error: unknown) {
-    console.error("[gate]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("gate", error);
   }
 }

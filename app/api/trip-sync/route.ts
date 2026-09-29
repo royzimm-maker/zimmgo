@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serverError } from "@/lib/api/errors";
 import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
 import { Prisma } from "@prisma/client";
@@ -34,9 +35,7 @@ export async function GET() {
     }
     return res;
   } catch (error: unknown) {
-    console.error("[trip-sync GET]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("trip-sync GET", error);
   }
 }
 
@@ -117,8 +116,6 @@ export async function PUT(request: NextRequest) {
       throw error;
     }
   } catch (error: unknown) {
-    console.error("[trip-sync PUT]", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError("trip-sync PUT", error);
   }
 }

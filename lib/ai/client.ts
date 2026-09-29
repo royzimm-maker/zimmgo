@@ -1,5 +1,38 @@
 import Anthropic from "@anthropic-ai/sdk";
 
+// ── Timeouts ──
+// The SDK's defaults (10-minute timeout, 2 retries) are built for long-lived
+// servers. Here every call runs inside a serverless function with a hard
+// time limit, where a stalled call just gets the function killed with no
+// error reported. So interactive calls (chat, parsing, smart-picks) give up
+// after 30s with one retry, and the background jobs budget each call
+// against their own deadline (see withinDeadline).
+export const AI_TIMEOUT_MS = 30_000;
+const AI_MAX_RETRIES = 1;
+
+type RequestOptions = NonNullable<Parameters<Anthropic["messages"]["create"]>[1]>;
+
+// Thrown when a background job has too little time left for another AI call
+// — so it fails with a clear message instead of being killed mid-call.
+export class AIDeadlineError extends Error {
+  constructor() {
+    super("Ran out of time before the AI finished");
+  }
+}
+
+/**
+ * Request options that keep an AI call (and its retry, if there's room for
+ * one) inside `deadline` (ms since epoch), capped at `maxTimeoutMs` per
+ * attempt. Throws AIDeadlineError when there isn't time for a useful call.
+ */
+export function withinDeadline(deadline: number, maxTimeoutMs: number, minUsefulMs = 10_000): RequestOptions {
+  const remaining = deadline - Date.now();
+  if (remaining < minUsefulMs) throw new AIDeadlineError();
+  // Retry only when two full attempts still fit before the deadline.
+  const maxRetries = remaining >= 2 * maxTimeoutMs ? 1 : 0;
+  return { timeout: Math.min(maxTimeoutMs, remaining), maxRetries };
+}
+
 // Singleton client — reused across API route invocations
 let _client: Anthropic | null = null;
 
@@ -8,7 +41,11 @@ export function getAnthropicClient(): Anthropic {
     if (!process.env.ANTHROPIC_API_KEY) {
       throw new Error("ANTHROPIC_API_KEY environment variable is not set");
     }
-    _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    _client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      timeout: AI_TIMEOUT_MS,
+      maxRetries: AI_MAX_RETRIES,
+    });
   }
   return _client;
 }
