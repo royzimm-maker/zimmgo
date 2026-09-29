@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, act } from "@testing-library/react";
 import { TripSyncProvider } from "@/components/TripSyncProvider";
 import { useTripStore } from "@/lib/store/tripStore";
-import type { Trip } from "@/types/trip";
+import { SCHEMA_VERSION } from "@/lib/sync/schema";
+import { calcProgress, type Trip } from "@/types/trip";
 
 function trip(id: string, updatedAt: string, opts: Partial<Trip> = {}): Trip {
   return {
@@ -65,7 +66,7 @@ describe("TripSyncProvider — hydration safety", () => {
     // The cleared-cache case: local is a blank new trip, the server holds
     // real work, and the first GET happens to fail.
     const saved = trip("real", T2, { name: "Lisbon", completedSteps: ["destination", "dates"] });
-    const serverBlob = { trip: saved, savedTrips: [], chatMessages: [], progress: 20 };
+    const serverBlob = { schemaVersion: SCHEMA_VERSION, trip: saved, savedTrips: [], chatMessages: [], progress: calcProgress(["destination", "dates"]) };
     let attempts = 0;
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       if (init?.method === "PUT") return json({ ok: true, version: 4 });
@@ -111,6 +112,63 @@ describe("TripSyncProvider — hydration safety", () => {
 
     expect(gets(fetchMock)).toHaveLength(5);
     expect(puts(fetchMock)).toHaveLength(1);
+  });
+});
+
+describe("TripSyncProvider — schema versions", () => {
+  it("upgrades a server copy saved before versioning, and rewrites it once in the current schema", async () => {
+    const saved = trip("real", T2, { name: "Lisbon", completedSteps: ["destination"] });
+    const oldBlob = { trip: { ...saved, preferences: {} }, savedTrips: [], chatMessages: [], progress: 0 };
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? json({ ok: true, version: 2 }) : json({ data: oldBlob, version: 1 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TripSyncProvider><div /></TripSyncProvider>);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+
+    expect(useTripStore.getState().trip.name).toBe("Lisbon");
+    expect(useTripStore.getState().trip.preferences.vibes).toEqual([]); // repaired
+    const written = puts(fetchMock);
+    expect(written).toHaveLength(1);
+    expect(written[0].data.schemaVersion).toBe(SCHEMA_VERSION);
+  });
+
+  it("never overwrites a server copy saved by newer code, even after local edits", async () => {
+    setLocal(trip("mine", T1, { completedSteps: ["destination"] }));
+    const newer = { schemaVersion: SCHEMA_VERSION + 1, trip: trip("theirs", T2), savedTrips: [], chatMessages: [], progress: 0 };
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? json({ ok: true, version: 2 }) : json({ data: newer, version: 1 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TripSyncProvider><div /></TripSyncProvider>);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+      setLocal(trip("mine", T2, { completedSteps: ["destination", "dates"] }));
+      window.dispatchEvent(new Event("focus"));
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    expect(puts(fetchMock)).toHaveLength(0);
+    expect(gets(fetchMock)).toHaveLength(1); // no re-hydration either
+    expect(useTripStore.getState().trip.id).toBe("mine"); // not hydrated from a shape it can't read
+  });
+
+  it("stops pushing when the server says this tab's schema is newer than it supports", async () => {
+    setLocal(trip("mine", T1, { completedSteps: ["destination"] }));
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? json({ error: "Unsupported schema version" }, 422) : json({ data: null, version: 0 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TripSyncProvider><div /></TripSyncProvider>);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+      setLocal(trip("mine", T2, { completedSteps: ["destination", "dates"] }));
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    expect(puts(fetchMock)).toHaveLength(1); // no retry loop
   });
 });
 

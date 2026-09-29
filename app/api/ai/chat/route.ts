@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       tools,
       messages,
     });
-    await logApiUsage("chat", DEFAULT_MODEL, response.usage);
+    logApiUsage("chat", DEFAULT_MODEL, response.usage);
 
     const wanderlogUse = response.content.find((b) => b.type === "tool_use" && b.name === "add_to_wanderlog");
     if (wanderlogUse && wanderlogUse.type === "tool_use") {

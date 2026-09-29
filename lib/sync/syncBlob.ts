@@ -4,6 +4,9 @@ import type { Trip, ChatMessage, BeliPreference } from "@/types/trip";
 // The exact shape tripStore.ts's own `partialize` persists to localStorage —
 // the whole sync payload, in both directions.
 export interface SyncBlob {
+  // Data-shape version (see lib/sync/schema.ts); absent on data saved before
+  // versioning existed, which counts as version 0.
+  schemaVersion?: number;
   trip: Trip;
   savedTrips: Trip[];
   chatMessages: ChatMessage[];
@@ -80,6 +83,8 @@ export function mergeSyncBlobs(local: SyncBlob, server: SyncBlob): SyncBlob {
   const savedIds = Array.from(new Set(order)).filter((id) => id !== active.id);
 
   return {
+    // Both sides are migrated to the current version before merging.
+    schemaVersion: local.schemaVersion,
     trip: active,
     savedTrips: savedIds.map((id) => byId.get(id)!),
     chatMessages: local.chatMessages,

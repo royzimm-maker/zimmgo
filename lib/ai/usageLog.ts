@@ -1,4 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
+import { waitUntil } from "@vercel/functions";
 import { prisma } from "@/lib/db";
 
 // $/million tokens — https://platform.claude.com/docs/en/about-claude/pricing
@@ -31,12 +32,22 @@ export function estimateCostUsd(
   );
 }
 
-// Call right after every client.messages.create(...) across the app (see the
-// six app/api/**/route.ts files that call the Anthropic API) so real token
-// counts accumulate instead of the cost estimates staying guesses forever.
-// `route` should match that route's own rateLimit `bucket` name, so the two
-// line up when reading either one.
-export async function logApiUsage(route: string, model: string, usage: Anthropic.Usage): Promise<void> {
+// Call right after every client.messages.create(...) across the app so real
+// token counts accumulate instead of the cost estimates staying guesses
+// forever. `route` should match that route's own rateLimit `bucket` name, so
+// the two line up when reading either one.
+//
+// Fire-and-forget: callers should NOT await it. The DB write runs in the
+// background (kept alive past the response by waitUntil on Vercel) so it
+// never adds a database round trip to an AI request or a generation turn.
+// The returned promise never rejects; it's there for tests.
+export function logApiUsage(route: string, model: string, usage: Anthropic.Usage): Promise<void> {
+  const write = writeUsage(route, model, usage);
+  waitUntil(write);
+  return write;
+}
+
+async function writeUsage(route: string, model: string, usage: Anthropic.Usage): Promise<void> {
   try {
     await prisma.apiUsageEvent.create({
       data: {

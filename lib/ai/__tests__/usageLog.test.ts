@@ -1,8 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockCreate } = vi.hoisted(() => ({ mockCreate: vi.fn() }));
+const { mockCreate, mockWaitUntil } = vi.hoisted(() => ({ mockCreate: vi.fn(), mockWaitUntil: vi.fn() }));
 vi.mock("@/lib/db", () => ({ prisma: { apiUsageEvent: { create: mockCreate } } }));
+vi.mock("@vercel/functions", () => ({ waitUntil: mockWaitUntil }));
 
 import { estimateCostUsd, priceForModel, logApiUsage } from "@/lib/ai/usageLog";
 
@@ -62,6 +63,24 @@ describe("logApiUsage", () => {
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ cacheReadTokens: 0, cacheWriteTokens: 0 }) })
     );
+  });
+
+  it("runs the write in the background instead of making the caller wait on the database", async () => {
+    let finishWrite!: () => void;
+    mockCreate.mockReturnValue(new Promise<void>((r) => { finishWrite = r; }));
+
+    const write = logApiUsage("chat", "claude-sonnet-5", { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 });
+
+    // Returned synchronously while the DB write is still pending, and handed
+    // to waitUntil so the platform keeps it alive past the response.
+    expect(mockWaitUntil).toHaveBeenCalledWith(write);
+    let settled = false;
+    write.then(() => { settled = true; });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    finishWrite();
+    await write;
+    expect(settled).toBe(true);
   });
 
   it("swallows a database failure instead of throwing into the caller", async () => {

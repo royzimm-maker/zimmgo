@@ -117,7 +117,7 @@ export async function runGeneration(
       tools: TRAVEL_TOOLS,
       messages,
     });
-    await logApiUsage("itinerary-generate", DEFAULT_MODEL, response.usage);
+    logApiUsage("itinerary-generate", DEFAULT_MODEL, response.usage);
 
     // Collect tool uses from this response
     const toolUses = response.content.filter((b) => b.type === "tool_use");

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       tool_choice: { type: "tool", name: "parse_destination" },
       messages: [{ role: "user", content: buildDestinationParsePrompt(text) }],
     });
-    await logApiUsage("destination-parse", DEFAULT_MODEL, response.usage);
+    logApiUsage("destination-parse", DEFAULT_MODEL, response.usage);
 
     const toolUse = response.content.find((b) => b.type === "tool_use");
     if (!toolUse || toolUse.type !== "tool_use") {

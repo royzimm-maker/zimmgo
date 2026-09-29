@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuid } from "uuid";
+import { SCHEMA_VERSION, migratePersistedState } from "@/lib/sync/schema";
 import type {
   Trip,
   TripPreferences,
@@ -649,6 +650,11 @@ export const useTripStore = create<TripState>()(
     {
       name: "zimmgo-trip",
       storage: createJSONStorage(() => localStorage),
+      // Saved state older than SCHEMA_VERSION is upgraded on load (see
+      // lib/sync/schema.ts) instead of being handed to code that expects the
+      // current shape. Bump it there, not here.
+      version: SCHEMA_VERSION,
+      migrate: (persisted, version) => migratePersistedState(persisted, version) as unknown as TripState,
       // isGenerating and sidebarOpen are transient UI state — never persist them
       partialize: (state) => ({
         trip: state.trip,

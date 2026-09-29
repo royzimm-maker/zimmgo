@@ -40,7 +40,7 @@ export async function runSmartPick(body: SmartPickRequestBody): Promise<SmartPic
     tool_choice: { type: "tool", name: "make_selection" },
     messages: [{ role: "user", content: prompt }],
   });
-  await logApiUsage("smart-pick", DEFAULT_MODEL, response.usage);
+  logApiUsage("smart-pick", DEFAULT_MODEL, response.usage);
 
   const toolUse = response.content.find((b) => b.type === "tool_use");
   if (!toolUse || toolUse.type !== "tool_use") throw new SmartPickError("AI did not return a selection", 502);

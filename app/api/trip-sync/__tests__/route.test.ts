@@ -13,12 +13,17 @@ vi.mock("next/headers", () => ({
 vi.mock("@/lib/db", () => ({ prisma: { device: mockDevice } }));
 
 import { GET, PUT } from "@/app/api/trip-sync/route";
+import { SCHEMA_VERSION } from "@/lib/sync/schema";
 
 const now = "2026-09-28T12:00:00.000Z";
 function trip(id: string) {
-  return { id, name: "T", preferences: {}, currentStep: "destination", completedSteps: [], itineraries: [], createdAt: now, updatedAt: now };
+  return {
+    id, name: "T", preferences: { activities: [], activityRankings: {}, vibes: [], transportation: [] },
+    currentStep: "destination", completedSteps: [], itineraries: [], createdAt: now, updatedAt: now,
+  };
 }
-const blob = { trip: trip("t1"), savedTrips: [], chatMessages: [], progress: 0 };
+// Already in the current schema, so it's stored exactly as sent.
+const blob = { schemaVersion: SCHEMA_VERSION, trip: trip("t1"), savedTrips: [], chatMessages: [], progress: 0 };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -116,6 +121,32 @@ describe("PUT /api/trip-sync", () => {
     const res = await PUT(putRequest({ baseVersion: 0, data: { trip: "nope" } }));
 
     expect(res.status).toBe(400);
+    expect(mockDevice.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("upgrades a payload from a tab still running older code before storing it", async () => {
+    mockDevice.updateMany.mockResolvedValue({ count: 1 });
+    // Pre-versioning shape: no schemaVersion, missing preference arrays, a
+    // step id that no longer exists, and a stale progress figure.
+    const old = {
+      trip: { ...trip("t1"), preferences: {}, completedSteps: ["destination", "retiredStep"] },
+      savedTrips: [], chatMessages: [], progress: 99,
+    };
+
+    const res = await PUT(putRequest({ baseVersion: 3, data: old }));
+
+    expect(res.status).toBe(200);
+    const stored = mockDevice.updateMany.mock.calls[0][0].data.data;
+    expect(stored.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(stored.trip.preferences).toEqual({ activities: [], activityRankings: {}, vibes: [], transportation: [] });
+    expect(stored.trip.completedSteps).toEqual(["destination"]);
+    expect(stored.progress).not.toBe(99);
+  });
+
+  it("refuses a payload from a newer schema than this server understands, without touching the database", async () => {
+    const res = await PUT(putRequest({ baseVersion: 3, data: { ...blob, schemaVersion: SCHEMA_VERSION + 1 } }));
+
+    expect(res.status).toBe(422);
     expect(mockDevice.updateMany).not.toHaveBeenCalled();
   });
 

@@ -2,11 +2,13 @@
 
 import { useEffect } from "react";
 import { useTripStore, hasRealProgress } from "@/lib/store/tripStore";
-import { isSyncBlob, mergeSyncBlobs, stableStringify, type SyncBlob } from "@/lib/sync/syncBlob";
+import { mergeSyncBlobs, stableStringify, type SyncBlob } from "@/lib/sync/syncBlob";
+import { SCHEMA_VERSION, migrateSyncBlob } from "@/lib/sync/schema";
 
 function currentBlob(): SyncBlob {
   const s = useTripStore.getState();
   return {
+    schemaVersion: SCHEMA_VERSION,
     trip: s.trip,
     savedTrips: s.savedTrips,
     chatMessages: s.chatMessages,
@@ -46,6 +48,11 @@ const PUT_RETRY_MS = 10_000;
 //    between, the server rejects it (409) with its copy; we merge trip by
 //    trip and retry, rather than one tab blindly clobbering the other.
 //
+// Server copies are migrated to this code's SCHEMA_VERSION before use. If the
+// server holds data from a *newer* version (a tab left open across a deploy),
+// this tab stops syncing entirely rather than overwrite it with an older
+// shape — reloading picks up the new code.
+//
 // Failures never surface in the UI — the device just keeps working off
 // localStorage and syncs once the backend is reachable.
 export function TripSyncProvider({ children }: { children: React.ReactNode }) {
@@ -61,15 +68,26 @@ export function TripSyncProvider({ children }: { children: React.ReactNode }) {
     let pending = false;
     let debounceTimer: ReturnType<typeof setTimeout> | undefined;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    // Set once this tab's code is known to be older than the saved data —
+    // no more reads or writes until a reload.
+    let outdated = false;
+
+    function stopAsOutdated() {
+      outdated = true;
+      version = null;
+      clearTimeout(debounceTimer);
+      clearTimeout(retryTimer);
+      console.warn("[trip-sync] Saved data is from a newer version of ZimmGo — sync paused until reload.");
+    }
 
     function schedulePush(delay = DEBOUNCE_MS) {
-      if (version === null || cancelled) return;
+      if (version === null || cancelled || outdated) return;
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(push, delay);
     }
 
     async function push() {
-      if (version === null || cancelled) return;
+      if (version === null || cancelled || outdated) return;
       if (inFlight) {
         pending = true;
         return;
@@ -92,15 +110,24 @@ export function TripSyncProvider({ children }: { children: React.ReactNode }) {
           lastSyncedJson = json;
         } else if (res.status === 409) {
           const body = (await res.json()) as { data: unknown; version: number };
+          const server = migrateSyncBlob(body.data);
+          if (server.status === "too-new") {
+            stopAsOutdated();
+            return;
+          }
           version = body.version;
-          if (isSyncBlob(body.data)) {
+          if (server.status === "ok") {
             lastSyncedJson = stableStringify(body.data);
-            const merged = mergeSyncBlobs(currentBlob(), body.data);
+            const merged = mergeSyncBlobs(currentBlob(), server.blob);
             if (stableStringify(merged) !== stableStringify(currentBlob())) applyBlob(merged);
           } else {
             lastSyncedJson = null; // unusable server copy — ours replaces it
           }
           pending = true; // write the merged result on top of the new version
+        } else if (res.status === 422) {
+          // The server rejected our schema version — it's running older code
+          // than this tab (e.g. mid-rollback). Retrying won't help.
+          stopAsOutdated();
         } else {
           clearTimeout(retryTimer);
           retryTimer = setTimeout(push, PUT_RETRY_MS);
@@ -118,7 +145,7 @@ export function TripSyncProvider({ children }: { children: React.ReactNode }) {
     }
 
     async function hydrate() {
-      if (hydrating || version !== null) return;
+      if (hydrating || version !== null || outdated) return;
       hydrating = true;
       try {
         for (const delay of HYDRATE_RETRY_DELAYS_MS) {
@@ -130,9 +157,16 @@ export function TripSyncProvider({ children }: { children: React.ReactNode }) {
             const body = (await res.json()) as { data: unknown; version?: number };
             if (cancelled) return;
 
-            const server = isSyncBlob(body.data) ? body.data : null;
+            const migrated = body.data == null ? null : migrateSyncBlob(body.data);
+            if (migrated?.status === "too-new") {
+              stopAsOutdated();
+              return;
+            }
+            const server = migrated?.status === "ok" ? migrated.blob : null;
             const local = currentBlob();
-            lastSyncedJson = server ? stableStringify(server) : null;
+            // Compared against what the server literally holds, so a copy
+            // saved in an older schema gets rewritten once in the current one.
+            lastSyncedJson = server ? stableStringify(body.data) : null;
             version = body.version ?? 0;
 
             if (server) {

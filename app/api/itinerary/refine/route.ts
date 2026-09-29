@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       system: systemPrompt,
       messages: [{ role: "user", content: question }],
     });
-    await logApiUsage("itinerary-refine", DEFAULT_MODEL, response.usage);
+    logApiUsage("itinerary-refine", DEFAULT_MODEL, response.usage);
 
     const reply = response.content
       .filter((b) => b.type === "text")

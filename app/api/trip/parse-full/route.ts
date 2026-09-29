@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       tool_choice: { type: "tool", name: "parse_full_trip" },
       messages: [{ role: "user", content: buildFullTripParsePrompt(text, todayISO) }],
     });
-    await logApiUsage("trip-parse-full", DEFAULT_MODEL, response.usage);
+    logApiUsage("trip-parse-full", DEFAULT_MODEL, response.usage);
 
     const toolUse = response.content.find((b) => b.type === "tool_use");
     if (!toolUse || toolUse.type !== "tool_use") {

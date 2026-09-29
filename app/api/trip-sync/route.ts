@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { Prisma } from "@prisma/client";
 import { rateLimit } from "@/lib/rateLimit";
 import { prisma } from "@/lib/db";
-import { isSyncBlob } from "@/lib/sync/syncBlob";
+import { SCHEMA_VERSION, migrateSyncBlob } from "@/lib/sync/schema";
 
 const COOKIE_NAME = "zimmgo-device";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // ~1 year
@@ -66,10 +66,24 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
     const { baseVersion, data } = (body ?? {}) as { baseVersion?: unknown; data?: unknown };
-    if (typeof baseVersion !== "number" || !Number.isInteger(baseVersion) || baseVersion < 0 || !isSyncBlob(data)) {
+    if (typeof baseVersion !== "number" || !Number.isInteger(baseVersion) || baseVersion < 0) {
       return NextResponse.json({ error: "Invalid sync payload" }, { status: 400 });
     }
-    const json = data as unknown as Prisma.InputJsonValue;
+    // Stored data is always the current schema: a tab still running older
+    // code has its payload upgraded here. A payload from newer code than this
+    // server (mid-rollback) is refused rather than stored in a shape this
+    // version can't read.
+    const migrated = migrateSyncBlob(data);
+    if (migrated.status === "too-new") {
+      return NextResponse.json(
+        { error: `Unsupported schema version ${migrated.schemaVersion} (server supports ${SCHEMA_VERSION})` },
+        { status: 422 }
+      );
+    }
+    if (migrated.status === "invalid") {
+      return NextResponse.json({ error: "Invalid sync payload" }, { status: 400 });
+    }
+    const json = migrated.blob as unknown as Prisma.InputJsonValue;
 
     const updated = await prisma.device.updateMany({
       where: { id: deviceId, version: baseVersion },
