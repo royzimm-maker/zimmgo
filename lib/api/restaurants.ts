@@ -4,7 +4,7 @@
 import { stableId } from "@/lib/api/mockRandom";
 import type { RestaurantOption, RestaurantTier } from "@/types/trip";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
-import { fuzzyCityMatch } from "@/lib/utils";
+import { sameLocation } from "@/lib/location";
 import { resolvePool } from "@/lib/api/poolLookup";
 
 interface RestaurantSearchParams {
@@ -647,7 +647,7 @@ export async function searchRestaurants(params: RestaurantSearchParams): Promise
   return filtered.slice(0, 6).map((r) => ({
     ...r,
     id: stableId("restaurant", r.name, params.destination),
-    location: fuzzyCityMatch(r.location, params.destination) ? r.location : params.destination,
+    location: sameLocation(r.location, params.destination) ? r.location : params.destination,
     playfulCategory: PLAYFUL_LABELS[r.tier],
     priceRange: PRICE_RANGES[r.tier],
     michelinDistinction: detectMichelinDistinction(r.description),

@@ -10,10 +10,11 @@ import { fetchSmartPick } from "@/lib/api/smartPick";
 import { fetchFlightSearch } from "@/lib/api/searchFlights";
 import { fetchGroundTransport } from "@/lib/api/searchGroundTransport";
 import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
-import { cn, formatDate, fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
+import { cn, formatDate, scrollStepToTop } from "@/lib/utils";
+import { resolveCity } from "@/lib/location";
 import {
   Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard, TransportCard,
-} from "@/components/planning/ItineraryView";
+} from "@/components/planning/ItineraryCards";
 import type { GeneratedItinerary, TransportOption } from "@/types/trip";
 
 interface Props {
@@ -270,8 +271,8 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
   const displayedTransportOptions = transportForLeg.length ? transportForLeg : manualTransportResults;
 
   const hotelsForCity = useMemo(
-    () => itinerary.hotels.filter((h) => fuzzyCityMatch(h.city ?? h.location, currentCity)),
-    [itinerary.hotels, currentCity]
+    () => itinerary.hotels.filter((h) => resolveCity(h.city ?? h.location, cities) === currentCity),
+    [itinerary.hotels, cities, currentCity]
   );
 
   // The traveller's (or ZiGy's) current pick for this city shown first —
@@ -363,9 +364,9 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
   // Highest-rated first, so capping to the preview count always surfaces the best options.
   const restaurantsForCity = useMemo(
     () => (itinerary.restaurants ?? [])
-      .filter((r) => fuzzyCityMatch(r.location, currentCity))
+      .filter((r) => resolveCity(r.location, cities, { fallbackToLast: true }) === currentCity)
       .sort((a, b) => b.rating - a.rating),
-    [itinerary.restaurants, currentCity]
+    [itinerary.restaurants, cities, currentCity]
   );
   const {
     visible: visibleRestaurants,
@@ -376,9 +377,9 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
 
   const activitiesForCity = useMemo(
     () => itinerary.activities
-      .filter((a) => fuzzyCityMatch(a.location, currentCity))
+      .filter((a) => resolveCity(a.location, cities, { fallbackToLast: true }) === currentCity)
       .sort((a, b) => b.rating - a.rating),
-    [itinerary.activities, currentCity]
+    [itinerary.activities, cities, currentCity]
   );
   const {
     visible: visibleActivities,
@@ -394,13 +395,13 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
   const cityRecap = useMemo(() => {
     const hotel = preferences.selectedHotelsByCity?.[currentCity]?.name;
     const restaurantCount = (itinerary.restaurants ?? [])
-      .filter((r) => fuzzyCityMatch(r.location, currentCity) && (preferences.selectedRestaurantIds ?? []).includes(r.id))
+      .filter((r) => resolveCity(r.location, cities, { fallbackToLast: true }) === currentCity && (preferences.selectedRestaurantIds ?? []).includes(r.id))
       .length;
     const activityCount = itinerary.activities
-      .filter((a) => fuzzyCityMatch(a.location, currentCity) && (preferences.selectedActivityIds ?? []).includes(a.id))
+      .filter((a) => resolveCity(a.location, cities, { fallbackToLast: true }) === currentCity && (preferences.selectedActivityIds ?? []).includes(a.id))
       .length;
     return { hotel, restaurantCount, activityCount };
-  }, [currentCity, itinerary.restaurants, itinerary.activities, preferences.selectedHotelsByCity, preferences.selectedRestaurantIds, preferences.selectedActivityIds]);
+  }, [currentCity, cities, itinerary.restaurants, itinerary.activities, preferences.selectedHotelsByCity, preferences.selectedRestaurantIds, preferences.selectedActivityIds]);
 
   const sectionTitle = stage === "flights" ? "Flights" : `${STAGE_META[stage].label} — ${currentCity}`;
   const sectionSubtitle = stage === "flights"

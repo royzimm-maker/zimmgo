@@ -106,14 +106,6 @@ export function pairFlights(
   }));
 }
 
-/** Loose city-name comparison — handles "Amalfi Coast" vs "the Amalfi Coast" style variance. */
-export function fuzzyCityMatch(a?: string, b?: string): boolean {
-  if (!a || !b) return false;
-  const x = a.toLowerCase().trim();
-  const y = b.toLowerCase().trim();
-  return x === y || x.includes(y) || y.includes(x);
-}
-
 // API routes return `{ error: message }` on failure, but `message` itself is
 // sometimes the Anthropic SDK's own error object serialized to a string
 // (e.g. `401 {"type":"error","error":{"type":"authentication_error",...}}`).

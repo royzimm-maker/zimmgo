@@ -1,31 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
-import { GATE_COOKIE_NAME, expectedGateCookieValue } from "@/lib/gateAuth";
-
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 90; // ~90 days
+import { readJsonBody } from "@/lib/api/readJsonBody";
+import {
+  GATE_COOKIE_NAME, GATE_SESSION_MAX_AGE_S, createGateToken, gateAccounts, matchGatePassword,
+} from "@/lib/gateAuth";
 
 export async function POST(request: NextRequest) {
-  // Cheap insurance against brute-forcing a shared password.
+  // Cheap insurance against brute-forcing a password.
   const limited = await rateLimit(request, { bucket: "gate", limit: 10, windowMs: 5 * 60_000 });
   if (limited) return limited;
 
-  const sitePassword = process.env.SITE_PASSWORD;
-  if (!sitePassword) {
+  const accounts = gateAccounts();
+  if (!accounts.length) {
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
 
   try {
-    const { password } = (await request.json()) as { password?: string };
-    if (!password || password !== sitePassword) {
+    const parsed = await readJsonBody<{ password?: unknown }>(request, 2_000);
+    if (!parsed.ok) return parsed.response;
+    const { password } = parsed.body;
+
+    const account = typeof password === "string" && password ? await matchGatePassword(password, accounts) : null;
+    if (!account) {
       return NextResponse.json({ error: "wrong_password" }, { status: 401 });
     }
 
+    // Which person signed in — never their password — so access can be
+    // traced back to a name if it ever needs revoking.
+    console.info("[gate] signed in:", account.label);
     const res = NextResponse.json({ ok: true });
-    res.cookies.set(GATE_COOKIE_NAME, await expectedGateCookieValue(sitePassword), {
+    res.cookies.set(GATE_COOKIE_NAME, await createGateToken(account), {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
-      maxAge: COOKIE_MAX_AGE,
+      maxAge: GATE_SESSION_MAX_AGE_S,
       path: "/",
     });
     return res;

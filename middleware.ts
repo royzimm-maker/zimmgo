@@ -1,22 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GATE_COOKIE_NAME, expectedGateCookieValue } from "@/lib/gateAuth";
+import { GATE_COOKIE_NAME, gateAccounts, verifyGateToken } from "@/lib/gateAuth";
 
-// Site-wide "friends and family" gate — active only when SITE_PASSWORD is
-// set. Unset (the default for local dev) means this middleware no-ops
-// entirely, so `npm run dev` never requires a password unless you opt in by
-// setting SITE_PASSWORD in .env.local. In production, SITE_PASSWORD must be
+// Site-wide "friends and family" gate — active only when SITE_PASSWORDS or
+// SITE_PASSWORD is set (see lib/gateAuth.ts). Unset (the default for local
+// dev) means this middleware no-ops entirely, so `npm run dev` never requires
+// a password unless you opt in via .env.local. In production they must be
 // set in the Vercel project's environment variables for this to actually
 // protect anything — it does nothing on its own.
+//
+// The session is re-checked on every request, so removing or changing a
+// person's password locks them out immediately.
 export async function middleware(request: NextRequest) {
-  const sitePassword = process.env.SITE_PASSWORD;
-  if (!sitePassword) return NextResponse.next();
+  const accounts = gateAccounts();
+  if (!accounts.length) return NextResponse.next();
 
-  const cookie = request.cookies.get(GATE_COOKIE_NAME)?.value;
-  if (cookie === (await expectedGateCookieValue(sitePassword))) return NextResponse.next();
+  if (await verifyGateToken(request.cookies.get(GATE_COOKIE_NAME)?.value, accounts)) return NextResponse.next();
 
   const gateUrl = new URL("/gate", request.url);
   gateUrl.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
-  return NextResponse.redirect(gateUrl);
+  const res = NextResponse.redirect(gateUrl);
+  // Clear a revoked or expired session rather than re-sending it every time.
+  if (request.cookies.has(GATE_COOKIE_NAME)) res.cookies.delete(GATE_COOKIE_NAME);
+  return res;
 }
 
 export const config = {

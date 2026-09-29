@@ -8,224 +8,30 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
-  useDroppable,
-  useDraggable,
   closestCenter,
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { X, Sparkles, Heart, ArrowRight, Hotel, UtensilsCrossed, Star, CalendarDays, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sparkles, ArrowRight, Hotel, UtensilsCrossed, Star, CalendarDays, CheckCircle2, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
+import { CardInner, DraggableCard, DroppableContainer, type CardInfo } from "@/components/planning/refine/ScheduleCards";
 import { fetchSmartPick } from "@/lib/api/smartPick";
-import { formatCurrency, formatDate, fuzzyCityMatch, scrollStepToTop } from "@/lib/utils";
+import { formatDate, scrollStepToTop } from "@/lib/utils";
+import { resolveCity } from "@/lib/location";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityOption, RestaurantOption } from "@/types/trip";
 
-// ─── Emoji lookups ────────────────────────────────────────────────────────────
-
-const ACTIVITY_EMOJI: Record<string, string> = {
-  skiing: "⛷️", hiking: "🥾", sailing: "⛵", food: "🍽️", diving: "🤿",
-  cycling: "🚴", cultural: "🏛️", photography: "📸", wellness: "🧘",
-  adventure: "🧗", guided_walking_tour: "🚶",
-};
-
-const RESTAURANT_EMOJI: Record<string, string> = {
-  fine_dining: "⭐", upscale: "🥂", midrange: "🍽️",
-  casual: "🍴", street_food: "🥙", brunch: "🥞",
-};
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface CardInfo {
-  cardId: string;
-  kind: "activity" | "restaurant";
-  activity?: ActivityOption;
-  restaurant?: RestaurantOption;
-}
-
-// ─── CardInner — shared between DraggableCard and DragOverlay ─────────────────
-
-function CardInner({
-  info,
-  onRemove,
-  onSave,
-  overlay = false,
-}: {
-  info: CardInfo;
-  onRemove?: () => void;
-  onSave?: () => void;
-  overlay?: boolean;
-}) {
-  const { activity, restaurant } = info;
-  const { trip } = useTripStore();
-
-  const base = overlay
-    ? "flex items-center gap-2 rounded-lg border px-2.5 py-2 shadow-2xl ring-2 select-none"
-    : "flex items-center gap-2 rounded-lg border px-2.5 py-2 shadow-sm hover:shadow-md transition-shadow select-none cursor-grab";
-
-  if (activity) {
-    const emoji = ACTIVITY_EMOJI[activity.category] ?? "🎯";
-    return (
-      <div className={`${base} ${overlay ? "border-brand-300 bg-white ring-brand-200" : "border-slate-200 bg-white"}`}>
-        <span className="text-sm shrink-0">{emoji}</span>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-slate-800 truncate leading-tight">{activity.name}</p>
-          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
-            {activity.location && <span className="font-medium text-brand-600 truncate">{activity.location}</span>}
-            {activity.duration && <span>{activity.duration}</span>}
-            {activity.price > 0 && <span>{formatCurrency(activity.price, trip.preferences.preferredCurrency)}</span>}
-          </div>
-        </div>
-        {onSave && (
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onSave(); }}
-            className="shrink-0 text-slate-300 hover:text-brand-500 transition-colors"
-            title="Save to Wanderlog instead"
-          >
-            <Heart size={12} />
-          </button>
-        )}
-        {onRemove && (
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="shrink-0 text-slate-300 hover:text-red-400 transition-colors"
-            title="Return to bank"
-          >
-            <X size={12} />
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  if (restaurant) {
-    const emoji = RESTAURANT_EMOJI[restaurant.tier] ?? "🍽️";
-    return (
-      <div className={`${base} ${overlay ? "border-amber-300 bg-amber-50 ring-amber-200" : "border-amber-200 bg-amber-50/60"}`}>
-        <span className="text-sm shrink-0">{emoji}</span>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-slate-800 truncate leading-tight">{restaurant.name}</p>
-          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
-            {restaurant.location && <span className="font-medium text-amber-700 truncate">{restaurant.location}</span>}
-            <span>{restaurant.cuisine}</span>
-            <span className="font-medium text-amber-600">{restaurant.priceRange}</span>
-          </div>
-        </div>
-        {onSave && (
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onSave(); }}
-            className="shrink-0 text-slate-300 hover:text-brand-500 transition-colors"
-            title="Save to Wanderlog instead"
-          >
-            <Heart size={12} />
-          </button>
-        )}
-        {onRemove && (
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="shrink-0 text-slate-300 hover:text-red-400 transition-colors"
-            title="Return to bank"
-          >
-            <X size={12} />
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  return null;
-}
-
-// ─── DraggableCard ────────────────────────────────────────────────────────────
-
-function DraggableCard({ info, onRemove, onSave }: { info: CardInfo; onRemove?: () => void; onSave?: () => void }) {
-  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: info.cardId });
-  return (
-    <div
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      style={{ opacity: isDragging ? 0.15 : 1, touchAction: "none" }}
-    >
-      <CardInner info={info} onRemove={onRemove} onSave={onSave} />
-    </div>
-  );
-}
-
-// Case-insensitive check: do two location strings refer to the same place?
-function locationsMatch(a?: string, b?: string): boolean {
-  if (!a || !b) return true; // no location info → allow drop
-  // Strip a leading "the" so it never becomes the "first word" two different
-  // places both happen to share (e.g. "the Dolomites" vs "the Amalfi Coast").
-  const norm = (s: string) => s.toLowerCase().replace(/^the\s+/, "").replace(/[^a-z0-9]/g, " ").trim();
-  const na = norm(a), nb = norm(b);
-  // Extract first meaningful word for fuzzy matching (e.g. "Dolomites, Italy" → "dolomites")
-  const firstWord = (s: string) => s.split(/\s+/)[0];
-  return na === nb || na.includes(nb) || nb.includes(na) ||
-    (firstWord(na) === firstWord(nb) && firstWord(na).length > 0);
-}
-
-// Activities/restaurants are tagged by the AI with specific town/region names
-// (e.g. "Vik and South Coast Iceland") that often share no word with the
-// trip's coarse city labels (e.g. "the Ring Road") used for day.location —
-// locationsMatch alone would leave those cards unbucketable in every city tab,
-// stuck in the bank with no day they can ever be dropped on. Resolve each card
-// to one of the trip's known cities, falling back to the last one (the
-// touring/loop leg in road-trip style itineraries) so nothing is orphaned.
+// Every card and day belongs to exactly one city tab — the same resolution
+// auto-plan uses (lib/location.ts), so a card never shows up in one city's
+// tab here but gets scheduled into another city's days there. Unmatched
+// cards fall back to the last city so nothing is orphaned in the bank.
 function resolveCardCity(location: string | undefined, cities: string[]): string | undefined {
-  if (!location || cities.length === 0) return undefined;
-  return cities.find((c) => locationsMatch(location, c)) ?? cities[cities.length - 1];
+  return resolveCity(location, cities, { fallbackToLast: true });
 }
 
-// ─── DroppableContainer ───────────────────────────────────────────────────────
-
-function DroppableContainer({
-  id,
-  isEmpty,
-  compatible = true,
-  children,
-}: {
-  id: string;
-  isEmpty: boolean;
-  compatible?: boolean;
-  children: React.ReactNode;
-}) {
-  const { isOver, setNodeRef } = useDroppable({ id });
-  const blocked = isOver && !compatible;
-  return (
-    <div
-      ref={setNodeRef}
-      className={`min-h-[52px] rounded-lg transition-all duration-100 ${
-        blocked
-          ? "ring-2 ring-red-300 ring-inset bg-red-50"
-          : isOver && compatible
-          ? "ring-2 ring-brand-400 ring-inset bg-brand-50"
-          : isEmpty
-          ? "border-2 border-dashed border-slate-200"
-          : ""
-      } p-1.5`}
-    >
-      {isEmpty ? (
-        <p className={`text-[11px] text-center py-2.5 ${
-          blocked ? "text-red-400 font-medium" :
-          isOver && compatible ? "text-brand-500 font-medium" :
-          "text-slate-400"
-        }`}>
-          {blocked ? "Wrong location" : isOver && compatible ? "Release to add" : "Drop here"}
-        </p>
-      ) : (
-        <div className="flex flex-col gap-1.5">{children}</div>
-      )}
-    </div>
-  );
+// Days with no location belong to every city's tab.
+function dayInCity(dayLocation: string | undefined, city: string, cities: string[]): boolean {
+  return !dayLocation || resolveCardCity(dayLocation, cities) === city;
 }
 
 // ─── Main RefineStep ──────────────────────────────────────────────────────────
@@ -407,7 +213,7 @@ export function RefineStep() {
       trip.preferences.lodging?.types?.length && trip.preferences.lodging.types.every((t) => t === "airbnb")
     );
     if (airbnbOnly) return;
-    const cityHotels = (itinerary?.hotels ?? []).filter((h) => fuzzyCityMatch(h.city ?? h.location, city));
+    const cityHotels = (itinerary?.hotels ?? []).filter((h) => resolveCity(h.city ?? h.location, cities) === city);
     if (!cityHotels.length) return;
 
     const data = await fetchSmartPick({ kind: "hotel", city, preferences: trip.preferences, hotels: cityHotels });
@@ -417,7 +223,7 @@ export function RefineStep() {
   }
 
   async function arrangeCity(city: string): Promise<void> {
-    const cityDays = days.filter((d) => !d.location || locationsMatch(d.location, city));
+    const cityDays = days.filter((d) => dayInCity(d.location, city, cities));
     const cityBankIds = bank.filter((id) => {
       const loc = getCardLocation(id);
       return !loc || getCardCity(id) === city;
@@ -551,7 +357,7 @@ export function RefineStep() {
     const activityCount = itinerary.activities.filter(
       (a) => resolveCardCity(a.location, cities) === city && (trip.preferences.selectedActivityIds ?? []).includes(a.id)
     ).length;
-    const cityDays = days.filter((d) => !d.location || locationsMatch(d.location, city));
+    const cityDays = days.filter((d) => dayInCity(d.location, city, cities));
     const scheduledDays = cityDays.filter((d) => (dayCards[d.dayNumber] ?? []).length > 0).length;
     return { city, hotelName, restaurantCount, activityCount, totalDays: cityDays.length, scheduledDays };
   });
@@ -560,7 +366,7 @@ export function RefineStep() {
   // Scope the board to one city at a time — reduces clutter on multi-city trips
   // and matches the location constraint already enforced on drag-and-drop.
   const visibleDays = effectiveCity
-    ? days.filter((d) => !d.location || locationsMatch(d.location, effectiveCity))
+    ? days.filter((d) => dayInCity(d.location, effectiveCity, cities))
     : days;
   const visibleBank = effectiveCity
     ? bank.filter((cardId) => {

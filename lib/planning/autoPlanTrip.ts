@@ -8,7 +8,7 @@
 //
 // Runs server-side as a background job (/api/itinerary/auto-plan); the pick
 // function is injected so it calls the AI directly there and stays testable.
-import { fuzzyCityMatch } from "@/lib/utils";
+import { resolveCity } from "@/lib/location";
 import type { GeneratedItinerary, TripPreferences, HotelOption } from "@/types/trip";
 import type { SmartPickRequestBody, SmartPickResponse } from "@/types/smartPick";
 
@@ -37,14 +37,19 @@ interface CityPlan {
   dayCards: Record<number, string[]>;
 }
 
-// Assigns each item to the first city it matches, so no item is picked or
-// scheduled twice when city names overlap (e.g. a "Rome" pool shared with
-// Florence, or fuzzy matches between neighbouring legs).
-function partition<T>(items: T[], cities: string[], locate: (item: T) => string | undefined): Map<string, T[]> {
+// Assigns each item to exactly one city, so nothing is picked or scheduled
+// twice when city names overlap. Uses the same resolution as the Refine
+// step's city tabs and the review wizard (lib/location.ts), so an item
+// auto-plan schedules in a city is the one the traveller sees under it.
+function partition<T>(
+  items: T[],
+  cities: string[],
+  locate: (item: T) => string | undefined,
+  fallbackToLast: boolean
+): Map<string, T[]> {
   const byCity = new Map<string, T[]>(cities.map((c) => [c, []]));
   for (const item of items) {
-    const loc = locate(item);
-    const city = loc ? cities.find((c) => fuzzyCityMatch(loc, c)) : undefined;
+    const city = resolveCity(locate(item), cities, { fallbackToLast });
     if (city) byCity.get(city)!.push(item);
   }
   return byCity;
@@ -85,11 +90,15 @@ export async function autoPlanTrip(
     preferences.lodging?.types?.length && preferences.lodging.types.every((t) => t === "airbnb")
   );
 
-  const hotelsByCity = partition(itinerary.hotels, cities, (h) => h.city ?? h.location);
-  const actsByCity = partition(itinerary.activities, cities, (a) => a.location);
-  const restsByCity = partition(itinerary.restaurants ?? [], cities, (r) => r.location);
-  // Days without a location go to the first city, like the leg they sit in.
-  const daysByCity = partition(itinerary.days, cities, (d) => d.location || cities[0]);
+  // A hotel in the wrong city is worse than none, so hotels don't fall back;
+  // activities/restaurants tagged with a town no city matches go to the last
+  // (touring) leg, as they do in the Refine step.
+  const hotelsByCity = partition(itinerary.hotels, cities, (h) => h.city ?? h.location, false);
+  const actsByCity = partition(itinerary.activities, cities, (a) => a.location, true);
+  const restsByCity = partition(itinerary.restaurants ?? [], cities, (r) => r.location, true);
+  // Days without a location go to the first city — each day must be in
+  // exactly one city's schedule, or two cities could book the same day.
+  const daysByCity = partition(itinerary.days, cities, (d) => d.location || cities[0], true);
 
   async function planCity(city: string): Promise<CityPlan> {
     const cityHotels = hotelsByCity.get(city)!;

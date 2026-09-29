@@ -1,7 +1,8 @@
 "use client";
 
 import { Plane, Hotel, Users, Calendar, MapPin, Check, Ship } from "lucide-react";
-import { formatDate, formatCurrency, pairFlights, fuzzyCityMatch } from "@/lib/utils";
+import { formatDate, formatCurrency, pairFlights } from "@/lib/utils";
+import { resolveCity } from "@/lib/location";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 
@@ -45,7 +46,7 @@ export function TripGlance({ itinerary, preferences }: Props) {
     }
     if (cities.length > 1) {
       return cities
-        .map((c) => hotels.find((h) => fuzzyCityMatch(h.city ?? h.location, c)))
+        .map((c) => hotels.find((h) => resolveCity(h.city ?? h.location, cities) === c))
         .filter((h): h is NonNullable<typeof h> => Boolean(h));
     }
     return hotels.slice(0, 1);

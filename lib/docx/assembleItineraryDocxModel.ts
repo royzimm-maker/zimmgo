@@ -19,8 +19,9 @@
 // cut against the skill's own accuracy rules even though no individual
 // cell claims a booking that doesn't exist.
 import {
-  groupItineraryDaysByLocation, formatDate, parseLocalDate, fuzzyCityMatch,
+  groupItineraryDaysByLocation, formatDate, parseLocalDate,
 } from "@/lib/utils";
+import { sameLocation } from "@/lib/location";
 import { getVisaRequirementsForTrip } from "@/lib/data/visaRequirements";
 import type {
   GeneratedItinerary, TripPreferences, ActivityOption, RestaurantOption, HotelOption,
@@ -144,10 +145,10 @@ function pickHotelForLocation(
 ): DocxHotel | null {
   const picked =
     preferences.selectedHotelsByCity?.[location] ??
-    (preferences.selectedHotel && fuzzyCityMatch(preferences.selectedHotel.city ?? preferences.selectedHotel.location, location)
+    (preferences.selectedHotel && sameLocation(preferences.selectedHotel.city ?? preferences.selectedHotel.location, location)
       ? preferences.selectedHotel
       : undefined) ??
-    hotels.find((h) => fuzzyCityMatch(h.city ?? h.location, location));
+    hotels.find((h) => sameLocation(h.city ?? h.location, location));
   if (!picked) return null;
   const isTravellerPick = Boolean(
     preferences.selectedHotelsByCity?.[location]?.id === picked.id ||
@@ -161,7 +162,7 @@ function splitRestaurantsForLocation(
   preferences: TripPreferences,
   restaurants: RestaurantOption[]
 ): { booked: DocxPickRow[]; options: DocxPickRow[] } {
-  const inLocation = restaurants.filter((r) => fuzzyCityMatch(r.location, location));
+  const inLocation = restaurants.filter((r) => sameLocation(r.location, location));
   const confirmedIds = new Set(preferences.selectedRestaurantIds ?? []);
   const toRow = (r: RestaurantOption): DocxPickRow => ({
     name: r.name,

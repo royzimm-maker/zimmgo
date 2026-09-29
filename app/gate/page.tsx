@@ -3,11 +3,14 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/branding/Logo";
+import { safeNextPath } from "@/lib/gateAuth";
 
 function GateForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/";
+  // Only ever a path on this site — the query string is attacker-controlled,
+  // and the gate would otherwise double as an open redirect.
+  const next = safeNextPath(searchParams.get("next"));
 
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +36,7 @@ function GateForm() {
       const body = await res.json().catch(() => ({}));
       setError(
         body.error === "not_configured"
-          ? "Access isn't configured yet — set SITE_PASSWORD in the deployment environment."
+          ? "Access isn't configured yet — set SITE_PASSWORDS in the deployment environment."
           : "That's not the right password."
       );
     } catch {

@@ -5,7 +5,7 @@
 // matched against `restaurants` by name + city. Everything downstream (types,
 // UI, this function's signature) already expects an isBeliPick/beliNote pair.
 
-import { fuzzyCityMatch } from "@/lib/utils";
+import { resolveCity } from "@/lib/location";
 import type { BeliPreference, RestaurantOption } from "@/types/trip";
 
 const BELI_NOTES = [
@@ -17,11 +17,10 @@ const BELI_NOTES = [
 // Restaurant `location` fields are neighborhood-level (e.g. "Trastevere, Rome"),
 // so grouping by the raw string would treat every neighborhood as its own city
 // and tag nearly everything as a pick. Bucket by city instead: match against the
-// trip's known destination cities (via the same fuzzy matcher used elsewhere for
-// this exact problem — see locationsMatch in RefineStep), else fall back to the
-// text after the last comma.
+// trip's known destination cities (the shared resolver in lib/location.ts),
+// else fall back to the text after the last comma.
 function cityFor(location: string, cities?: string[]): string {
-  const known = cities?.find((c) => fuzzyCityMatch(location, c));
+  const known = resolveCity(location, cities ?? []);
   if (known) return known;
   const parts = location.split(",");
   return parts[parts.length - 1].trim();
