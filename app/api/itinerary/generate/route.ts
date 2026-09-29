@@ -3,6 +3,7 @@ import { waitUntil } from "@vercel/functions";
 import { rateLimit } from "@/lib/rateLimit";
 import { readJsonBody } from "@/lib/api/readJsonBody";
 import { createJob, executeJob, findJobByKey, getJob } from "@/lib/itinerary/generationJobs";
+import { runGeneration } from "@/lib/itinerary/runGeneration";
 import type { TripPreferences } from "@/types/trip";
 
 // Generation is an agentic loop of up to 8 Anthropic round trips — often
@@ -44,7 +45,9 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const { job, created } = await createJob(requestId);
-    if (created) waitUntil(executeJob(job.jobId, String(tripId ?? ""), preferences));
+    if (created) {
+      waitUntil(executeJob(job.jobId, (onStage) => runGeneration(String(tripId ?? ""), preferences, onStage)));
+    }
     return NextResponse.json({ jobId: job.jobId, status: job.status }, { status: created ? 202 : 200 });
   } catch (error: unknown) {
     console.error("[itinerary/generate POST]", error);

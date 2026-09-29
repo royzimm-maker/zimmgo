@@ -78,6 +78,7 @@ function posts(fetchMock: ReturnType<typeof vi.fn>) {
 beforeEach(() => {
   useTripStore.setState({ trip: freshTrip(), isGenerating: false });
   localStorage.removeItem("zimmgo-pending-generation");
+  localStorage.removeItem("zimmgo-pending-autoplan");
 });
 
 afterEach(() => {
@@ -186,6 +187,97 @@ describe("ItineraryStep — generation", () => {
     expect(
       await screen.findByText(/Lost connection while building your itinerary/)
     ).toBeInTheDocument();
+  });
+});
+
+describe("ItineraryStep — plan my whole trip", () => {
+  const autoPlanResult = {
+    selectedHotelsByCity: {},
+    selectedActivityIds: ["a1"],
+    selectedRestaurantIds: [],
+    dayCards: { 1: ["act-a1"], 2: [], 3: [], 4: [] },
+    bankCards: [],
+    failedCities: [],
+  };
+  function autoPlanTripState() {
+    const itinerary = makeItinerary({
+      activities: [{ id: "a1", name: "Sagrada Família", category: "culture", duration: "2h", price: 30, currency: "USD", rating: 9, reviewCount: 1, isLocalFavorite: false, description: "", location: "Barcelona", bookingUrl: "" }],
+    });
+    useTripStore.setState({
+      trip: freshTrip({
+        itineraries: [itinerary],
+        preferences: { activities: [], activityRankings: {}, vibes: [], transportation: [], autoPlanEverything: true },
+      }),
+    });
+    return itinerary;
+  }
+  function autoPlanFetchMock(finalJob: Record<string, unknown>) {
+    return vi.fn(async (url: string, init?: RequestInit) => {
+      expect(url.startsWith("/api/itinerary/auto-plan")).toBe(true);
+      if (init?.method === "POST") return new Response(JSON.stringify({ jobId: "ap-1", status: "running" }), { status: 202 });
+      return new Response(JSON.stringify({ jobId: "ap-1", stage: null, result: null, error: null, ...finalJob }), { status: 200 });
+    });
+  }
+
+  it("runs auto-plan as a server job and lands on the finished plan", async () => {
+    autoPlanTripState();
+    const fetchMock = autoPlanFetchMock({ status: "done", result: autoPlanResult });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ItineraryStep />);
+
+    await waitFor(() => expect(screen.getByTestId("itinerary-view")).toBeInTheDocument());
+    expect(posts(fetchMock)).toHaveLength(1);
+    const trip = useTripStore.getState().trip;
+    expect(trip.preferences.selectedActivityIds).toEqual(["a1"]);
+    expect(trip.itineraries[0].reviewCompleted).toBe(true);
+    expect(trip.itineraries[0].finalizedPlan?.dayCards[1]).toEqual(["act-a1"]);
+    expect(localStorage.getItem("zimmgo-pending-autoplan")).toBeNull();
+  });
+
+  it("resumes a pending auto-plan job after a refresh instead of starting another", async () => {
+    autoPlanTripState();
+    localStorage.setItem(
+      "zimmgo-pending-autoplan",
+      JSON.stringify({ requestId: "req-abcdefgh", jobId: "ap-1", tripId: "trip-1", itineraryId: "itin-1" })
+    );
+    const fetchMock = autoPlanFetchMock({ status: "done", result: autoPlanResult });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ItineraryStep />);
+
+    await waitFor(() => expect(useTripStore.getState().trip.itineraries[0].reviewCompleted).toBe(true));
+    expect(posts(fetchMock)).toHaveLength(0);
+  });
+
+  it("on failure keeps the choice and offers a retry or the manual wizard", async () => {
+    autoPlanTripState();
+    const fetchMock = autoPlanFetchMock({ status: "error", error: "Rate limited" });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<ItineraryStep />);
+
+    expect(await screen.findByText("Rate limited")).toBeInTheDocument();
+    expect(useTripStore.getState().trip.preferences.autoPlanEverything).toBe(true);
+    expect(screen.queryByTestId("wizard")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /try again/i }));
+    await waitFor(() => expect(posts(fetchMock)).toHaveLength(2));
+
+    await user.click(await screen.findByRole("button", { name: /i'll pick myself/i }));
+    expect(useTripStore.getState().trip.preferences.autoPlanEverything).toBe(false);
+    expect(screen.getByTestId("wizard")).toBeInTheDocument();
+  });
+
+  it("names cities it couldn't plan while keeping the rest", async () => {
+    autoPlanTripState();
+    vi.stubGlobal("fetch", autoPlanFetchMock({ status: "done", result: { ...autoPlanResult, failedCities: ["Andalusia"] } }));
+
+    render(<ItineraryStep />);
+
+    expect(await screen.findByText(/couldn't finish planning Andalusia/)).toBeInTheDocument();
+    expect(useTripStore.getState().trip.itineraries[0].reviewCompleted).toBe(true);
   });
 });
 

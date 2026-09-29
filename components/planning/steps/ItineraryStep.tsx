@@ -12,7 +12,9 @@ import { VisaRequirements } from "@/components/planning/VisaRequirements";
 import { useTripStore } from "@/lib/store/tripStore";
 import { cn, formatDate, groupItineraryDaysByLocation, parseLocalDate } from "@/lib/utils";
 import { getVisaRequirementsForTrip } from "@/lib/data/visaRequirements";
-import { autoPlanTrip } from "@/lib/planning/autoPlanTrip";
+import {
+  startAutoPlan, waitForAutoPlan, loadPendingAutoPlan, clearPendingAutoPlan, type PendingAutoPlan,
+} from "@/lib/api/autoPlan";
 import {
   startGeneration, waitForGeneration, loadPendingGeneration, clearPendingGeneration, type PendingGeneration,
 } from "@/lib/api/generateItinerary";
@@ -162,51 +164,69 @@ export function ItineraryStep() {
   const prevPersonalizedRef = useRef(isPersonalized);
 
   // "Let ZiGy plan my whole trip" (chosen on the Planning Mode step) — once
-  // the itinerary lands, run the same hotel/activities/restaurants smart-
-  // picks and day-by-day arranging the wizard and Refine step would
-  // otherwise ask for one screen at a time, city by city, then mark review
+  // the itinerary lands, a server-side job runs the same hotel/activities/
+  // restaurants smart-picks and day-by-day arranging the wizard and Refine
+  // step would otherwise ask for one screen at a time, then review is marked
   // complete so the traveller lands straight on the finished plan.
   const [autoPlanning, setAutoPlanning] = useState(false);
+  const [autoPlanStage, setAutoPlanStage] = useState<string | null>(null);
   const [autoPlanError, setAutoPlanError] = useState<string | null>(null);
-  const autoPlanRef = useRef(false);
+  const [autoPlanNotice, setAutoPlanNotice] = useState<string | null>(null);
+  // The itinerary auto-plan was last started for — once per itinerary, so a
+  // regenerated itinerary gets planned too.
+  const autoPlanRef = useRef<string | null>(null);
+
+  // Starts an auto-plan job for the latest itinerary — or, given `resume`,
+  // picks up the one this browser was waiting on before a refresh.
+  async function runAutoPlan(resume?: PendingAutoPlan) {
+    const { trip: current } = useTripStore.getState();
+    const itinerary = current.itineraries[current.itineraries.length - 1];
+    if (!itinerary) return;
+    setAutoPlanning(true);
+    setAutoPlanError(null);
+    setAutoPlanNotice(null);
+    setAutoPlanStage(null);
+    try {
+      const pending = resume ?? (await startAutoPlan(current.id, itinerary, current.preferences));
+      const result = await waitForAutoPlan(pending.jobId, setAutoPlanStage);
+      clearPendingAutoPlan();
+      // Only apply it to the itinerary it was planned for — the traveller may
+      // have switched trips, regenerated, or finished review by hand meanwhile.
+      const now = useTripStore.getState().trip;
+      const target = now.itineraries[now.itineraries.length - 1];
+      if (now.id !== pending.tripId || target?.id !== pending.itineraryId || target.reviewCompleted) return;
+
+      for (const [city, hotel] of Object.entries(result.selectedHotelsByCity)) {
+        setSelectedHotelForCity(city, hotel);
+      }
+      setSelectedActivityIds(result.selectedActivityIds);
+      setSelectedRestaurantIds(result.selectedRestaurantIds);
+      saveFinalizedPlan(target.id, { dayCards: result.dayCards, bankCards: result.bankCards });
+      markItineraryReviewed(target.id);
+      if (result.failedCities.length) {
+        setAutoPlanNotice(
+          `ZiGy couldn't finish planning ${result.failedCities.join(" and ")} — those activities and restaurants are waiting unscheduled. Place them with "Fine-tune my schedule" below.`
+        );
+      }
+    } catch (e: unknown) {
+      clearPendingAutoPlan();
+      // Offer a retry or the manual wizard — a transient failure (network
+      // blip, rate limit) shouldn't silently switch off the traveller's
+      // choice to have ZiGy plan everything.
+      const message = e instanceof Error ? e.message : "Something went wrong";
+      setAutoPlanError(message === "Failed to fetch" ? "Lost connection while planning your trip." : message);
+    } finally {
+      setAutoPlanning(false);
+      setAutoPlanStage(null);
+    }
+  }
 
   useEffect(() => {
     if (!latest || latest.reviewCompleted || !trip.preferences.autoPlanEverything) return;
-    if (autoPlanRef.current) return;
-    autoPlanRef.current = true;
-    (async () => {
-      setAutoPlanning(true);
-      setAutoPlanError(null);
-      try {
-        const currentPrefs = useTripStore.getState().trip.preferences;
-        const result = await autoPlanTrip(latest, currentPrefs);
-        for (const [city, hotel] of Object.entries(result.selectedHotelsByCity)) {
-          setSelectedHotelForCity(city, hotel);
-        }
-        setSelectedActivityIds(result.selectedActivityIds);
-        setSelectedRestaurantIds(result.selectedRestaurantIds);
-        const placed = new Set(Object.values(result.dayCards).flat());
-        const allCardIds = [
-          ...latest.activities.map((a) => `act-${a.id}`),
-          ...(latest.restaurants ?? []).map((r) => `rest-${r.id}`),
-        ];
-        const bankCards = allCardIds.filter((id) => !placed.has(id));
-        saveFinalizedPlan(latest.id, { dayCards: result.dayCards, bankCards });
-        markItineraryReviewed(latest.id);
-      } catch (e: unknown) {
-        // Fall back to the manual wizard rather than leaving the traveller
-        // stuck on a permanent loading state — a real failure here (bad API
-        // key, network blip) shouldn't block the whole trip from being planned.
-        setAutoPlanError(
-          e instanceof Error
-            ? `ZiGy couldn't finish planning automatically (${e.message}) — go through it yourself below instead.`
-            : "ZiGy couldn't finish planning automatically — go through it yourself below instead."
-        );
-        setAutoPlanEverything(false);
-      } finally {
-        setAutoPlanning(false);
-      }
-    })();
+    if (autoPlanRef.current === latest.id) return;
+    autoPlanRef.current = latest.id;
+    const pending = loadPendingAutoPlan();
+    runAutoPlan(pending && pending.tripId === trip.id && pending.itineraryId === latest.id ? pending : undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latest?.id, latest?.reviewCompleted, trip.preferences.autoPlanEverything]);
 
@@ -447,10 +467,30 @@ export function ItineraryStep() {
         </Card>
       )}
 
-      {/* Auto-plan error — falls back to the manual wizard below once shown */}
-      {autoPlanError && (
+      {/* Auto-plan error — the traveller chooses: retry, or plan it by hand */}
+      {autoPlanError && !autoPlanning && (
         <Card className="border-amber-200 bg-amber-50 mb-4">
-          <p className="text-sm text-amber-700">{autoPlanError}</p>
+          <p className="text-sm font-medium text-amber-800">ZiGy couldn&apos;t finish planning your trip</p>
+          <p className="text-xs text-amber-700 mt-1">{autoPlanError}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => runAutoPlan()}>
+              Try again
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setAutoPlanError(null); setAutoPlanEverything(false); }}
+            >
+              I&apos;ll pick myself
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Auto-plan partial result — some cities couldn't be planned */}
+      {autoPlanNotice && (
+        <Card className="border-amber-200 bg-amber-50 mb-4">
+          <p className="text-sm text-amber-700">{autoPlanNotice}</p>
         </Card>
       )}
 
@@ -459,7 +499,9 @@ export function ItineraryStep() {
         <div className="flex flex-col items-center gap-3 py-14 text-center">
           <div className="h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin" />
           <p className="text-sm font-semibold text-slate-700">ZiGy is planning your whole trip…</p>
-          <p className="text-xs text-slate-400 max-w-xs">Lodging, activities, restaurants, and the day-by-day schedule — one city at a time.</p>
+          <p className="text-xs text-slate-400 max-w-xs">
+            {autoPlanStage ?? "Lodging, activities, restaurants, and the day-by-day schedule for every city."}
+          </p>
         </div>
       )}
 

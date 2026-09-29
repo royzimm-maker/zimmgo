@@ -2,7 +2,7 @@
 // Production: integrate with GetYourGuide API or Viator API
 // GetYourGuide docs: https://api.getyourguide.com
 
-import { v4 as uuid } from "uuid";
+import { stableId } from "@/lib/api/mockRandom";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
 import { resolvePool } from "@/lib/api/poolLookup";
 import { getActivitiesForDestination, type DestinationActivity } from "@/lib/data/destinationActivities";
@@ -297,7 +297,7 @@ export async function searchActivities(params: ActivitySearchParams): Promise<Ac
   }
 
   return pool.slice(0, 5).map((a) => ({
-    id: uuid(),
+    id: stableId("activity", a.name, params.destination),
     name: a.name!,
     category: a.category!,
     duration: a.duration!,

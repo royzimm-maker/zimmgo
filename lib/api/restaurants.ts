@@ -1,7 +1,7 @@
 // Restaurants API module
 // Production: integrate with OpenTable, TheFork, or Google Places API
 
-import { v4 as uuid } from "uuid";
+import { stableId } from "@/lib/api/mockRandom";
 import type { RestaurantOption, RestaurantTier } from "@/types/trip";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
 import { fuzzyCityMatch } from "@/lib/utils";
@@ -646,7 +646,7 @@ export async function searchRestaurants(params: RestaurantSearchParams): Promise
   // search destination — swap it out so results aren't mislabeled as another city.
   return filtered.slice(0, 6).map((r) => ({
     ...r,
-    id: uuid(),
+    id: stableId("restaurant", r.name, params.destination),
     location: fuzzyCityMatch(r.location, params.destination) ? r.location : params.destination,
     playfulCategory: PLAYFUL_LABELS[r.tier],
     priceRange: PRICE_RANGES[r.tier],

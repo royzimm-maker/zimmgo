@@ -2,9 +2,8 @@
 // Production: swap mock data for real Amadeus API calls
 // Amadeus docs: https://developers.amadeus.com/self-service/category/flights
 
-import { v4 as uuid } from "uuid";
 import type { FlightOption } from "@/types/trip";
-import { randomInt } from "@/lib/utils";
+import { seededInt, seededRandom, stableId } from "@/lib/api/mockRandom";
 
 interface FlightSearchParams {
   origin: string;
@@ -76,8 +75,14 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
   const lowestFare = params.lowest_fare_mode ?? false;
   const effectiveCabin = lowestFare ? "economy" : (params.cabin_class ?? "economy");
   const effectiveMult  = CABIN_MULTIPLIER[effectiveCabin];
+  // Seeded from the query so the same search returns the same flights and IDs.
+  const rand = seededRandom(
+    "flights", params.origin, params.destination, params.departure_date, params.return_date,
+    effectiveCabin, lowestFare, params.nonstop_only, (params.preferred_airlines ?? []).join(","),
+  );
+  const randomInt = (min: number, max: number) => seededInt(rand, min, max);
   const airlines = lowestFare
-    ? [...MOCK_AIRLINES].sort(() => Math.random() - 0.5).slice(0, 3)
+    ? MOCK_AIRLINES.map((a) => ({ a, k: rand() })).sort((x, y) => x.k - y.k).map((x) => x.a).slice(0, 3)
     : pickAirlines(params.preferred_airlines ?? [], 3);
 
   const basePrice = lowestFare ? randomInt(300, 900) : randomInt(600, 2400);
@@ -85,11 +90,12 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
   const results = airlines.map((airline, idx) => {
     const departureHM = { h: randomInt(6, 14), m: [0, 15, 30, 45][idx % 4] };
     const arrivalHM = { h: randomInt(14, 23), m: [0, 30][idx % 2] };
+    const flightNumber = `${airline.code}${randomInt(100, 999)}`;
 
     return {
-    id: uuid(),
+    id: stableId("flight", flightNumber, params.origin, params.destination, params.departure_date, effectiveCabin),
     airline: airline.name,
-    flightNumber: `${airline.code}${randomInt(100, 999)}`,
+    flightNumber,
     origin: params.origin,
     destination: params.destination,
     departureTime: `${params.departure_date}T${departureHM.h.toString().padStart(2, "0")}:${departureHM.m.toString().padStart(2, "0")}:00`,

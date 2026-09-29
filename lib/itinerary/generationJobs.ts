@@ -1,10 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { runGeneration } from "@/lib/itinerary/runGeneration";
-import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
+
+// Background jobs (itinerary generation, auto-plan) kept in the GenerationJob
+// table so the client can poll them and resume after a refresh.
 
 // A job still "running" this long after its last update can't still be alive
-// — the function's maxDuration (150s) has passed — so it's reported as failed
+// — the functions' maxDuration (150s) has passed — so it's reported as failed
 // instead of leaving the client polling forever.
 export const STALE_AFTER_MS = 180_000;
 const KEEP_JOBS_MS = 86_400_000;
@@ -13,7 +14,7 @@ export interface JobView {
   jobId: string;
   status: "running" | "done" | "error";
   stage: string | null;
-  result: GeneratedItinerary | null;
+  result: unknown;
   error: string | null;
 }
 
@@ -24,7 +25,7 @@ function view(job: JobRow): JobView {
     jobId: job.id,
     status: job.status as JobView["status"],
     stage: job.stage,
-    result: (job.result as unknown as GeneratedItinerary | null) ?? null,
+    result: job.result ?? null,
     error: job.error,
   };
 }
@@ -55,18 +56,22 @@ export async function createJob(requestKey: string): Promise<{ job: JobView; cre
   }
 }
 
-export async function executeJob(jobId: string, tripId: string, preferences: TripPreferences): Promise<void> {
+export type JobWork = (onStage: (stage: string) => Promise<void>) => Promise<unknown>;
+
+// Runs `work` to completion, recording each progress stage and then the
+// result (or the failure) on the job row. Never throws.
+export async function executeJob(jobId: string, work: JobWork): Promise<void> {
   try {
-    const itinerary = await runGeneration(tripId, preferences, async (stage) => {
+    const result = await work(async (stage) => {
       await prisma.generationJob.update({ where: { id: jobId }, data: { stage } }).catch(() => {});
     });
     await prisma.generationJob.update({
       where: { id: jobId },
-      data: { status: "done", stage: null, result: itinerary as unknown as Prisma.InputJsonValue },
+      data: { status: "done", stage: null, result: result as Prisma.InputJsonValue },
     });
   } catch (error: unknown) {
-    console.error("[itinerary/generate job]", jobId, error);
-    const message = error instanceof Error ? error.message : "Generation failed";
+    console.error("[job]", jobId, error);
+    const message = error instanceof Error ? error.message : "Something went wrong";
     await prisma.generationJob
       .update({ where: { id: jobId }, data: { status: "error", error: message } })
       .catch(() => {});
@@ -77,7 +82,7 @@ export async function getJob(jobId: string): Promise<JobView | null> {
   const job = await prisma.generationJob.findUnique({ where: { id: jobId } });
   if (!job) return null;
   if (job.status === "running" && Date.now() - job.updatedAt.getTime() > STALE_AFTER_MS) {
-    const message = "Generation stopped before finishing — please try again.";
+    const message = "This stopped before finishing — please try again.";
     await prisma.generationJob
       .update({ where: { id: jobId }, data: { status: "error", error: message } })
       .catch(() => {});

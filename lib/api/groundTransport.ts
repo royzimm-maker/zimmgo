@@ -11,9 +11,8 @@
 // generation below for that call; the shape callers rely on
 // (TransportOption[]) stays the same either way.
 
-import { v4 as uuid } from "uuid";
 import type { TransportOption, TripPreferences } from "@/types/trip";
-import { randomInt } from "@/lib/utils";
+import { seededInt, seededRandom, stableId } from "@/lib/api/mockRandom";
 import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 
 export async function searchGroundTransport(
@@ -36,6 +35,11 @@ export async function searchGroundTransport(
     .replace("{to}", encodeURIComponent(toCity))
     .replace("{date}", date);
 
+  // Seeded from the route and date so the same search returns the same
+  // options and IDs.
+  const rand = seededRandom("ground", fromCity, toCity, date);
+  const randomInt = (min: number, max: number) => seededInt(rand, min, max);
+
   const basePrice = mode === "ferry" ? randomInt(25, 90) : randomInt(40, 140);
   const baseDurationHours = mode === "ferry" ? randomInt(2, 6) : randomInt(1, 5);
 
@@ -45,7 +49,7 @@ export async function searchGroundTransport(
     const arrivalH = (departureH + durationH) % 24;
 
     return {
-      id: uuid(),
+      id: stableId("ground", mode, fromCity, toCity, date, idx),
       mode,
       provider,
       fromCity,

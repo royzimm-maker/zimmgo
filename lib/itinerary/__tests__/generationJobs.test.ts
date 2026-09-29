@@ -7,12 +7,10 @@ const m = vi.hoisted(() => ({
   findUnique: vi.fn(),
   update: vi.fn(),
   deleteMany: vi.fn(),
-  runGeneration: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({
   prisma: { generationJob: { create: m.create, findUnique: m.findUnique, update: m.update, deleteMany: m.deleteMany } },
 }));
-vi.mock("@/lib/itinerary/runGeneration", () => ({ runGeneration: m.runGeneration }));
 
 import { createJob, executeJob, getJob, STALE_AFTER_MS } from "@/lib/itinerary/generationJobs";
 
@@ -46,22 +44,19 @@ describe("createJob", () => {
 
 describe("executeJob", () => {
   it("records each progress stage, then the result", async () => {
-    m.runGeneration.mockImplementation(async (_t: string, _p: unknown, onStage: (s: string) => Promise<void>) => {
+    await executeJob("job-1", async (onStage) => {
       await onStage("Finding hotels that fit your trip…");
       return { id: "itin-1" };
     });
-
-    await executeJob("job-1", "t1", {} as never);
 
     expect(m.update).toHaveBeenCalledWith({ where: { id: "job-1" }, data: { stage: "Finding hotels that fit your trip…" } });
     expect(m.update).toHaveBeenLastCalledWith({ where: { id: "job-1" }, data: { status: "done", stage: null, result: { id: "itin-1" } } });
   });
 
   it("records a failure instead of throwing", async () => {
-    m.runGeneration.mockRejectedValue(new Error("API key is invalid"));
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    await expect(executeJob("job-1", "t1", {} as never)).resolves.toBeUndefined();
+    await expect(executeJob("job-1", () => Promise.reject(new Error("API key is invalid")))).resolves.toBeUndefined();
     expect(m.update).toHaveBeenLastCalledWith({ where: { id: "job-1" }, data: { status: "error", error: "API key is invalid" } });
   });
 });

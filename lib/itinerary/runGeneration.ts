@@ -263,6 +263,9 @@ export async function runGeneration(
   activities  = dedup(activities);
   restaurants = dedup(restaurants);
   hotels      = dedup(hotels);
+  // Flight IDs are derived from the search, so a repeated identical search
+  // returns the same flights — keep one copy of each.
+  flights     = flights.filter((f, i) => flights.findIndex((g) => g.id === f.id) === i);
 
   // ── Synthesise final itinerary from collected data ──
   return assembleItinerary({

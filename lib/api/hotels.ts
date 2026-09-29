@@ -2,9 +2,8 @@
 // Production: integrate with Booking.com Demand API or Airbnb API
 // Booking.com docs: https://developers.booking.com
 
-import { v4 as uuid } from "uuid";
 import type { HotelOption } from "@/types/trip";
-import { randomInt } from "@/lib/utils";
+import { seededInt, seededRandom, stableId } from "@/lib/api/mockRandom";
 import { resolvePool } from "@/lib/api/poolLookup";
 
 interface HotelSearchParams {
@@ -306,12 +305,14 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOpti
       const rawLoc = (h.location ?? "").toLowerCase();
       const fullLocation = GENERIC.has(rawLoc) ? params.destination : (h.location ?? params.destination);
       return {
-        id: uuid(),
+        // Keyed on the hotel itself, so the same hotel keeps its ID (and a
+        // stable nightly price) across repeated searches.
+        id: stableId("hotel", h.name, params.destination),
         name: h.name!,
         stars: h.stars!,
         location: fullLocation,
         city: params.destination,
-        pricePerNight: Math.min(randomInt(lo, hi), maxPrice),
+        pricePerNight: Math.min(seededInt(seededRandom("hotel-price", h.name, params.destination), lo, hi), maxPrice),
         currency: "USD",
         rating: h.rating!,
         ratingSource: h.ratingSource,

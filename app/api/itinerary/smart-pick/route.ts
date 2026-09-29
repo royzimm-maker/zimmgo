@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
-import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
-import { SMART_PICK_TOOL } from "@/lib/ai/tools";
-import { buildHotelPickPrompt, buildSchedulePickPrompt, buildPreferencePickPrompt, buildActivitiesForCityPickPrompt, buildRestaurantsForCityPickPrompt } from "@/lib/ai/prompts";
-import { logApiUsage } from "@/lib/ai/usageLog";
+import { runSmartPick, SmartPickError } from "@/lib/ai/smartPick";
 import { readJsonBody, tooMany } from "@/lib/api/readJsonBody";
-import type { SmartPickKind, SmartPickRequestBody, SmartPickResponse } from "@/types/smartPick";
-
-const PREFERENCE_KINDS = new Set<SmartPickKind>(["activities", "vibes", "lodging"]);
+import type { SmartPickRequestBody } from "@/types/smartPick";
 
 export async function POST(request: NextRequest) {
   const limited = await rateLimit(request, { bucket: "smart-pick", limit: 30, windowMs: 5 * 60_000 });
@@ -17,7 +12,6 @@ export async function POST(request: NextRequest) {
     const parsed = await readJsonBody<SmartPickRequestBody>(request, 400_000);
     if (!parsed.ok) return parsed.response;
     const body = parsed.body;
-    const { kind, preferences } = body;
 
     // Every option in these lists is serialized into the prompt — cap them
     // well above what the app ever sends for a real trip.
@@ -26,41 +20,9 @@ export async function POST(request: NextRequest) {
       if (list !== undefined && (!Array.isArray(list) || list.length > max)) return tooMany(field, max);
     }
 
-    const prompt = kind === "hotel"
-      ? buildHotelPickPrompt(body.city ?? "", preferences, body.hotels ?? [])
-      : kind === "schedule"
-      ? buildSchedulePickPrompt(body.city ?? "", preferences, body.days ?? [], body.activities ?? [], body.restaurants ?? [])
-      : kind === "activities_for_city"
-      ? buildActivitiesForCityPickPrompt(body.city ?? "", preferences, body.activities ?? [])
-      : kind === "restaurants_for_city"
-      ? buildRestaurantsForCityPickPrompt(body.city ?? "", preferences, body.restaurants ?? [])
-      : PREFERENCE_KINDS.has(kind)
-      ? buildPreferencePickPrompt(kind as "activities" | "vibes" | "lodging", preferences, body.candidates ?? [])
-      : null;
-
-    if (!prompt) {
-      return NextResponse.json({ error: `Unknown smart-pick kind: ${kind}` }, { status: 400 });
-    }
-
-    const client = getAnthropicClient();
-    const response = await client.messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 1024,
-      system: TRAVEL_ADVISOR_SYSTEM_PROMPT,
-      tools: [SMART_PICK_TOOL],
-      tool_choice: { type: "tool", name: "make_selection" },
-      messages: [{ role: "user", content: prompt }],
-    });
-    await logApiUsage("smart-pick", DEFAULT_MODEL, response.usage);
-
-    const toolUse = response.content.find((b) => b.type === "tool_use");
-    if (!toolUse || toolUse.type !== "tool_use") {
-      return NextResponse.json({ error: "AI did not return a selection" }, { status: 502 });
-    }
-
-    const result = toolUse.input as SmartPickResponse;
-    return NextResponse.json(result);
+    return NextResponse.json(await runSmartPick(body));
   } catch (error: unknown) {
+    if (error instanceof SmartPickError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[itinerary/smart-pick]", error);
     const message = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json({ error: message }, { status: 500 });

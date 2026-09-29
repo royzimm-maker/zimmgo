@@ -9,7 +9,9 @@ const m = vi.hoisted(() => ({
   getJob: vi.fn(),
   rateLimit: vi.fn(),
   waitUntil: vi.fn(),
+  runGeneration: vi.fn(),
 }));
+vi.mock("@/lib/itinerary/runGeneration", () => ({ runGeneration: m.runGeneration }));
 vi.mock("@/lib/itinerary/generationJobs", () => ({
   findJobByKey: m.findJobByKey, createJob: m.createJob, executeJob: m.executeJob, getJob: m.getJob,
 }));
@@ -41,8 +43,12 @@ describe("POST /api/itinerary/generate", () => {
 
     expect(res.status).toBe(202);
     expect(await res.json()).toEqual({ jobId: "job-1", status: "running" });
-    expect(m.executeJob).toHaveBeenCalledWith("job-1", "t1", prefs);
+    expect(m.executeJob).toHaveBeenCalledWith("job-1", expect.any(Function));
     expect(m.waitUntil).toHaveBeenCalledTimes(1);
+    // The job's work is this trip's generation, reporting stages as it goes.
+    const onStage = vi.fn();
+    await m.executeJob.mock.calls[0][1](onStage);
+    expect(m.runGeneration).toHaveBeenCalledWith("t1", prefs, onStage);
   });
 
   it("returns the existing job for a repeated requestId without starting, billing, or rate-limiting a new run", async () => {
