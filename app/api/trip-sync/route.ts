@@ -16,7 +16,7 @@ const MAX_BODY_BYTES = 2_000_000;
 // PUTs, so by the time a PUT fires the cookie is guaranteed to exist.
 export async function GET() {
   try {
-    const store = cookies();
+    const store = await cookies();
     let deviceId = store.get(COOKIE_NAME)?.value;
     const isNew = !deviceId;
     if (!deviceId) deviceId = randomUUID();
@@ -49,7 +49,7 @@ export async function PUT(request: NextRequest) {
   if (limited) return limited;
 
   try {
-    const deviceId = cookies().get(COOKIE_NAME)?.value;
+    const deviceId = (await cookies()).get(COOKIE_NAME)?.value;
     if (!deviceId) {
       return NextResponse.json({ error: "No device cookie — GET /api/trip-sync first" }, { status: 400 });
     }

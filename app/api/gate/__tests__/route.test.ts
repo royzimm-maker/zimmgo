@@ -7,7 +7,7 @@ vi.mock("@/lib/rateLimit", () => ({ rateLimit: mockRateLimit }));
 
 import { GATE_COOKIE_NAME, gateAccounts, verifyGateToken } from "@/lib/gateAuth";
 import { POST } from "@/app/api/gate/route";
-import { middleware } from "@/middleware";
+import { proxy } from "@/proxy";
 
 const ORIGINAL = { SITE_PASSWORD: process.env.SITE_PASSWORD, SITE_PASSWORDS: process.env.SITE_PASSWORDS };
 
@@ -75,14 +75,14 @@ describe("POST /api/gate", () => {
   });
 });
 
-describe("middleware", () => {
+describe("proxy (site gate)", () => {
   it("lets a signed-in person through", async () => {
-    const res = await middleware(pageRequest(await signIn("alex-pw")));
+    const res = await proxy(pageRequest(await signIn("alex-pw")));
     expect(res.headers.get("location")).toBeNull();
   });
 
   it("redirects to the gate without a session, keeping where they were going", async () => {
-    const res = await middleware(pageRequest());
+    const res = await proxy(pageRequest());
     expect(res.headers.get("location")).toBe("http://localhost/gate?next=%2Fplan%3Fx%3D1");
   });
 
@@ -91,14 +91,14 @@ describe("middleware", () => {
     const samCookie = await signIn("sam-pw");
     process.env.SITE_PASSWORDS = "sam=sam-pw";
 
-    const alexRes = await middleware(pageRequest(alexCookie));
+    const alexRes = await proxy(pageRequest(alexCookie));
     expect(alexRes.headers.get("location")).toContain("/gate");
     expect(alexRes.cookies.get(GATE_COOKIE_NAME)?.value).toBe(""); // stale session cleared
-    expect((await middleware(pageRequest(samCookie))).headers.get("location")).toBeNull();
+    expect((await proxy(pageRequest(samCookie))).headers.get("location")).toBeNull();
   });
 
   it("is a no-op when the gate isn't configured", async () => {
     delete process.env.SITE_PASSWORDS;
-    expect((await middleware(pageRequest())).headers.get("location")).toBeNull();
+    expect((await proxy(pageRequest())).headers.get("location")).toBeNull();
   });
 });

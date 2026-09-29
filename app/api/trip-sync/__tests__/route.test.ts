@@ -8,7 +8,7 @@ const { mockCookieStore, mockDevice } = vi.hoisted(() => ({
   mockDevice: { findUnique: vi.fn(), updateMany: vi.fn(), create: vi.fn() },
 }));
 vi.mock("next/headers", () => ({
-  cookies: () => mockCookieStore,
+  cookies: async () => mockCookieStore,
 }));
 vi.mock("@/lib/db", () => ({ prisma: { device: mockDevice } }));
 

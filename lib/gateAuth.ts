@@ -1,7 +1,7 @@
 // Site-wide "friends and family" gate: per-person passwords, per-person
-// revocable sessions. Shared by middleware.ts (Edge runtime) and
-// app/api/gate/route.ts (Node runtime) — Web Crypto's `crypto.subtle` is the
-// one API both support, unlike Node's `crypto` module, which Edge can't use.
+// revocable sessions. Shared by proxy.ts (the site gate) and
+// app/api/gate/route.ts. Uses Web Crypto (`crypto.subtle`), available in every
+// runtime Next.js runs in, so the same code works wherever the gate runs.
 //
 // Configuration (Vercel env / .env.local):
 //   SITE_PASSWORDS="alex=first-password,sam=second-password"

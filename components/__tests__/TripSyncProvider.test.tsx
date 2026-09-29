@@ -85,6 +85,28 @@ describe("TripSyncProvider — hydration safety", () => {
     expect(puts(fetchMock)).toHaveLength(0); // content already matches the server
   });
 
+  it("keeps a freshly started trip active instead of reviving the one it shelved", async () => {
+    // "Start a fresh trip" (the crash-recovery escape hatch) shelved `broken`
+    // and reloaded before the debounced save reached the server, which still
+    // has `broken` as the active trip.
+    const broken = trip("broken", T2, { name: "Crashes", completedSteps: ["destination", "dates"] });
+    setLocal(trip("fresh", T1), [broken]);
+    const serverBlob = { schemaVersion: SCHEMA_VERSION, trip: broken, savedTrips: [], chatMessages: [], progress: calcProgress(broken.completedSteps) };
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? json({ ok: true, version: 4 }) : json({ data: serverBlob, version: 3 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TripSyncProvider><div /></TripSyncProvider>);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+
+    expect(useTripStore.getState().trip.id).toBe("fresh");
+    expect(useTripStore.getState().savedTrips.map((t) => t.id)).toEqual(["broken"]);
+    const [written] = puts(fetchMock);
+    expect(written.data.trip.id).toBe("fresh"); // the server now has the fresh trip active too
+  });
+
   it("retries hydration when the window regains focus after all attempts failed", async () => {
     let online = false;
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {

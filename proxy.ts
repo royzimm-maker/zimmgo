@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GATE_COOKIE_NAME, gateAccounts, verifyGateToken } from "@/lib/gateAuth";
 
-// Site-wide "friends and family" gate — active only when SITE_PASSWORDS or
+// Site-wide "friends and family" gate, run by Next.js's proxy (what earlier
+// versions called middleware) — active only when SITE_PASSWORDS or
 // SITE_PASSWORD is set (see lib/gateAuth.ts). Unset (the default for local
-// dev) means this middleware no-ops entirely, so `npm run dev` never requires
+// dev) means this proxy no-ops entirely, so `npm run dev` never requires
 // a password unless you opt in via .env.local. In production they must be
 // set in the Vercel project's environment variables for this to actually
 // protect anything — it does nothing on its own.
 //
 // The session is re-checked on every request, so removing or changing a
 // person's password locks them out immediately.
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const accounts = gateAccounts();
   if (!accounts.length) return NextResponse.next();
 

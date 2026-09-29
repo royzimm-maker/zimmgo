@@ -169,15 +169,22 @@ export function TripSyncProvider({ children }: { children: React.ReactNode }) {
             lastSyncedJson = server ? stableStringify(body.data) : null;
             version = body.version ?? 0;
 
+            // Only a device with nothing at all (a cleared cache: blank trip,
+            // no saved trips) takes the server copy wholesale, active trip
+            // included. Anything else is merged, which keeps the trip this
+            // device has open — e.g. after "Start a fresh trip" shelved a
+            // trip that crashed, that trip must not come back as the active
+            // one just because the reload beat the debounced save.
+            const localIsEmpty = !hasRealProgress(local.trip) && local.savedTrips.length === 0;
             if (server) {
-              const next = hasRealProgress(local.trip) ? mergeSyncBlobs(local, server) : server;
+              const next = localIsEmpty ? server : mergeSyncBlobs(local, server);
               if (stableStringify(next) !== stableStringify(local)) applyBlob(next);
             }
             // Local may hold work the server hasn't seen — push once now that
             // it's safe to. push() skips it if the content already matches,
             // and a brand-new visitor with an untouched blank trip has
             // nothing worth saving yet.
-            if (server || hasRealProgress(local.trip)) schedulePush();
+            if (server || !localIsEmpty) schedulePush();
             return;
           } catch {
             // network error — fall through to the next attempt

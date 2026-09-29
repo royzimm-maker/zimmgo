@@ -27,7 +27,7 @@ function GateForm() {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
-        // A hard navigation, not router.push — middleware needs to see the
+        // A hard navigation, not router.push — the proxy needs to see the
         // freshly-set cookie on the next request, which a client-side
         // transition alone doesn't guarantee re-checks.
         window.location.href = next;

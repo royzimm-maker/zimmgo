@@ -109,7 +109,8 @@ export function PlanningFlow() {
       {/* ── Main content ── */}
       <main className="flex-1 overflow-y-auto print:overflow-visible">
         <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 print:max-w-none">
-          <ErrorBoundary>
+          {/* Keyed so moving to another step or trip clears a caught error. */}
+          <ErrorBoundary key={`${trip.id}:${trip.currentStep}`}>
             <StepComponent />
           </ErrorBoundary>
         </div>

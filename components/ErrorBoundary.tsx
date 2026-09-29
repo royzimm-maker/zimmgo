@@ -1,10 +1,15 @@
 "use client";
 
-import { Component, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { ErrorRecovery } from "@/components/ErrorRecovery";
 
 interface Props { children: ReactNode; }
 interface State { error: Error | null; }
 
+// Wraps the current planning step, so a crash there leaves the header,
+// progress sidebar and chat usable. Offers the same recovery as the
+// full-page error screens — "Try again" alone just re-crashes when the
+// saved trip itself is what the step can't render.
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 
@@ -12,26 +17,13 @@ export class ErrorBoundary extends Component<Props, State> {
     return { error };
   }
 
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[step error]", error, info.componentStack);
+  }
+
   render() {
     if (this.state.error) {
-      return (
-        <div className="flex flex-col items-center gap-4 py-16 text-center px-6">
-          <span className="text-3xl">⚠️</span>
-          <div>
-            <p className="font-semibold text-slate-800">Something went wrong</p>
-            <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">
-              {this.state.error.message}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => this.setState({ error: null })}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
-          >
-            Try again
-          </button>
-        </div>
-      );
+      return <ErrorRecovery inline error={this.state.error} reset={() => this.setState({ error: null })} />;
     }
     return this.props.children;
   }
