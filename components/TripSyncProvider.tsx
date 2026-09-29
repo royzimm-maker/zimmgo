@@ -35,7 +35,9 @@ export const DEBOUNCE_MS = 1500;
 // Delays before each GET attempt. After the last one fails, hydration is
 // retried only when the window regains focus or comes back online.
 export const HYDRATE_RETRY_DELAYS_MS = [0, 2_000, 5_000, 15_000];
-const PUT_RETRY_MS = 10_000;
+// Failed saves retry with exponential backoff: 10s, 20s, 40s … capped at 5 min.
+export const PUT_RETRY_MS = 10_000;
+export const PUT_RETRY_MAX_MS = 5 * 60_000;
 
 // Anonymous, device-linked backend sync, layered on top of localStorage
 // persistence rather than replacing it. Two safety rules:
@@ -71,6 +73,18 @@ export function TripSyncProvider({ children }: { children: React.ReactNode }) {
     // Set once this tab's code is known to be older than the saved data —
     // no more reads or writes until a reload.
     let outdated = false;
+    let failedPushes = 0;
+    // Content the server refused as too large (413). Resending the same
+    // bytes can't succeed, so it isn't retried; the next change is tried
+    // once (e.g. after the traveller deletes a trip, it may fit).
+    let oversizedJson: string | null = null;
+
+    function retryLater() {
+      clearTimeout(retryTimer);
+      const delay = Math.min(PUT_RETRY_MS * 2 ** failedPushes, PUT_RETRY_MAX_MS);
+      failedPushes += 1;
+      retryTimer = setTimeout(push, delay);
+    }
 
     function stopAsOutdated() {
       outdated = true;
@@ -94,7 +108,7 @@ export function TripSyncProvider({ children }: { children: React.ReactNode }) {
       }
       const blob = currentBlob();
       const json = stableStringify(blob);
-      if (json === lastSyncedJson) return;
+      if (json === lastSyncedJson || json === oversizedJson) return;
 
       inFlight = true;
       try {
@@ -108,6 +122,7 @@ export function TripSyncProvider({ children }: { children: React.ReactNode }) {
           const body = (await res.json()) as { version: number };
           version = body.version;
           lastSyncedJson = json;
+          failedPushes = 0;
         } else if (res.status === 409) {
           const body = (await res.json()) as { data: unknown; version: number };
           const server = migrateSyncBlob(body.data);
@@ -128,13 +143,14 @@ export function TripSyncProvider({ children }: { children: React.ReactNode }) {
           // The server rejected our schema version — it's running older code
           // than this tab (e.g. mid-rollback). Retrying won't help.
           stopAsOutdated();
+        } else if (res.status === 413) {
+          oversizedJson = json;
+          console.warn("[trip-sync] Saved trips are too large to sync — they're still saved on this device.");
         } else {
-          clearTimeout(retryTimer);
-          retryTimer = setTimeout(push, PUT_RETRY_MS);
+          retryLater();
         }
       } catch {
-        clearTimeout(retryTimer);
-        retryTimer = setTimeout(push, PUT_RETRY_MS);
+        retryLater();
       } finally {
         inFlight = false;
         if (pending && !cancelled) {

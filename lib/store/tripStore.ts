@@ -3,7 +3,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuid } from "uuid";
-import { SCHEMA_VERSION, migratePersistedState } from "@/lib/sync/schema";
+import { SCHEMA_VERSION, MAX_CHAT_MESSAGES, migratePersistedState } from "@/lib/sync/schema";
+import { safeLocalStorage } from "@/lib/store/safeStorage";
 import type {
   Trip,
   TripPreferences,
@@ -536,7 +537,10 @@ export const useTripStore = create<TripState>()(
         set((s) => ({
           trip: {
             ...s.trip,
-            itineraries: [...s.trip.itineraries, itinerary],
+            // Replaces rather than appends: only the latest itinerary is ever
+            // shown or edited, and keeping every regeneration made the saved
+            // trip grow without bound (see lib/sync/schema.ts MIGRATIONS[1]).
+            itineraries: [itinerary],
             updatedAt: new Date().toISOString(),
           },
         })),
@@ -630,10 +634,12 @@ export const useTripStore = create<TripState>()(
 
       addMessage: (msg) =>
         set((s) => ({
+          // Only the recent conversation is useful (the chat route sends the
+          // last 12 to the model); older messages just grow the saved blob.
           chatMessages: [
             ...s.chatMessages,
             { ...msg, id: uuid(), createdAt: new Date().toISOString() },
-          ],
+          ].slice(-MAX_CHAT_MESSAGES),
         })),
 
       clearMessages: () => set({ chatMessages: [] }),
@@ -649,7 +655,11 @@ export const useTripStore = create<TripState>()(
     }),
     {
       name: "zimmgo-trip",
-      storage: createJSONStorage(() => localStorage),
+      // persist writes synchronously inside every state update, so a raw
+      // localStorage that throws when full would make every store action
+      // throw. This one fails soft: state stays in memory and keeps syncing
+      // to the server.
+      storage: createJSONStorage(() => safeLocalStorage),
       // Saved state older than SCHEMA_VERSION is upgraded on load (see
       // lib/sync/schema.ts) instead of being handed to code that expects the
       // current shape. Bump it there, not here.

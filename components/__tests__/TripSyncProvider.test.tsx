@@ -194,6 +194,44 @@ describe("TripSyncProvider — schema versions", () => {
   });
 });
 
+describe("TripSyncProvider — failed saves", () => {
+  it("doesn't keep resending content the server refused as too large", async () => {
+    setLocal(trip("mine", T1, { completedSteps: ["destination"] }));
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? json({ error: "Payload too large" }, 413) : json({ data: null, version: 0 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    render(<TripSyncProvider><div /></TripSyncProvider>);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+    });
+    expect(puts(fetchMock)).toHaveLength(1); // no 10-second retry loop
+
+    // A real change is tried again — it might fit now.
+    await act(async () => {
+      setLocal(trip("mine", T2, { completedSteps: ["destination", "dates"] }));
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(puts(fetchMock)).toHaveLength(2);
+  });
+
+  it("backs off exponentially on server errors instead of retrying every 10 seconds", async () => {
+    setLocal(trip("mine", T1, { completedSteps: ["destination"] }));
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? json({ error: "db down" }, 500) : json({ data: null, version: 0 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TripSyncProvider><div /></TripSyncProvider>);
+    // First attempt at ~1.5s, then retries after 10s, 20s, 40s, 80s → 5 PUTs by ~152s.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(155_000);
+    });
+    expect(puts(fetchMock)).toHaveLength(5);
+    // A fixed 10-second retry would have made ~16 by now.
+  });
+});
+
 describe("TripSyncProvider — write conflicts", () => {
   it("sends its base version, and on a 409 merges the other tab's trips and retries on the new version", async () => {
     setLocal(trip("a", T2, { completedSteps: ["destination"] }));

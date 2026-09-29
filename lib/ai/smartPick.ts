@@ -2,6 +2,7 @@ import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from 
 import { SMART_PICK_TOOL } from "@/lib/ai/tools";
 import { buildHotelPickPrompt, buildSchedulePickPrompt, buildPreferencePickPrompt, buildActivitiesForCityPickPrompt, buildRestaurantsForCityPickPrompt } from "@/lib/ai/prompts";
 import { logApiUsage } from "@/lib/ai/usageLog";
+import { findToolInput } from "@/lib/ai/toolInput";
 import type { SmartPickKind, SmartPickRequestBody, SmartPickResponse } from "@/types/smartPick";
 
 const PREFERENCE_KINDS = new Set<SmartPickKind>(["activities", "vibes", "lodging"]);
@@ -42,7 +43,7 @@ export async function runSmartPick(body: SmartPickRequestBody): Promise<SmartPic
   });
   logApiUsage("smart-pick", DEFAULT_MODEL, response.usage);
 
-  const toolUse = response.content.find((b) => b.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") throw new SmartPickError("AI did not return a selection", 502);
-  return toolUse.input as SmartPickResponse;
+  const selection = findToolInput<SmartPickResponse>(response.content, SMART_PICK_TOOL);
+  if (!selection) throw new SmartPickError("AI did not return a usable selection", 502);
+  return selection;
 }

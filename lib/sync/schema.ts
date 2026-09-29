@@ -13,7 +13,10 @@ import { isSyncBlob, type SyncBlob } from "@/lib/sync/syncBlob";
 //   3. extend normalizeTrip if the new field needs a safe default.
 // Old data is then upgraded when a browser loads it, when a synced copy is
 // pulled from the server, and when an older tab pushes to the server.
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
+
+// Chat history kept per device — the chat route only sends the last 12.
+export const MAX_CHAT_MESSAGES = 100;
 
 type Loose = Record<string, unknown>;
 
@@ -24,6 +27,20 @@ const MIGRATIONS: Record<number, (state: Loose) => Loose> = {
   // version 0 and may predate fields added since — normalization below fills
   // those in, so there's nothing to rename.
   0: (state) => state,
+  // 1 → 2: bounded growth. Every regeneration used to be appended to the
+  // trip though only the latest is ever used, and chat history was
+  // unbounded — together enough to push the synced blob past its size limit.
+  // Keep each trip's latest itinerary and the most recent chat.
+  1: (state) => {
+    const latestOnly = (t: unknown) =>
+      isObj(t) && Array.isArray(t.itineraries) ? { ...t, itineraries: t.itineraries.slice(-1) } : t;
+    return {
+      ...state,
+      trip: latestOnly(state.trip),
+      savedTrips: arr(state.savedTrips).map(latestOnly),
+      chatMessages: arr(state.chatMessages).slice(-MAX_CHAT_MESSAGES),
+    };
+  },
 };
 
 const isObj = (v: unknown): v is Loose => !!v && typeof v === "object" && !Array.isArray(v);

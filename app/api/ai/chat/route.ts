@@ -10,6 +10,7 @@ import {
   UPDATE_AIRLINE_PREFERENCES_TOOL,
 } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
+import { findToolInput } from "@/lib/ai/toolInput";
 import { readJsonBody, tooLong, tooMany } from "@/lib/api/readJsonBody";
 import type { TripPreferences, ChatMessage, StepId, LodgingType, AirlineAlliance } from "@/types/trip";
 
@@ -110,49 +111,46 @@ export async function POST(request: NextRequest) {
     });
     logApiUsage("chat", DEFAULT_MODEL, response.usage);
 
-    const wanderlogUse = response.content.find((b) => b.type === "tool_use" && b.name === "add_to_wanderlog");
-    if (wanderlogUse && wanderlogUse.type === "tool_use") {
-      const input = wanderlogUse.input as { items: WanderlogToolItem[]; reply: string };
-      return NextResponse.json({ reply: input.reply, wanderlogItems: input.items });
+    // Tool inputs are conformed to their schemas (lib/ai/toolInput.ts) before
+    // they reach the client, which writes them straight into the saved trip.
+    const wanderlog = findToolInput<{ items: WanderlogToolItem[]; reply: string }>(response.content, ADD_TO_WANDERLOG_TOOL);
+    if (wanderlog) {
+      return NextResponse.json({ reply: wanderlog.reply, wanderlogItems: wanderlog.items });
     }
 
-    const lodgingUse = response.content.find((b) => b.type === "tool_use" && b.name === "update_lodging_preferences");
-    if (lodgingUse && lodgingUse.type === "tool_use") {
-      const input = lodgingUse.input as LodgingUpdateToolInput;
+    const lodging = findToolInput<LodgingUpdateToolInput>(response.content, UPDATE_LODGING_PREFERENCES_TOOL);
+    if (lodging) {
       return NextResponse.json({
-        reply: input.reply,
+        reply: lodging.reply,
         lodgingUpdate: {
-          types: input.types,
-          minStars: input.min_stars,
-          amenities: input.amenities,
-          otherAmenity: input.other_amenity,
+          types: lodging.types,
+          minStars: lodging.min_stars,
+          amenities: lodging.amenities,
+          otherAmenity: lodging.other_amenity,
         },
       });
     }
 
-    const activityUse = response.content.find((b) => b.type === "tool_use" && b.name === "update_activity_preferences");
-    if (activityUse && activityUse.type === "tool_use") {
-      const input = activityUse.input as ActivityUpdateToolInput;
-      return NextResponse.json({ reply: input.reply, activityUpdate: input.activities });
+    const activity = findToolInput<ActivityUpdateToolInput>(response.content, UPDATE_ACTIVITY_PREFERENCES_TOOL);
+    if (activity) {
+      return NextResponse.json({ reply: activity.reply, activityUpdate: activity.activities });
     }
 
-    const vibeUse = response.content.find((b) => b.type === "tool_use" && b.name === "update_vibe_preferences");
-    if (vibeUse && vibeUse.type === "tool_use") {
-      const input = vibeUse.input as VibeUpdateToolInput;
-      return NextResponse.json({ reply: input.reply, vibeUpdate: input.vibes });
+    const vibe = findToolInput<VibeUpdateToolInput>(response.content, UPDATE_VIBE_PREFERENCES_TOOL);
+    if (vibe) {
+      return NextResponse.json({ reply: vibe.reply, vibeUpdate: vibe.vibes });
     }
 
-    const airlineUse = response.content.find((b) => b.type === "tool_use" && b.name === "update_airline_preferences");
-    if (airlineUse && airlineUse.type === "tool_use") {
-      const input = airlineUse.input as AirlineUpdateToolInput;
+    const airline = findToolInput<AirlineUpdateToolInput>(response.content, UPDATE_AIRLINE_PREFERENCES_TOOL);
+    if (airline) {
       return NextResponse.json({
-        reply: input.reply,
+        reply: airline.reply,
         airlineUpdate: {
-          airlines: input.airlines,
-          alliances: input.alliances,
-          preferNonstop: input.prefer_nonstop,
-          cabinClasses: input.cabin_classes,
-          prioritizeLowestFare: input.prioritize_lowest_fare,
+          airlines: airline.airlines,
+          alliances: airline.alliances,
+          preferNonstop: airline.prefer_nonstop,
+          cabinClasses: airline.cabin_classes,
+          prioritizeLowestFare: airline.prioritize_lowest_fare,
         },
       });
     }
@@ -162,7 +160,12 @@ export async function POST(request: NextRequest) {
       .map((b) => (b as { type: "text"; text: string }).text)
       .join("\n");
 
-    return NextResponse.json({ reply: text });
+    // A tool call whose input didn't survive validation applies nothing —
+    // say so rather than returning an empty reply.
+    const unusableToolCall = !text.trim() && response.content.some((b) => b.type === "tool_use");
+    return NextResponse.json({
+      reply: unusableToolCall ? "Sorry — I couldn't apply that change. Could you say it a different way?" : text,
+    });
   } catch (error: unknown) {
     console.error("[ai/chat]", error);
     const message = error instanceof Error ? error.message : "Internal server error";

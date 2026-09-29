@@ -4,6 +4,7 @@ import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from 
 import { buildFullTripParsePrompt } from "@/lib/ai/prompts";
 import { PARSE_FULL_TRIP_TOOL } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
+import { findToolInput } from "@/lib/ai/toolInput";
 import { readJsonBody, tooLong } from "@/lib/api/readJsonBody";
 
 export interface ParseFullTripResult {
@@ -59,12 +60,11 @@ export async function POST(request: NextRequest) {
     });
     logApiUsage("trip-parse-full", DEFAULT_MODEL, response.usage);
 
-    const toolUse = response.content.find((b) => b.type === "tool_use");
-    if (!toolUse || toolUse.type !== "tool_use") {
-      return NextResponse.json({ error: "AI did not return a parse result" }, { status: 502 });
+    // Conformed to the tool's schema — the client saves this into the trip.
+    const result = findToolInput<ParseFullTripResult>(response.content, PARSE_FULL_TRIP_TOOL);
+    if (!result) {
+      return NextResponse.json({ error: "Couldn't make sense of that — try describing it a little differently." }, { status: 502 });
     }
-
-    const result = toolUse.input as ParseFullTripResult;
     return NextResponse.json(result);
   } catch (error: unknown) {
     console.error("[trip/parse-full]", error);

@@ -7,6 +7,7 @@ import { v4 as uuid } from "uuid";
 import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { TRAVEL_TOOLS } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
+import { parseToolInput } from "@/lib/ai/toolInput";
 import { buildItineraryPrompt } from "@/lib/ai/prompts";
 import { searchFlights } from "@/lib/api/flights";
 import { searchHotels } from "@/lib/api/hotels";
@@ -142,7 +143,23 @@ export async function runGeneration(
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     for (const block of toolUses) {
       if (block.type !== "tool_use") continue;
-      const result = await dispatchTool(block.name, block.input as Record<string, unknown>);
+      // Conform the call to its schema first; an unusable call goes back to
+      // the model as an error so it can correct itself, rather than feeding
+      // wrong-typed values into the searches and the saved itinerary.
+      const tool = TRAVEL_TOOLS.find((t) => t.name === block.name);
+      const input = tool ? parseToolInput<Record<string, unknown>>(tool, block.input) : null;
+      if (!input) {
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: block.id,
+          is_error: true,
+          content: tool
+            ? `Invalid input for ${block.name} — required fields: ${((tool.input_schema.required as string[] | undefined) ?? []).join(", ")}. Check the types and allowed values, then call it again.`
+            : `Unknown tool ${block.name}.`,
+        });
+        continue;
+      }
+      const result = await dispatchTool(block.name, input);
 
       // Accumulate results — AI may call these tools multiple times (once per city)
       if (block.name === "search_flights")      flights      = [...flights,      ...(result as FlightOption[])];
@@ -150,18 +167,18 @@ export async function runGeneration(
       if (block.name === "search_activities")   activities   = [...activities,   ...(result as ActivityOption[])];
       if (block.name === "search_restaurants")  restaurants  = [...restaurants,  ...(result as RestaurantOption[])];
       if (block.name === "generate_itinerary") {
-        const input = block.input as {
+        const plan = input as {
           selected_hotels?: { city: string; hotel_id: string }[];
           inter_city_travel?: { to_city: string; note: string }[];
           gateway_advisory?: string;
         };
-        for (const sel of input.selected_hotels ?? []) {
+        for (const sel of plan.selected_hotels ?? []) {
           selectedHotelIdByCity[sel.city] = sel.hotel_id;
         }
-        for (const leg of input.inter_city_travel ?? []) {
+        for (const leg of plan.inter_city_travel ?? []) {
           travelNoteByCity[leg.to_city] = leg.note;
         }
-        if (input.gateway_advisory) gatewayAdvisory = input.gateway_advisory;
+        if (plan.gateway_advisory) gatewayAdvisory = plan.gateway_advisory;
       }
 
       toolResults.push({
