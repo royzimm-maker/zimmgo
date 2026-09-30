@@ -29,9 +29,11 @@ export const VIBES: { id: VibeTag; label: string; icon: string; sublabel: string
 
 // No "let ZiGy pick" mode here, unlike Lodging/Activities — vibe is a direct
 // input into what ZiGy recommends elsewhere, so it has to come from the user.
+const isVibeTag = (v: string): v is VibeTag => VIBES.some((x) => x.id === v);
+
 export function VibeStep() {
   const { trip, setVibes, setSchedulePace } = useTripStore();
-  const [selected, setSelected] = useState<VibeTag[]>(trip.preferences.vibes);
+  const [selected, setSelected] = useState<VibeTag[]>(() => trip.preferences.vibes.filter(isVibeTag));
   const schedulePace = trip.preferences.schedulePace;
   const [otherOpen,  setOtherOpen ] = useState(false);
   const [otherValue, setOtherValue] = useState("");
@@ -41,8 +43,8 @@ export function VibeStep() {
   // otherwise be visible until navigating away and back. Re-sync whenever
   // the underlying preference changes from outside this component.
   useEffect(() => {
-    const known = trip.preferences.vibes.filter((v) => VIBES.some((x) => x.id === v));
-    const custom = trip.preferences.vibes.find((v) => !VIBES.some((x) => x.id === v));
+    const known = trip.preferences.vibes.filter(isVibeTag);
+    const custom = trip.preferences.vibes.find((v) => !isVibeTag(v));
     setSelected(known);
     if (custom) {
       setOtherOpen(true);
@@ -57,11 +59,11 @@ export function VibeStep() {
   // store effect above then overwrites the local draft to match.
   function assembleVibes(overrides: Partial<{
     selected: VibeTag[]; otherOpen: boolean; otherValue: string;
-  }> = {}): VibeTag[] {
+  }> = {}): (VibeTag | string)[] {
     const s  = overrides.selected ?? selected;
     const oo = overrides.otherOpen ?? otherOpen;
     const ov = overrides.otherValue ?? otherValue;
-    return oo && ov.trim() ? [...s, ov.trim() as VibeTag] : s;
+    return oo && ov.trim() ? [...s, ov.trim()] : s;
   }
   function syncVibes(overrides?: Parameters<typeof assembleVibes>[0]) {
     setVibes(assembleVibes(overrides));

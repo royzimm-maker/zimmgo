@@ -13,6 +13,7 @@ import {
 import { logApiUsage } from "@/lib/ai/usageLog";
 import { findToolInput } from "@/lib/ai/toolInput";
 import { readJsonBody, tooLong, tooMany } from "@/lib/http/readJsonBody";
+import type { PreferenceUpdate } from "@/lib/planning/preferenceUpdates";
 import type { TripPreferences, ChatMessage, StepId, LodgingType, AirlineAlliance } from "@/types/trip";
 
 interface ChatRequest {
@@ -119,40 +120,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ reply: wanderlog.reply, wanderlogItems: wanderlog.items });
     }
 
+    // A preference tool's input, renamed to the app's field names. How it
+    // merges into the saved preferences is decided in lib/planning/preferenceUpdates.ts.
+    const updated = (reply: string, preferenceUpdate: PreferenceUpdate) => NextResponse.json({ reply, preferenceUpdate });
+
     const lodging = findToolInput<LodgingUpdateToolInput>(response.content, UPDATE_LODGING_PREFERENCES_TOOL);
     if (lodging) {
-      return NextResponse.json({
-        reply: lodging.reply,
-        lodgingUpdate: {
-          types: lodging.types,
-          minStars: lodging.min_stars,
-          amenities: lodging.amenities,
-          otherAmenity: lodging.other_amenity,
-        },
+      return updated(lodging.reply, {
+        kind: "lodging",
+        types: lodging.types,
+        minStars: lodging.min_stars,
+        amenities: lodging.amenities,
+        otherAmenity: lodging.other_amenity,
       });
     }
 
     const activity = findToolInput<ActivityUpdateToolInput>(response.content, UPDATE_ACTIVITY_PREFERENCES_TOOL);
-    if (activity) {
-      return NextResponse.json({ reply: activity.reply, activityUpdate: activity.activities });
-    }
+    if (activity) return updated(activity.reply, { kind: "activities", activities: activity.activities });
 
     const vibe = findToolInput<VibeUpdateToolInput>(response.content, UPDATE_VIBE_PREFERENCES_TOOL);
-    if (vibe) {
-      return NextResponse.json({ reply: vibe.reply, vibeUpdate: vibe.vibes });
-    }
+    if (vibe) return updated(vibe.reply, { kind: "vibes", vibes: vibe.vibes });
 
     const airline = findToolInput<AirlineUpdateToolInput>(response.content, UPDATE_AIRLINE_PREFERENCES_TOOL);
     if (airline) {
-      return NextResponse.json({
-        reply: airline.reply,
-        airlineUpdate: {
-          airlines: airline.airlines,
-          alliances: airline.alliances,
-          preferNonstop: airline.prefer_nonstop,
-          cabinClasses: airline.cabin_classes,
-          prioritizeLowestFare: airline.prioritize_lowest_fare,
-        },
+      return updated(airline.reply, {
+        kind: "airlines",
+        airlines: airline.airlines,
+        alliances: airline.alliances,
+        preferNonstop: airline.prefer_nonstop,
+        cabinClasses: airline.cabin_classes,
+        prioritizeLowestFare: airline.prioritize_lowest_fare,
       });
     }
 

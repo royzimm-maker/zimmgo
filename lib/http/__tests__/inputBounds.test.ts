@@ -12,7 +12,7 @@ vi.mock("@/lib/ai/client", async (orig) => ({
 import { POST as smartPick } from "@/app/api/itinerary/smart-pick/route";
 import { POST as chat } from "@/app/api/ai/chat/route";
 import { POST as parseFull } from "@/app/api/trip/parse-full/route";
-import { readJsonBody } from "@/lib/http/readJsonBody";
+import { checkListLimits, ITINERARY_LIST_LIMITS, readJsonBody } from "@/lib/http/readJsonBody";
 
 function post(url: string, body: unknown) {
   return new NextRequest(`http://localhost${url}`, {
@@ -68,5 +68,21 @@ describe("readJsonBody", () => {
   it("parses a body within the limit", async () => {
     const r = await readJsonBody<{ a: number }>(post("/x", { a: 1 }), 1_000);
     expect(r.ok && r.body.a).toBe(1);
+  });
+});
+
+describe("checkListLimits", () => {
+  it("passes lists within their limits and ignores absent ones", () => {
+    expect(checkListLimits({ days: [{}], hotels: undefined }, ["days", "hotels"])).toBeNull();
+  });
+
+  it("names the list that's too long, with its limit", async () => {
+    const res = checkListLimits({ activities: Array.from({ length: ITINERARY_LIST_LIMITS.activities + 1 }) }, ["activities"]);
+    expect(res?.status).toBe(400);
+    expect(await res?.json()).toEqual({ error: `Too many activities (max ${ITINERARY_LIST_LIMITS.activities})` });
+  });
+
+  it("says when a field isn't a list at all", async () => {
+    expect(await checkListLimits({ hotels: "lots" }, ["hotels"])?.json()).toEqual({ error: "hotels must be a list" });
   });
 });

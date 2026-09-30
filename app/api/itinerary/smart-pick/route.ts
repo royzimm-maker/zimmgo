@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { serverError } from "@/lib/http/errors";
 import { rateLimit } from "@/lib/rateLimit";
 import { runSmartPick, SmartPickError } from "@/lib/ai/smartPick";
-import { readJsonBody, tooMany } from "@/lib/http/readJsonBody";
+import { checkListLimits, readJsonBody } from "@/lib/http/readJsonBody";
 import type { SmartPickRequestBody } from "@/types/smartPick";
 
 export async function POST(request: NextRequest) {
@@ -14,12 +14,9 @@ export async function POST(request: NextRequest) {
     if (!parsed.ok) return parsed.response;
     const body = parsed.body;
 
-    // Every option in these lists is serialized into the prompt — cap them
-    // well above what the app ever sends for a real trip.
-    for (const [field, max] of [["hotels", 60], ["activities", 150], ["restaurants", 150], ["days", 60], ["candidates", 100]] as const) {
-      const list = body[field];
-      if (list !== undefined && (!Array.isArray(list) || list.length > max)) return tooMany(field, max);
-    }
+    // Every option in these lists is serialized into the prompt.
+    const oversized = checkListLimits(body, ["hotels", "activities", "restaurants", "days", "candidates"]);
+    if (oversized) return oversized;
 
     return NextResponse.json(await runSmartPick(body));
   } catch (error: unknown) {

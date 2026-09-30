@@ -31,3 +31,20 @@ export function tooLong(field: string, max: number): NextResponse {
 export function tooMany(field: string, max: number): NextResponse {
   return NextResponse.json({ error: `Too many ${field} (max ${max})` }, { status: 400 });
 }
+
+// Ceilings for the itinerary lists routes accept — well above any trip the
+// app produces. They bound what one request can put into a prompt (smart
+// pick, auto-plan) or into layout work (Word export).
+export const ITINERARY_LIST_LIMITS = { days: 60, flights: 100, hotels: 60, activities: 150, restaurants: 150, candidates: 100 } as const;
+type ListField = keyof typeof ITINERARY_LIST_LIMITS;
+
+/** A 400 for the first of `fields` that's present but not a list or over its limit; null when all are fine. */
+export function checkListLimits(body: object, fields: readonly ListField[]): NextResponse | null {
+  for (const field of fields) {
+    const list = (body as Record<string, unknown>)[field];
+    if (list === undefined) continue;
+    if (!Array.isArray(list)) return NextResponse.json({ error: `${field} must be a list` }, { status: 400 });
+    if (list.length > ITINERARY_LIST_LIMITS[field]) return tooMany(field, ITINERARY_LIST_LIMITS[field]);
+  }
+  return null;
+}

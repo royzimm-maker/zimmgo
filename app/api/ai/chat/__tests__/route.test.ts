@@ -35,7 +35,7 @@ describe("POST /api/ai/chat — model tool output", () => {
 
     const body = await (await chat()).json();
 
-    expect(body).toEqual({ reply: "Done!", lodgingUpdate: { types: ["boutique"], minStars: 4 } });
+    expect(body).toEqual({ reply: "Done!", preferenceUpdate: { kind: "lodging", types: ["boutique"], minStars: 4 } });
   });
 
   it("never forwards values outside the schema into the trip — nor wipes a selection with them", async () => {
@@ -44,7 +44,7 @@ describe("POST /api/ai/chat — model tool output", () => {
     const body = await (await chat()).json();
 
     // No `types` at all, so the traveller's existing lodging types stay as they are.
-    expect(body.lodgingUpdate).toEqual({});
+    expect(body.preferenceUpdate).toEqual({ kind: "lodging" });
   });
 
   it("applies nothing and says so when the tool call is unusable", async () => {
@@ -52,7 +52,7 @@ describe("POST /api/ai/chat — model tool output", () => {
 
     const body = await (await chat()).json();
 
-    expect(body.lodgingUpdate).toBeUndefined();
+    expect(body.preferenceUpdate).toBeUndefined();
     expect(body.reply).toMatch(/couldn't apply that change/);
   });
 

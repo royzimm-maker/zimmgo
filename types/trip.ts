@@ -154,7 +154,7 @@ export interface TripPreferences {
   destination?: Destination;
   activities: (ActivityCategory | string)[];   // may include free-text "Other" entries
   activityRankings: Partial<Record<ActivityCategory, number>>;
-  vibes: VibeTag[];
+  vibes: (VibeTag | string)[];                // may include a free-text "Other" vibe
   dates?: DatePreference;
   travelers?: number;                    // number of people in the group
   rooms?: number;                        // number of rooms needed

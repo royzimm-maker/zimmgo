@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverError } from "@/lib/http/errors";
 import { rateLimit } from "@/lib/rateLimit";
-import { readJsonBody } from "@/lib/http/readJsonBody";
+import { ITINERARY_LIST_LIMITS, readJsonBody } from "@/lib/http/readJsonBody";
 import { assembleItineraryDocxModel } from "@/lib/docx/assembleItineraryDocxModel";
 import { renderItineraryDocx } from "@/lib/docx/renderItineraryDocx";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
@@ -10,18 +10,21 @@ import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 // generous ceiling — same reasoning as itinerary/generate's maxDuration.
 export const maxDuration = 30;
 
-// A real itinerary is tens of KB; these ceilings sit well above any trip the
-// app produces and bound the layout work a single request can ask for.
+// A real itinerary is tens of KB; this sits well above any trip the app
+// produces. The list ceilings are the shared ones.
 const MAX_BODY_BYTES = 600_000;
-const LIST_LIMITS = { days: 60, flights: 100, hotels: 60, activities: 150, restaurants: 150 } as const;
+const EXPORTED_LISTS = ["days", "flights", "hotels", "activities", "restaurants"] as const;
 
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
 // Why the body can't be exported, or null if it can.
 function invalidExport(itinerary: unknown, preferences: unknown): string | null {
   if (!isObject(itinerary) || !isObject(preferences)) return "An itinerary and preferences are required";
-  for (const [field, max] of Object.entries(LIST_LIMITS)) {
+  // Stricter than checkListLimits: layout needs every list (restaurants
+  // aside) present and every entry an object.
+  for (const field of EXPORTED_LISTS) {
     const list = itinerary[field];
+    const max = ITINERARY_LIST_LIMITS[field];
     if (list === undefined && field === "restaurants") continue;
     if (!Array.isArray(list)) return `itinerary.${field} must be a list`;
     if (list.length > max) return `Too many ${field} (max ${max})`;

@@ -6,6 +6,7 @@ import { v4 as uuid } from "uuid";
 import { SCHEMA_VERSION, MAX_CHAT_MESSAGES, migratePersistedState } from "@/lib/sync/schema";
 import { safeLocalStorage } from "@/lib/store/safeStorage";
 import { carryOverSelections, cityForHotel } from "@/lib/planning/selections";
+import { applyPreferenceUpdate, type PreferenceUpdate } from "@/lib/planning/preferenceUpdates";
 import { itineraryCities } from "@/lib/location";
 import type {
   Trip,
@@ -60,7 +61,9 @@ interface TripState {
   // Individual preference setters
   setDestination: (dest: Destination) => void;
   setActivities: (activities: (ActivityCategory | string)[]) => void;
-  setVibes: (vibes: VibeTag[]) => void;
+  setVibes: (vibes: (VibeTag | string)[]) => void;
+  /** Apply a preference change ZiGy made from chat. */
+  applyPreferenceUpdate: (update: PreferenceUpdate) => void;
   setSchedulePace: (pace: SchedulePace | undefined) => void;
   setAutoPlanEverything: (value: boolean) => void;
   setSelectedActivityIds: (ids: string[]) => void;
@@ -296,6 +299,15 @@ export const useTripStore = create<TripState>()(
           trip: {
             ...s.trip,
             preferences: { ...s.trip.preferences, vibes },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      applyPreferenceUpdate: (update) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, ...applyPreferenceUpdate(s.trip.preferences, update) },
             updatedAt: new Date().toISOString(),
           },
         })),

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { serverError } from "@/lib/http/errors";
 import { waitUntil } from "@vercel/functions";
 import { rateLimit } from "@/lib/rateLimit";
-import { readJsonBody, tooMany } from "@/lib/http/readJsonBody";
+import { checkListLimits, readJsonBody } from "@/lib/http/readJsonBody";
 import { createJob, executeJob, findJobByKey, getJob } from "@/lib/itinerary/generationJobs";
 import { runSmartPick } from "@/lib/ai/smartPick";
 import { autoPlanTrip } from "@/lib/planning/autoPlanTrip";
@@ -36,11 +36,9 @@ export async function POST(request: NextRequest) {
     if (!itinerary || !Array.isArray(itinerary.days) || !preferences) {
       return NextResponse.json({ error: "An itinerary and preferences are required" }, { status: 400 });
     }
-    // Same ceilings as the smart-pick route — every item ends up in a prompt.
-    for (const [field, max] of [["days", 60], ["hotels", 60], ["activities", 150], ["restaurants", 150]] as const) {
-      const list = itinerary[field];
-      if (list !== undefined && (!Array.isArray(list) || list.length > max)) return tooMany(field, max);
-    }
+    // Every item ends up in a smart-pick prompt.
+    const oversized = checkListLimits(itinerary, ["days", "hotels", "activities", "restaurants"]);
+    if (oversized) return oversized;
 
     const existing = await findJobByKey(jobKey(requestId));
     if (existing) return NextResponse.json({ jobId: existing.jobId, status: existing.status });

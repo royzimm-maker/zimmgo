@@ -8,19 +8,13 @@ import { cn } from "@/lib/utils";
 import { GENERAL as ACTIVITY_CATEGORIES } from "@/components/planning/steps/ActivitiesStep";
 import { VIBES } from "@/components/planning/steps/VibeStep";
 import { ALLIANCES, CABIN_LABELS } from "@/components/planning/steps/AirlinesStep";
-import type { LodgingType, AirlineAlliance, AirlinePreference, VibeTag } from "@/types/trip";
-
-interface LodgingUpdatePayload {
-  types?: LodgingType[];
-  minStars?: 3 | 4 | 5;
-  amenities?: string[];
-  otherAmenity?: string;
-}
+import type { AirlinesUpdate, LodgingUpdate, PreferenceUpdate } from "@/lib/planning/preferenceUpdates";
+import type { TripPreferences } from "@/types/trip";
 
 // Deterministic client-side summary, rather than trusting the model to
 // produce a consistently-shaped label — the tool's own "reply" field is
 // free-text conversation, this is a compact chip naming exactly what changed.
-function summarizeLodgingUpdate(u: LodgingUpdatePayload): string {
+function summarizeLodgingUpdate(u: LodgingUpdate): string {
   const parts: string[] = [];
   if (u.types?.length) parts.push(`Type → ${u.types.join(", ")}`);
   if (u.minStars) parts.push(`${u.minStars}★ minimum`);
@@ -57,15 +51,7 @@ function summarizeVibeUpdate(oldList: string[], newList: string[]): string {
   return parts.length ? `Updated vibe: ${parts.join(" · ")}` : "Updated vibe";
 }
 
-interface AirlineUpdatePayload {
-  airlines?: string[];
-  alliances?: AirlineAlliance[];
-  preferNonstop?: boolean;
-  cabinClasses?: string[];
-  prioritizeLowestFare?: boolean;
-}
-
-function summarizeAirlineUpdate(u: AirlineUpdatePayload): string {
+function summarizeAirlineUpdate(u: AirlinesUpdate): string {
   if (u.prioritizeLowestFare) return "Updated flights: lowest fares, any airline";
   const parts: string[] = [];
   if (u.airlines?.length) parts.push(`Airlines → ${u.airlines.join(", ")}`);
@@ -75,6 +61,17 @@ function summarizeAirlineUpdate(u: AirlineUpdatePayload): string {
   if (u.cabinClasses?.length) parts.push(`Cabin → ${u.cabinClasses.map((c) => CABIN_LABELS[c] ?? c).join(", ")}`);
   if (u.preferNonstop !== undefined) parts.push(u.preferNonstop ? "Nonstop preferred" : "Connections OK");
   return parts.length ? `Updated flights: ${parts.join(" · ")}` : "Updated flight preferences";
+}
+
+// The chip under ZiGy's reply naming what changed. `before` is the
+// preferences as they were, so list changes show as added/removed.
+function summarizePreferenceUpdate(before: TripPreferences, u: PreferenceUpdate): string {
+  switch (u.kind) {
+    case "lodging": return summarizeLodgingUpdate(u);
+    case "activities": return summarizeActivityUpdate(before.activities, u.activities);
+    case "vibes": return summarizeVibeUpdate(before.vibes, u.vibes);
+    case "airlines": return summarizeAirlineUpdate(u);
+  }
 }
 
 export function ZigyAvatar({ size = 20 }: { size?: number }) {
@@ -100,7 +97,7 @@ const STARTER_PROMPTS = [
 ];
 
 export function ChatPanel() {
-  const { trip, chatMessages, addMessage, addWanderlogItem, setLodging, setActivities, setVibes, setAirlines } = useTripStore();
+  const { trip, chatMessages, addMessage, addWanderlogItem, applyPreferenceUpdate } = useTripStore();
   const [input,   setInput  ] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -165,48 +162,10 @@ export function ChatPanel() {
       }
 
       let preferenceUpdateSummary: string | undefined;
-      if (data.lodgingUpdate) {
-        const update: LodgingUpdatePayload = data.lodgingUpdate;
-        const existing = trip.preferences.lodging;
-        const amenities = update.amenities ?? existing?.amenities ?? [];
-        const mergedAmenities = update.otherAmenity && !amenities.includes(update.otherAmenity)
-          ? [...amenities, update.otherAmenity]
-          : amenities;
-        setLodging({
-          types: update.types ?? existing?.types ?? [],
-          minStars: update.minStars ?? existing?.minStars ?? 4,
-          amenities: mergedAmenities,
-        });
-        preferenceUpdateSummary = summarizeLodgingUpdate(update);
-      }
-      if (Array.isArray(data.activityUpdate)) {
-        const newActivities: string[] = data.activityUpdate;
-        preferenceUpdateSummary = summarizeActivityUpdate(trip.preferences.activities, newActivities);
-        setActivities(newActivities);
-      }
-      if (Array.isArray(data.vibeUpdate)) {
-        const newVibes: string[] = data.vibeUpdate;
-        preferenceUpdateSummary = summarizeVibeUpdate(trip.preferences.vibes, newVibes);
-        setVibes(newVibes as VibeTag[]);
-      }
-      if (data.airlineUpdate) {
-        const update: AirlineUpdatePayload = data.airlineUpdate;
-        const existing = trip.preferences.airlinePrefs;
-        const lowestFare = update.prioritizeLowestFare ?? existing?.prioritizeLowestFare ?? false;
-        const cabinClasses = update.cabinClasses ?? existing?.cabinClasses ?? [];
-        setAirlines(
-          lowestFare
-            ? { airlines: [], alliances: [], preferNonstop: false, cabinClass: "economy", cabinClasses: [], prioritizeLowestFare: true }
-            : {
-                airlines: update.airlines ?? existing?.airlines ?? [],
-                alliances: update.alliances ?? existing?.alliances ?? [],
-                preferNonstop: update.preferNonstop ?? existing?.preferNonstop ?? true,
-                cabinClass: (cabinClasses[0] ?? "economy") as AirlinePreference["cabinClass"],
-                cabinClasses,
-                prioritizeLowestFare: false,
-              }
-        );
-        preferenceUpdateSummary = summarizeAirlineUpdate(update);
+      if (data.preferenceUpdate) {
+        const update: PreferenceUpdate = data.preferenceUpdate;
+        preferenceUpdateSummary = summarizePreferenceUpdate(trip.preferences, update);
+        applyPreferenceUpdate(update);
       }
 
       addMessage({ role: "assistant", content: data.reply, stepContext: trip.currentStep, preferenceUpdateSummary });
