@@ -3,11 +3,29 @@
 // inline-styled HTML version so the itinerary still looks intentional when
 // pasted into Gmail/Docs/Notion/Word rather than showing up as a dump of
 // plain text with no visual hierarchy.
+//
+// Both render from the same plan as the on-screen itinerary and the Word
+// export (lib/itinerary/tripPlan.ts): each city's chosen stay, and each
+// day's contents — the traveller's arrangement once they've made one.
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { buildTripPlan, dayLines, type DayPlan, type TripPlan } from "@/lib/itinerary/tripPlan";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 
 export function itineraryClipboardTitle(preferences: TripPreferences): string {
   return `ZimmGo Trip — ${preferences.destination?.displayName ?? "Your Trip"}`;
+}
+
+const FREE_DAY = "Free day — nothing scheduled";
+
+function stayLine(stay: TripPlan["stays"][number], preferences: TripPreferences): string {
+  const { hotel, byTraveller } = stay.choice;
+  const price = formatCurrency(hotel.pricePerNight, preferences.preferredCurrency);
+  return `${hotel.name} — ${stay.city} — ${price}/night${byTraveller ? "" : " (ZiGy's recommendation)"}`;
+}
+
+function dayHeading(dayPlan: DayPlan): string {
+  const { day, city } = dayPlan;
+  return `Day ${day.dayNumber} — ${day.theme} (${formatDate(day.date)}${city ? `, ${city}` : ""})`;
 }
 
 // Headings get a heavier separator so they still read as sections even
@@ -17,6 +35,7 @@ export function buildItineraryClipboardText(
   preferences: TripPreferences,
   title: string
 ): string {
+  const plan = buildTripPlan(itinerary, preferences);
   const lines: string[] = [
     title,
     "=".repeat(title.length),
@@ -25,22 +44,22 @@ export function buildItineraryClipboardText(
     ...(itinerary.flights.length
       ? ["", "FLIGHTS", "-------", ...itinerary.flights.map((f) => `• ${f.airline} — ${f.origin} → ${f.destination} — ${formatCurrency(f.price, preferences.preferredCurrency)}/pp`)]
       : []),
-    "",
-    "HOTELS",
-    "------",
-    ...itinerary.hotels.map((h) => `• ${h.name} — ${h.location} — ${formatCurrency(h.pricePerNight, preferences.preferredCurrency)}/night`),
+    ...(plan.stays.length
+      ? ["", "WHERE YOU'RE STAYING", "--------------------", ...plan.stays.map((s) => `• ${stayLine(s, preferences)}`)]
+      : []),
     ...(itinerary.restaurants?.length
       ? ["", "WHERE TO EAT", "------------", ...itinerary.restaurants.map((r) => `• ${r.name} — ${r.cuisine}, ${r.priceRange} — ${r.location}`)]
       : []),
     "",
     "DAY-BY-DAY ITINERARY",
     "---------------------",
-    ...itinerary.days.map((d) => [
-      `Day ${d.dayNumber} — ${d.theme} (${formatDate(d.date)}${d.location ? `, ${d.location}` : ""})`,
-      d.morning.length ? `  Morning: ${d.morning.join(", ")}` : "",
-      d.afternoon.length ? `  Afternoon: ${d.afternoon.join(", ")}` : "",
-      d.evening.length ? `  Evening: ${d.evening.join(", ")}` : "",
-    ].filter(Boolean).join("\n")),
+    ...plan.days.map((dayPlan) => {
+      const content = dayLines(dayPlan);
+      const body = content.length
+        ? content.map((l) => (l.label ? `  ${l.label}: ${l.text}` : `  • ${l.text}`))
+        : [`  ${FREE_DAY}`];
+      return [dayHeading(dayPlan), ...body].join("\n");
+    }),
   ];
   return lines.join("\n");
 }
@@ -65,6 +84,7 @@ export function buildItineraryClipboardHtml(
   preferences: TripPreferences,
   title: string
 ): string {
+  const plan = buildTripPlan(itinerary, preferences);
   const heading = (text: string) =>
     `<h2 style="font-size:16px;font-weight:700;margin:20px 0 8px;color:#0f172a;">${escapeHtml(text)}</h2>`;
   const list = (items: string[]) =>
@@ -84,11 +104,15 @@ export function buildItineraryClipboardHtml(
       )
     : "";
 
-  const hotelsHtml = list(
-    itinerary.hotels.map(
-      (h) => `<strong>${escapeHtml(h.name)}</strong> — ${escapeHtml(h.location)} — ${escapeHtml(formatCurrency(h.pricePerNight, preferences.preferredCurrency))}/night`
-    )
-  );
+  const staysHtml = plan.stays.length
+    ? heading("Where You're Staying") +
+      list(
+        plan.stays.map(({ city, choice }) =>
+          `<strong>${escapeHtml(choice.hotel.name)}</strong> — ${escapeHtml(city)} — ${escapeHtml(formatCurrency(choice.hotel.pricePerNight, preferences.preferredCurrency))}/night` +
+          (choice.byTraveller ? "" : ` <em style="color:#64748b;">(ZiGy's recommendation)</em>`)
+        )
+      )
+    : "";
 
   const restaurantsHtml = itinerary.restaurants?.length
     ? heading("Where to Eat") +
@@ -99,18 +123,18 @@ export function buildItineraryClipboardHtml(
       )
     : "";
 
-  const daysHtml = itinerary.days
-    .map((d) => {
-      const blocks = [
-        d.morning.length ? `<strong>Morning:</strong> ${escapeHtml(d.morning.join(", "))}` : "",
-        d.afternoon.length ? `<strong>Afternoon:</strong> ${escapeHtml(d.afternoon.join(", "))}` : "",
-        d.evening.length ? `<strong>Evening:</strong> ${escapeHtml(d.evening.join(", "))}` : "",
-      ].filter(Boolean);
+  const daysHtml = plan.days
+    .map((dayPlan) => {
+      const { day, city } = dayPlan;
+      const content = dayLines(dayPlan);
+      const blocks = content.length
+        ? content.map((l) => (l.label ? `<strong>${l.label}:</strong> ${escapeHtml(l.text)}` : escapeHtml(l.text)))
+        : [`<em style="color:#64748b;">${FREE_DAY}</em>`];
       return `
         <div style="margin-bottom:14px;">
           <p style="margin:0 0 4px;font-weight:700;color:#0f172a;">
-            Day ${d.dayNumber} — ${escapeHtml(d.theme)}
-            <span style="font-weight:400;color:#64748b;"> (${escapeHtml(formatDate(d.date))}${d.location ? `, ${escapeHtml(d.location)}` : ""})</span>
+            Day ${day.dayNumber} — ${escapeHtml(day.theme)}
+            <span style="font-weight:400;color:#64748b;"> (${escapeHtml(formatDate(day.date))}${city ? `, ${escapeHtml(city)}` : ""})</span>
           </p>
           ${list(blocks)}
         </div>`;
@@ -123,7 +147,7 @@ export function buildItineraryClipboardHtml(
       <hr style="border:none;border-top:2px solid #e2e8f0;margin:8px 0 16px;" />
       ${summaryHtml}
       ${flightsHtml}
-      ${heading("Hotels")}${hotelsHtml}
+      ${staysHtml}
       ${restaurantsHtml}
       ${heading("Day-by-Day Itinerary")}${daysHtml}
     </div>`;

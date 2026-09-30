@@ -89,10 +89,19 @@ describe("assembleItineraryDocxModel — day resolution", () => {
     expect(day1.bullets).toEqual(["Gaudi Tour", "Dinner: Tapas Bar"]);
   });
 
-  it("falls back to the AI's morning/afternoon/evening blurbs when nothing was scheduled day-by-day", () => {
+  it("shows ZiGy's suggestions by time of day when nothing was arranged day-by-day — as the other outputs do", () => {
     const model = assembleItineraryDocxModel(makeItinerary(), makePreferences());
     const day1 = model.sections[0].days[0];
-    expect(day1.bullets).toEqual(["Check in", "Walk the Gothic Quarter", "Dinner near the hotel"]);
+    expect(day1.bullets).toEqual(["Morning: Check in", "Afternoon: Walk the Gothic Quarter", "Evening: Dinner near the hotel"]);
+  });
+
+  it("marks a day the traveller left empty as a free day, rather than backfilling suggestions", () => {
+    const itinerary = makeItinerary({
+      finalizedPlan: { dayCards: { 1: ["act-a1"], 2: [], 3: [] }, bankCards: [] },
+    });
+    const model = assembleItineraryDocxModel(itinerary, makePreferences());
+    const day2 = model.sections.flatMap((s) => s.days).find((d) => d.dayNumber === 2)!;
+    expect(day2.bullets).toEqual(["Free day — nothing scheduled"]);
   });
 
   it("treats an isLocalFavorite activity as a plain bullet — no per-item box or callout", () => {

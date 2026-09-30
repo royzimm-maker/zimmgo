@@ -16,6 +16,7 @@ import { Sparkles, ArrowRight, Hotel, UtensilsCrossed, Star, CalendarDays, Check
 import { StepShell } from "@/components/planning/StepShell";
 import { CardInner, DraggableCard, DroppableContainer, type CardInfo } from "@/components/planning/refine/ScheduleCards";
 import { fetchSmartPick } from "@/lib/api/smartPick";
+import { arrangeDays, chooseHotel, isAirbnbOnly } from "@/lib/planning/cityPicks";
 import { formatDate, scrollStepToTop } from "@/lib/utils";
 import { itineraryCities, resolveCity } from "@/lib/location";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -201,17 +202,10 @@ export function RefineStep() {
   // way the flights/hotels/restaurants/activities wizard's smart-pick does.
   async function pickHotelIfNeeded(city: string): Promise<void> {
     if (trip.preferences.selectedHotelsByCity?.[city]) return;
-    const airbnbOnly = Boolean(
-      trip.preferences.lodging?.types?.length && trip.preferences.lodging.types.every((t) => t === "airbnb")
-    );
-    if (airbnbOnly) return;
+    if (isAirbnbOnly(trip.preferences.lodging?.types)) return;
     const cityHotels = (itinerary?.hotels ?? []).filter((h) => resolveCity(h.city ?? h.location, cities) === city);
-    if (!cityHotels.length) return;
-
-    const data = await fetchSmartPick({ kind: "hotel", city, preferences: trip.preferences, hotels: cityHotels });
-    const pick = data.picks[0];
-    const hotel = pick && cityHotels.find((h) => h.id === pick.id);
-    if (hotel) setSelectedHotelForCity(city, hotel);
+    const choice = await chooseHotel(fetchSmartPick, city, trip.preferences, cityHotels);
+    if (choice) setSelectedHotelForCity(city, choice.hotel);
   }
 
   async function arrangeCity(city: string): Promise<void> {
@@ -235,35 +229,24 @@ export function RefineStep() {
       .map((id) => cardMap[id]?.restaurant)
       .filter((r): r is RestaurantOption => Boolean(r));
 
-    const [data] = await Promise.all([
-      fetchSmartPick({
-        kind: "schedule",
-        city,
-        preferences: trip.preferences,
-        days: cityDays,
-        activities: cityActivities,
-        restaurants: cityRestaurants,
-      }),
+    // Same arranging step (and checks) auto-plan uses — lib/planning/cityPicks.ts.
+    const [arranged] = await Promise.all([
+      arrangeDays(fetchSmartPick, city, trip.preferences, cityDays, cityActivities, cityRestaurants),
       hotelPromise,
     ]);
 
-    const validDayNums = new Set(cityDays.map((d) => d.dayNumber));
-    const toPlace = data.picks.filter(
-      (p) => p.dayNumber !== undefined && validDayNums.has(p.dayNumber) && cityBankIds.includes(p.id)
-    );
-
-    if (toPlace.length) {
-      const placedIds = new Set(toPlace.map((p) => p.id));
+    const placedIds = new Set(Object.values(arranged.dayCards).flat());
+    if (placedIds.size) {
       setBank((prev) => prev.filter((id) => !placedIds.has(id)));
       setDayCards((prev) => {
         const next = { ...prev };
-        for (const p of toPlace) {
-          next[p.dayNumber!] = [...(next[p.dayNumber!] ?? []), p.id];
+        for (const [day, cards] of Object.entries(arranged.dayCards)) {
+          next[Number(day)] = [...(next[Number(day)] ?? []), ...cards];
         }
         return next;
       });
     }
-    setArrangeSummaries((prev) => ({ ...prev, [city]: data.summary }));
+    setArrangeSummaries((prev) => ({ ...prev, [city]: arranged.summary }));
   }
 
   async function handleSmartArrange() {

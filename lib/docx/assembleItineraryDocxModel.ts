@@ -21,11 +21,12 @@
 import {
   groupItineraryDaysByLocation, formatDate, parseLocalDate,
 } from "@/lib/utils";
-import { itineraryCities, resolveCity, sameLocation } from "@/lib/location";
+import { resolveCity, sameLocation } from "@/lib/location";
 import { chosenHotelForCity } from "@/lib/planning/hotelChoice";
+import { buildTripPlan, dayLines, type DayPlan } from "@/lib/itinerary/tripPlan";
 import { getVisaRequirementsForTrip } from "@/lib/data/visaRequirements";
 import type {
-  GeneratedItinerary, TripPreferences, ActivityOption, RestaurantOption, HotelOption,
+  GeneratedItinerary, TripPreferences, RestaurantOption, HotelOption,
 } from "@/types/trip";
 
 export interface DocxPickRow {
@@ -83,52 +84,22 @@ export interface DocxModel {
   bookInAdvance: string[];
 }
 
-function cardLookup(itinerary: GeneratedItinerary) {
-  const acts: Record<string, ActivityOption> = {};
-  const rests: Record<string, RestaurantOption> = {};
-  itinerary.activities.forEach((a) => { acts[`act-${a.id}`] = a; });
-  (itinerary.restaurants ?? []).forEach((r) => { rests[`rest-${r.id}`] = r; });
-  return { acts, rests };
+// A day's bullets and highlight come from the shared plan
+// (lib/itinerary/tripPlan.ts) — the same day contents the on-screen
+// itinerary and "Copy itinerary" show.
+function dayBullets(dayPlan: DayPlan | undefined): string[] {
+  if (!dayPlan) return [];
+  const lines = dayLines(dayPlan).map((l) => (l.label ? `${l.label}: ${l.text}` : l.text));
+  return lines.length || dayPlan.source !== "traveller" ? lines : ["Free day — nothing scheduled"];
 }
 
-// Resolves a day's actual plan: the traveller's finalized day-by-day picks
-// when they've done that step, else the AI's own free-text blurbs — same
-// fallback components/planning/ItineraryView.tsx's clipboard-copy already
-// uses for an itinerary nobody has scheduled day-by-day yet.
-function resolveDayBullets(
-  day: GeneratedItinerary["days"][number],
-  itinerary: GeneratedItinerary,
-  lookup: ReturnType<typeof cardLookup>
-): string[] {
-  if (itinerary.finalizedPlan) {
-    const cardIds = itinerary.finalizedPlan.dayCards[day.dayNumber] ?? [];
-    const bullets: string[] = [];
-    for (const id of cardIds) {
-      const act = lookup.acts[id];
-      const rest = lookup.rests[id];
-      if (act) bullets.push(act.name);
-      else if (rest) bullets.push(`Dinner: ${rest.name}`);
-    }
-    return bullets;
-  }
-  return [...day.morning, ...day.afternoon, ...day.evening];
-}
-
-// Only ever set from a real, scheduled isLocalFavorite pick — the AI's own
-// free-text morning/afternoon/evening blurbs (no finalizedPlan yet) have no
-// structured link back to a specific ActivityOption, so a day that hasn't
-// been scheduled just gets no highlight rather than a guessed one.
-function resolveDayHighlight(
-  day: GeneratedItinerary["days"][number],
-  itinerary: GeneratedItinerary,
-  lookup: ReturnType<typeof cardLookup>
-): { name: string; reason: string } | null {
-  if (!itinerary.finalizedPlan) return null;
-  const cardIds = itinerary.finalizedPlan.dayCards[day.dayNumber] ?? [];
-  for (const id of cardIds) {
-    const act = lookup.acts[id];
-    if (act?.isLocalFavorite && act.description) {
-      return { name: act.name, reason: act.description };
+// Only ever from an activity the traveller actually scheduled — ZiGy's
+// suggestions have no structured link back to a specific activity, so an
+// unarranged day gets no highlight rather than a guessed one.
+function dayHighlight(dayPlan: DayPlan | undefined): { name: string; reason: string } | null {
+  for (const item of dayPlan?.items ?? []) {
+    if (item.kind === "activity" && item.activity.isLocalFavorite && item.activity.description) {
+      return { name: item.name, reason: item.activity.description };
     }
   }
   return null;
@@ -198,8 +169,9 @@ export function assembleItineraryDocxModel(
   itinerary: GeneratedItinerary,
   preferences: TripPreferences
 ): DocxModel {
-  const lookup = cardLookup(itinerary);
-  const cities = itineraryCities(itinerary, preferences.destination);
+  const plan = buildTripPlan(itinerary, preferences);
+  const planFor = new Map(plan.days.map((d) => [d.day.dayNumber, d]));
+  const cities = plan.cities;
   const fallbackLocation = preferences.destination?.displayName ?? "Your destination";
   const legs = groupItineraryDaysByLocation(itinerary.days, fallbackLocation);
 
@@ -227,8 +199,8 @@ export function assembleItineraryDocxModel(
       weekday: parseLocalDate(day.date).toLocaleDateString("en-US", { weekday: "long" }),
       dateLabel: formatDate(day.date).replace(/^\w+,\s*/, ""),
       theme: day.theme,
-      bullets: resolveDayBullets(day, itinerary, lookup),
-      highlight: resolveDayHighlight(day, itinerary, lookup),
+      bullets: dayBullets(planFor.get(day.dayNumber)),
+      highlight: dayHighlight(planFor.get(day.dayNumber)),
     }));
 
     const { booked, options } = splitRestaurantsForLocation(leg.location, preferences, itinerary.restaurants ?? []);

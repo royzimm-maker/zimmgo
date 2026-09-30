@@ -10,9 +10,12 @@
 // function is injected so it calls the AI directly there and stays testable.
 import { itineraryCities, resolveCity } from "@/lib/location";
 import type { GeneratedItinerary, TripPreferences, HotelOption } from "@/types/trip";
-import type { SmartPickRequestBody, SmartPickResponse } from "@/types/smartPick";
+import {
+  arrangeDays, chooseActivities, chooseHotel, chooseRestaurants, isAirbnbOnly,
+  activityCardId, restaurantCardId, type PickFn,
+} from "@/lib/planning/cityPicks";
 
-export type PickFn = (body: SmartPickRequestBody) => Promise<SmartPickResponse>;
+export type { PickFn } from "@/lib/planning/cityPicks";
 
 export interface AutoPlanResult {
   selectedHotelsByCity: Record<string, HotelOption>;
@@ -84,9 +87,7 @@ export async function autoPlanTrip(
   const existingHotels = preferences.selectedHotelsByCity ?? {};
   const alreadyPickedActs = new Set(preferences.selectedActivityIds ?? []);
   const alreadyPickedRests = new Set(preferences.selectedRestaurantIds ?? []);
-  const airbnbOnly = Boolean(
-    preferences.lodging?.types?.length && preferences.lodging.types.every((t) => t === "airbnb")
-  );
+  const airbnbOnly = isAirbnbOnly(preferences.lodging?.types);
 
   // A hotel in the wrong city is worse than none, so hotels don't fall back;
   // activities/restaurants tagged with a town no city matches go to the last
@@ -108,43 +109,20 @@ export async function autoPlanTrip(
     const newRests = cityRestaurants.filter((r) => !alreadyPickedRests.has(r.id));
 
     // Hotel, activity and restaurant picks are independent — run them together.
-    const [hotel, actPicks, restPicks] = await Promise.all([
-      !airbnbOnly && !existingHotels[city] && cityHotels.length
-        ? pick({ kind: "hotel", city, preferences, hotels: cityHotels })
-            .then((d) => cityHotels.find((h) => h.id === d.picks[0]?.id))
-        : Promise.resolve(undefined),
-      newActs.length
-        ? pick({ kind: "activities_for_city", city, preferences, activities: newActs }).then((d) => d.picks.map((p) => p.id))
-        : Promise.resolve([] as string[]),
-      newRests.length
-        ? pick({ kind: "restaurants_for_city", city, preferences, restaurants: newRests }).then((d) => d.picks.map((p) => p.id))
-        : Promise.resolve([] as string[]),
+    // The steps themselves are shared with the wizard and Refine step
+    // (lib/planning/cityPicks.ts), so every screen checks ZiGy's answers alike.
+    const [hotelChoice, actChoice, restChoice] = await Promise.all([
+      !airbnbOnly && !existingHotels[city] ? chooseHotel(pick, city, preferences, cityHotels) : Promise.resolve(null),
+      chooseActivities(pick, city, preferences, newActs),
+      chooseRestaurants(pick, city, preferences, newRests),
     ]);
 
-    const actIds = new Set(actPicks);
-    const restIds = new Set(restPicks);
+    const actIds = new Set(actChoice.ids);
+    const restIds = new Set(restChoice.ids);
     const pickedActs = cityActivities.filter((a) => alreadyPickedActs.has(a.id) || actIds.has(a.id));
     const pickedRests = cityRestaurants.filter((r) => alreadyPickedRests.has(r.id) || restIds.has(r.id));
-
-    const dayCards: Record<number, string[]> = {};
-    if (cityDays.length && (pickedActs.length || pickedRests.length)) {
-      const data = await pick({
-        kind: "schedule", city, preferences,
-        days: cityDays, activities: pickedActs, restaurants: pickedRests,
-      });
-      const validDayNums = new Set(cityDays.map((d) => d.dayNumber));
-      const validCards = new Set([
-        ...pickedActs.map((a) => `act-${a.id}`),
-        ...pickedRests.map((r) => `rest-${r.id}`),
-      ]);
-      const placed = new Set<string>();
-      for (const p of data.picks) {
-        if (p.dayNumber === undefined || !validDayNums.has(p.dayNumber)) continue;
-        if (!validCards.has(p.id) || placed.has(p.id)) continue;
-        placed.add(p.id);
-        (dayCards[p.dayNumber] ??= []).push(p.id);
-      }
-    }
+    const { dayCards } = await arrangeDays(pick, city, preferences, cityDays, pickedActs, pickedRests);
+    const hotel = hotelChoice?.hotel;
 
     return {
       city,
@@ -190,8 +168,8 @@ export async function autoPlanTrip(
 
   const placed = new Set(Object.values(dayCards).flat());
   const bankCards = [
-    ...itinerary.activities.map((a) => `act-${a.id}`),
-    ...(itinerary.restaurants ?? []).map((r) => `rest-${r.id}`),
+    ...itinerary.activities.map(activityCardId),
+    ...(itinerary.restaurants ?? []).map(restaurantCardId),
   ].filter((id) => !placed.has(id));
 
   return {

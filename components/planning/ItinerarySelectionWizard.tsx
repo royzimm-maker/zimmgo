@@ -7,6 +7,7 @@ import { useTripStore } from "@/lib/store/tripStore";
 import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { useExpandablePreview } from "@/lib/hooks/useExpandablePreview";
 import { fetchSmartPick } from "@/lib/api/smartPick";
+import { chooseActivities, chooseHotel, chooseRestaurants, isAirbnbOnly } from "@/lib/planning/cityPicks";
 import { fetchFlightSearch } from "@/lib/api/searchFlights";
 import { fetchGroundTransport } from "@/lib/api/searchGroundTransport";
 import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
@@ -128,9 +129,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
   // Skip the Hotels stage entirely for Airbnb-only trips — itinerary.hotels
   // still gets populated during generation regardless of lodging type, so
   // without this the wizard showed a hotel-picking stage nobody asked to see.
-  const airbnbOnlyLodging = Boolean(
-    preferences.lodging?.types?.length && preferences.lodging.types.every((t) => t === "airbnb")
-  );
+  const airbnbOnlyLodging = isAirbnbOnly(preferences.lodging?.types);
 
   // The cities this itinerary was planned for — the keys picks are stored
   // under, shared with the Refine step and auto-plan (lib/location.ts). A
@@ -294,12 +293,10 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     setPickingHotel(true);
     setHotelPickError(null);
     try {
-      const data = await fetchSmartPick({ kind: "hotel", city: currentCity, preferences, hotels: hotelsForCity });
-      const pick = data.picks[0];
-      const hotel = pick && hotelsForCity.find((h) => h.id === pick.id);
-      if (hotel) {
-        setSelectedHotelForCity(currentCity, hotel);
-        setHotelPickReasons((prev) => ({ ...prev, [currentCity]: pick.reason }));
+      const choice = await chooseHotel(fetchSmartPick, currentCity, preferences, hotelsForCity);
+      if (choice) {
+        setSelectedHotelForCity(currentCity, choice.hotel);
+        setHotelPickReasons((prev) => ({ ...prev, [currentCity]: choice.reason }));
       }
     } catch (e: unknown) {
       // A real failure (bad API key, network blip) shouldn't look identical
@@ -336,11 +333,12 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     setPickingActivities(true);
     setActivityPickError(null);
     try {
-      const data = await fetchSmartPick({ kind: "activities_for_city", city: currentCity, preferences, activities: activitiesForCity });
-      for (const pick of data.picks) {
-        if (!(preferences.selectedActivityIds ?? []).includes(pick.id)) toggleSelectedActivity(pick.id);
+      // Only activities that were offered for this city are added (checked in chooseActivities).
+      const { ids, summary } = await chooseActivities(fetchSmartPick, currentCity, preferences, activitiesForCity);
+      for (const id of ids) {
+        if (!(preferences.selectedActivityIds ?? []).includes(id)) toggleSelectedActivity(id);
       }
-      setActivityPickReasons((prev) => ({ ...prev, [currentCity]: data.summary }));
+      setActivityPickReasons((prev) => ({ ...prev, [currentCity]: summary }));
     } catch (e: unknown) {
       setActivityPickError(e instanceof Error ? e.message : "ZiGy couldn't pick activities right now");
     } finally {
@@ -352,11 +350,11 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     setPickingRestaurants(true);
     setRestaurantPickError(null);
     try {
-      const data = await fetchSmartPick({ kind: "restaurants_for_city", city: currentCity, preferences, restaurants: restaurantsForCity });
-      for (const pick of data.picks) {
-        if (!(preferences.selectedRestaurantIds ?? []).includes(pick.id)) toggleSelectedRestaurant(pick.id);
+      const { ids, summary } = await chooseRestaurants(fetchSmartPick, currentCity, preferences, restaurantsForCity);
+      for (const id of ids) {
+        if (!(preferences.selectedRestaurantIds ?? []).includes(id)) toggleSelectedRestaurant(id);
       }
-      setRestaurantPickReasons((prev) => ({ ...prev, [currentCity]: data.summary }));
+      setRestaurantPickReasons((prev) => ({ ...prev, [currentCity]: summary }));
     } catch (e: unknown) {
       setRestaurantPickError(e instanceof Error ? e.message : "ZiGy couldn't pick restaurants right now");
     } finally {

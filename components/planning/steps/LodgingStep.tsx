@@ -9,6 +9,7 @@ import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseM
 import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { fetchSmartPick } from "@/lib/api/smartPick";
+import { chooseHotel, isAirbnbOnly } from "@/lib/planning/cityPicks";
 import { cn, scrollStepToTop } from "@/lib/utils";
 import { itineraryCities } from "@/lib/location";
 import { formatCurrency } from "@/lib/utils";
@@ -141,7 +142,7 @@ export function LodgingStep() {
     // ZiGy just picked — pickingHotel skips the redundant duplicate here so
     // there's only ever one fetch in flight for a ZiGy-driven change.
     if (pickingHotel) return;
-    const onlyAirbnb = effectiveTypes.length > 0 && effectiveTypes.every((t) => t === "airbnb");
+    const onlyAirbnb = isAirbnbOnly(effectiveTypes);
     if (effectiveTypes.length > 0 && !onlyAirbnb) fetchHotels(minStars);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveTypes.join(",")]);
@@ -247,19 +248,17 @@ export function LodgingStep() {
 
     // Also choose a specific hotel matching those filters — otherwise this
     // only narrows "Choose your stay" below and still leaves it unresolved.
-    const onlyAirbnb = nextTypes.length > 0 && nextTypes.every((t) => t === "airbnb");
-    if (!onlyAirbnb && destination) {
+    if (!isAirbnbOnly(nextTypes) && destination) {
       setPickingHotel(true);
       setHotelPickError(null);
       try {
         const fetchedHotels = await fetchHotels(nextStars, nextTypes);
         if (fetchedHotels.length) {
-          const data = await fetchSmartPick({ kind: "hotel", city: destination, preferences: trip.preferences, hotels: fetchedHotels });
-          const pick = data.picks[0];
-          const hotel = pick && fetchedHotels.find((h) => h.id === pick.id);
+          const choice = await chooseHotel(fetchSmartPick, destination, trip.preferences, fetchedHotels);
+          const hotel = choice?.hotel;
           if (hotel) {
             setSelectedHotelId(hotel.id);
-            setHotelPickReason(pick.reason);
+            setHotelPickReason(choice.reason);
             const idx = fetchedHotels.findIndex((h) => h.id === hotel.id);
             if (idx >= 0) setVisibleHotelCount((c) => Math.max(c, idx + 1));
           }
@@ -311,7 +310,7 @@ export function LodgingStep() {
 
   const hasType = effectiveTypes.length > 0;
   // Only show hotel picker if accommodation type includes bookable hotel options
-  const airbnbOnly = effectiveTypes.length > 0 && effectiveTypes.every((t) => t === "airbnb");
+  const airbnbOnly = isAirbnbOnly(effectiveTypes);
   // Falls back to the persisted selection when the current `hotels` fetch
   // hasn't (re-)included it yet — e.g. a returning visit before this step's
   // own fetch effect has resolved.

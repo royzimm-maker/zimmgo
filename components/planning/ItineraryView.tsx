@@ -5,8 +5,7 @@ import Link from "next/link";
 import { Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, Check, Calendar, List, Lightbulb, FileDown, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { formatCurrency, formatDate, groupItineraryDaysByLocation } from "@/lib/utils";
-import { itineraryCities } from "@/lib/location";
-import { hotelForDay } from "@/lib/planning/hotelChoice";
+import { buildTripPlan, dayLines, itemLabel, type DayPlan } from "@/lib/itinerary/tripPlan";
 import { buildItineraryClipboardHtml, buildItineraryClipboardText, itineraryClipboardTitle } from "@/lib/export/itineraryClipboard";
 import { RichText } from "@/components/planning/RichText";
 import { Section, StatCard } from "@/components/planning/ItineraryCards";
@@ -19,7 +18,7 @@ import { Wanderlog } from "@/components/planning/Wanderlog";
 import { LocalDiscovery } from "@/components/planning/LocalDiscovery";
 import { ItineraryCalendarView } from "@/components/planning/ItineraryCalendarView";
 import { exportItineraryDocx } from "@/lib/api/exportItineraryDocx";
-import type { GeneratedItinerary, HotelOption, ItineraryDay } from "@/types/trip";
+import type { GeneratedItinerary } from "@/types/trip";
 
 // The finished itinerary, shown once the traveller has reviewed it. Choosing
 // flights, hotels, restaurants and activities happens in
@@ -35,15 +34,10 @@ export function ItineraryView({ itinerary }: Props) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [exportingDocx, setExportingDocx] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  // Build card-id → display info lookup for the finalized plan
-  const cardNameMap = useMemo<Record<string, { name: string; kind: "activity" | "restaurant" }>>(() => {
-    const m: Record<string, { name: string; kind: "activity" | "restaurant" }> = {};
-    itinerary.activities.forEach((a) => { m[`act-${a.id}`] = { name: a.name, kind: "activity" }; });
-    (itinerary.restaurants ?? []).forEach((r) => { m[`rest-${r.id}`] = { name: r.name, kind: "restaurant" }; });
-    return m;
-  }, [itinerary.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const preferences = trip.preferences;
-  const tripCities = useMemo(() => itineraryCities(itinerary, preferences.destination), [itinerary, preferences.destination]);
+  // Each day's stay and contents — the same plan "Copy itinerary" and the
+  // Word export render (lib/itinerary/tripPlan.ts).
+  const plan = useMemo(() => buildTripPlan(itinerary, preferences), [itinerary, preferences]);
 
   function handlePrint() {
     window.print();
@@ -179,23 +173,14 @@ export function ItineraryView({ itinerary }: Props) {
           <ItineraryCalendarView days={itinerary.days} />
         ) : (
           <div className="flex flex-col gap-2">
-            {itinerary.days.map((day, idx) => {
-              const pickedCardIds = itinerary.finalizedPlan?.dayCards[day.dayNumber] ?? [];
-              const picks = pickedCardIds
-                .map((id) => cardNameMap[id])
-                .filter((p): p is { name: string; kind: "activity" | "restaurant" } => Boolean(p));
-              const dayHotel = hotelForDay(day, itinerary, preferences, tripCities);
-              return (
-                <DayCard
-                  key={day.dayNumber}
-                  day={day}
-                  expanded={expandedDay === idx}
-                  onToggle={() => setExpandedDay(expandedDay === idx ? -1 : idx)}
-                  picks={picks}
-                  hotel={dayHotel}
-                />
-              );
-            })}
+            {plan.days.map((dayPlan, idx) => (
+              <DayCard
+                key={dayPlan.day.dayNumber}
+                dayPlan={dayPlan}
+                expanded={expandedDay === idx}
+                onToggle={() => setExpandedDay(expandedDay === idx ? -1 : idx)}
+              />
+            ))}
           </div>
         )}
       </Section>
@@ -309,19 +294,21 @@ function DestinationSummary({ itinerary, preferences }: { itinerary: GeneratedIt
   );
 }
 
+// One day of the finished itinerary. What it holds follows the shared plan
+// (lib/itinerary/tripPlan.ts): the traveller's arrangement once they've made
+// one — a day they left empty is a free day — else ZiGy's suggestions.
 function DayCard({
-  day,
+  dayPlan,
   expanded,
   onToggle,
-  picks = [],
-  hotel,
 }: {
-  day: ItineraryDay;
+  dayPlan: DayPlan;
   expanded: boolean;
   onToggle: () => void;
-  picks?: { name: string; kind: "activity" | "restaurant" }[];
-  hotel?: HotelOption;
 }) {
+  const { day, city, stay, source, items } = dayPlan;
+  const hotel = stay?.hotel;
+  const slotEmoji: Record<string, string> = { Morning: "🌅", Afternoon: "☀️", Evening: "🌙" };
   return (
     <Card padding="sm" className="overflow-hidden">
       <button
@@ -337,26 +324,26 @@ function DayCard({
             <p className="font-medium text-slate-800 text-sm">{day.theme}</p>
             <p className="text-xs text-slate-400">
               {formatDate(day.date)}
-              {day.location && <span className="ml-1.5 text-brand-500">· {day.location}</span>}
+              {city && <span className="ml-1.5 text-brand-500">· {city}</span>}
             </p>
           </div>
         </div>
         {expanded ? <ChevronUp size={14} className="text-slate-400 shrink-0" /> : <ChevronDown size={14} className="text-slate-400 shrink-0" />}
       </button>
 
-      {/* Your picks — shown when the user has personalized this day */}
-      {picks.length > 0 && (
+      {/* The traveller's plan for the day, at a glance */}
+      {items.length > 0 && (
         <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {picks.map((p, i) => (
+          {items.map((item) => (
             <span
-              key={i}
+              key={item.cardId}
               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                p.kind === "activity"
+                item.kind === "activity"
                   ? "bg-brand-50 text-brand-700"
                   : "bg-amber-50 text-amber-700"
               }`}
             >
-              {p.kind === "activity" ? "🎯" : "🍽️"} {p.name}
+              {item.kind === "activity" ? "🎯" : "🍽️"} {item.name}
             </span>
           ))}
         </div>
@@ -364,44 +351,62 @@ function DayCard({
 
       {expanded && (
         <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-3">
-          {[
-            { label: "Morning", items: day.morning, emoji: "🌅" },
-            { label: "Afternoon", items: day.afternoon, emoji: "☀️" },
-            { label: "Evening", items: day.evening, emoji: "🌙" },
-          ].map(({ label, items, emoji }) => (
-            items.length > 0 && (
-              <div key={label}>
-                <p className="text-xs font-semibold text-slate-500 mb-1">{emoji} {label}</p>
+          {source === "traveller" ? (
+            items.length > 0 ? (
+              <div>
+                <p className="text-xs font-semibold text-slate-500 mb-1">Your plan for the day</p>
                 <ul className="space-y-0.5">
-                  {items.map((item, i) => (
-                    <li key={i} className="text-xs text-slate-700 flex gap-1.5">
-                      <span className="text-slate-300">·</span>{item}
+                  {items.map((item) => (
+                    <li key={item.cardId} className="text-xs text-slate-700 flex gap-1.5">
+                      <span className="text-slate-300">·</span>{itemLabel(item)}
+                      {item.kind === "activity" && item.activity.duration && (
+                        <span className="text-slate-400">· {item.activity.duration}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
               </div>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Free day — nothing scheduled. Add something with &quot;Fine-tune my schedule&quot;.
+              </p>
             )
-          ))}
-          {day.meals.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-slate-500 mb-1">🍽️ Meal suggestions</p>
-              {day.meals.map((m) => (
-                <div key={m.type} className="flex items-start justify-between gap-2 py-0.5">
-                  <p className="text-xs text-slate-700 flex-1">
-                    <span className="capitalize text-slate-400">{m.type}: </span>{m.suggestion}
-                  </p>
-                  <a
-                    href={`https://www.google.com/search?q=${encodeURIComponent(m.suggestion)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-brand-500 transition-colors"
-                    title="Search on Google"
-                  >
-                    <ExternalLink size={9} />
-                  </a>
+          ) : (
+            <>
+              {dayLines(dayPlan).map(({ label, text }) => (
+                <div key={label ?? text}>
+                  <p className="text-xs font-semibold text-slate-500 mb-1">{slotEmoji[label ?? ""] ?? ""} {label}</p>
+                  <ul className="space-y-0.5">
+                    {text.split(", ").map((part, i) => (
+                      <li key={i} className="text-xs text-slate-700 flex gap-1.5">
+                        <span className="text-slate-300">·</span>{part}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
-            </div>
+              {day.meals.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-1">🍽️ Meal suggestions</p>
+                  {day.meals.map((m) => (
+                    <div key={m.type} className="flex items-start justify-between gap-2 py-0.5">
+                      <p className="text-xs text-slate-700 flex-1">
+                        <span className="capitalize text-slate-400">{m.type}: </span>{m.suggestion}
+                      </p>
+                      <a
+                        href={`https://www.google.com/search?q=${encodeURIComponent(m.suggestion)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-brand-500 transition-colors"
+                        title="Search on Google"
+                      >
+                        <ExternalLink size={9} />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
           {day.notes && <p className="text-xs text-slate-500 italic">{day.notes}</p>}
           {hotel && (
