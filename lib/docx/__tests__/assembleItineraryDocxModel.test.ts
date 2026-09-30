@@ -149,8 +149,8 @@ describe("assembleItineraryDocxModel — day highlight", () => {
 describe("assembleItineraryDocxModel — hotel writeup", () => {
   it("builds a prose writeup from the hotel's own location and highlights, not invented text", () => {
     const model = assembleItineraryDocxModel(
-      makeItinerary(),
-      makePreferences({ selectedHotelsByCity: { Barcelona: hotelBarcelona } })
+      makeItinerary({ selections: { hotelsByCity: { Barcelona: hotelBarcelona } } }),
+      makePreferences()
     );
     expect(model.sections[0].hotel).toEqual({
       name: "Hotel Neri",
@@ -181,8 +181,8 @@ describe("assembleItineraryDocxModel — hotel writeup", () => {
 describe("assembleItineraryDocxModel — restaurants split into booked vs. options", () => {
   it("puts a traveller-picked restaurant in restaurantsBooked and everything else in restaurantsOptions", () => {
     const model = assembleItineraryDocxModel(
-      makeItinerary(),
-      makePreferences({ selectedRestaurantIds: ["r1"] })
+      makeItinerary({ selections: { restaurantIds: ["r1"] } }),
+      makePreferences()
     );
     expect(model.sections[0].restaurantsBooked.map((r) => r.name)).toEqual(["Tapas Bar"]);
     expect(model.sections[0].restaurantsOptions.map((r) => r.name)).toEqual(["Unpicked Place"]);
@@ -210,8 +210,8 @@ describe("assembleItineraryDocxModel — getting there", () => {
 
   it("describes the ground-transport pick for a later section when one exists", () => {
     const model = assembleItineraryDocxModel(
-      makeItinerary(),
-      makePreferences({ selectedTransportByLeg: { Andalusia: transportPick } })
+      makeItinerary({ selections: { transportByLeg: { Andalusia: transportPick } } }),
+      makePreferences()
     );
     expect(model.sections[1].gettingThere).toEqual(["🚆 Renfe to Andalusia, 2h"]);
   });
@@ -245,8 +245,8 @@ describe("assembleItineraryDocxModel — glance table transition days", () => {
 describe("assembleItineraryDocxModel — no fabricated content", () => {
   it("only lists BOOK IN ADVANCE items the traveller actually picked, not the whole pool", () => {
     const model = assembleItineraryDocxModel(
-      makeItinerary(),
-      makePreferences({ selectedHotelsByCity: { Barcelona: hotelBarcelona }, selectedRestaurantIds: ["r1"] })
+      makeItinerary({ selections: { hotelsByCity: { Barcelona: hotelBarcelona }, restaurantIds: ["r1"] } }),
+      makePreferences()
     );
     expect(model.bookInAdvance).toContain("Hotel Neri — Barcelona");
     expect(model.bookInAdvance).toContain("Tapas Bar — Barcelona");

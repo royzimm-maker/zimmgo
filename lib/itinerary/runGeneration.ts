@@ -9,11 +9,11 @@ import { TRAVEL_TOOLS } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
 import { parseToolInput } from "@/lib/ai/toolInput";
 import { buildItineraryPrompt } from "@/lib/ai/prompts";
-import { searchFlights } from "@/lib/api/flights";
-import { searchHotels } from "@/lib/api/hotels";
-import { searchActivities } from "@/lib/api/activities";
-import { searchRestaurants } from "@/lib/api/restaurants";
-import { searchGroundTransport } from "@/lib/api/groundTransport";
+import { searchFlights } from "@/lib/search/flights";
+import { searchHotels } from "@/lib/search/hotels";
+import { searchActivities } from "@/lib/search/activities";
+import { searchRestaurants } from "@/lib/search/restaurants";
+import { searchGroundTransport } from "@/lib/search/groundTransport";
 import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
 import { applyReviewSourcePref } from "@/lib/data/reviewSources";
@@ -395,14 +395,13 @@ async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary>
     groundTransport.push(...await searchGroundTransport(fromCity, toCity, days[i].date, preferences));
   }
 
-  // Hotels the traveller already chose (the Lodging step's pick, or a pick
-  // kept from an earlier itinerary) are always among the results, so the
-  // choice stays visible and selectable. Which hotel is "the" stay is decided
-  // by lib/planning/hotelChoice.ts, not by list order.
-  const chosen = Object.values(preferences.selectedHotelsByCity ?? {});
-  if (chosen.length) {
-    const chosenIds = new Set(chosen.map((h) => h.id));
-    hotels = [...chosen, ...hotels.filter((h) => !chosenIds.has(h.id))];
+  // The Lodging step's pick is always among the results, so it stays
+  // visible and selectable; the new itinerary's choice for its city starts
+  // from it (lib/planning/selections.ts). Which hotel is "the" stay is
+  // decided by lib/planning/hotelChoice.ts, not by list order.
+  const lodgingPick = preferences.lodgingPick;
+  if (lodgingPick) {
+    hotels = [lodgingPick, ...hotels.filter((h) => h.id !== lodgingPick.id)];
   }
 
   const dest = preferences.destination?.displayName ?? "your destination";

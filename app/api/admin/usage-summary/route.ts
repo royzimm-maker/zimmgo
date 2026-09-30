@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverError } from "@/lib/api/errors";
+import { serverError } from "@/lib/http/errors";
 import { prisma } from "@/lib/db";
 import { estimateCostUsd } from "@/lib/ai/usageLog";
 

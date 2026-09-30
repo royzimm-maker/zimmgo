@@ -14,7 +14,7 @@ import { itineraryCities, resolveCity } from "@/lib/location";
 //   3. extend normalizeTrip if the new field needs a safe default.
 // Old data is then upgraded when a browser loads it, when a synced copy is
 // pulled from the server, and when an older tab pushes to the server.
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 // Chat history kept per device — the chat route only sends the last 12.
 export const MAX_CHAT_MESSAGES = 100;
@@ -62,6 +62,43 @@ const MIGRATIONS: Record<number, (state: Loose) => Loose> = {
       return { ...t, preferences: { ...preferences, selectedHotelsByCity: byCity } };
     };
     return { ...state, trip: moveSingleHotelPick(state.trip), savedTrips: arr(state.savedTrips).map(moveSingleHotelPick) };
+  },
+  // 3 → 4: decisions move onto the itinerary they're about. The traveller's
+  // chosen hotels, activities, restaurants, flight and transport leave
+  // preferences for the latest itinerary's `selections` (a choice already
+  // recorded there wins). With no itinerary yet, the only choice that can
+  // exist is the Lodging step's hotel, which becomes `lodgingPick`.
+  3: (state) => {
+    const DECISIONS: [string, string][] = [
+      ["selectedHotelsByCity", "hotelsByCity"],
+      ["selectedActivityIds", "activityIds"],
+      ["selectedRestaurantIds", "restaurantIds"],
+      ["selectedFlight", "flight"],
+      ["selectedTransportByLeg", "transportByLeg"],
+    ];
+    const moveDecisions = (t: unknown) => {
+      if (!isObj(t) || !isObj(t.preferences)) return t;
+      const preferences: Loose = { ...t.preferences };
+      const selections: Loose = {};
+      for (const [from, to] of DECISIONS) {
+        if (preferences[from] !== undefined && preferences[from] !== null) selections[to] = preferences[from];
+        delete preferences[from];
+      }
+      const itineraries = arr(t.itineraries);
+      const latest = itineraries[itineraries.length - 1];
+      if (!isObj(latest)) {
+        const lodgingHotel = isObj(selections.hotelsByCity) ? Object.values(selections.hotelsByCity).find(isObj) : undefined;
+        if (lodgingHotel && !isObj(preferences.lodgingPick)) preferences.lodgingPick = lodgingHotel;
+        return { ...t, preferences };
+      }
+      const existing = isObj(latest.selections) ? latest.selections : {};
+      return {
+        ...t,
+        preferences,
+        itineraries: [...itineraries.slice(0, -1), { ...latest, selections: { ...selections, ...existing } }],
+      };
+    };
+    return { ...state, trip: moveDecisions(state.trip), savedTrips: arr(state.savedTrips).map(moveDecisions) };
   },
 };
 

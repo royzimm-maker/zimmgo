@@ -2,9 +2,9 @@
 // Production: integrate with GetYourGuide API or Viator API
 // GetYourGuide docs: https://api.getyourguide.com
 
-import { stableId } from "@/lib/api/mockRandom";
+import { stableId } from "@/lib/search/mockRandom";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
-import { resolvePool } from "@/lib/api/poolLookup";
+import { resolvePool } from "@/lib/search/poolLookup";
 import { getActivitiesForDestination, type DestinationActivity } from "@/lib/data/destinationActivities";
 import type { ActivityOption } from "@/types/trip";
 

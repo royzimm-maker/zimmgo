@@ -17,7 +17,7 @@ import { PreTripTasks } from "@/components/planning/PreTripTasks";
 import { Wanderlog } from "@/components/planning/Wanderlog";
 import { LocalDiscovery } from "@/components/planning/LocalDiscovery";
 import { ItineraryCalendarView } from "@/components/planning/ItineraryCalendarView";
-import { exportItineraryDocx } from "@/lib/api/exportItineraryDocx";
+import { exportItineraryDocx } from "@/lib/client/exportItineraryDocx";
 import type { GeneratedItinerary } from "@/types/trip";
 
 // The finished itinerary, shown once the traveller has reviewed it. Choosing

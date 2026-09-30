@@ -4,6 +4,7 @@ import { Plane, Hotel, Users, Calendar, MapPin, Check, Ship } from "lucide-react
 import { formatDate, formatCurrency, pairFlights } from "@/lib/utils";
 import { itineraryCities } from "@/lib/location";
 import { chosenHotelForCity, type HotelChoice } from "@/lib/planning/hotelChoice";
+import { selectionsOf } from "@/lib/planning/selections";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 
@@ -14,11 +15,13 @@ interface Props {
 
 
 export function TripGlance({ itinerary, preferences }: Props) {
-  const { trip, setSelectedFlight } = useTripStore();
+  const { setSelectedFlight } = useTripStore();
+  // The traveller's choices from this itinerary (lib/planning/selections.ts).
+  const chosen = selectionsOf(itinerary);
   const { days, flights } = itinerary;
   const travelers = preferences.travelers ?? 1;
   const destination = preferences.destination?.displayName ?? "Your destination";
-  const selectedFlightId = trip.preferences.selectedFlight?.id;
+  const selectedFlightId = chosen.flight?.id;
 
   const firstDay = days[0];
   const lastDay  = days[days.length - 1];
@@ -38,7 +41,7 @@ export function TripGlance({ itinerary, preferences }: Props) {
   // whole fetched pool, which would make the choice they made invisible.
   const cities = itineraryCities(itinerary, preferences.destination);
   const stays = cities
-    .map((c) => chosenHotelForCity(c, itinerary, preferences, cities))
+    .map((c) => chosenHotelForCity(c, itinerary, cities))
     .filter((s): s is HotelChoice => s !== null);
   const lodgingLabel = stays.every((s) => s.byTraveller)
     ? "Your Lodging"
@@ -157,13 +160,13 @@ export function TripGlance({ itinerary, preferences }: Props) {
           only once the traveller has actually picked one; unlike flights/
           hotels there's no "recommended default" shown here, since this is
           an optional add-on most trips never touch. */}
-      {Object.keys(preferences.selectedTransportByLeg ?? {}).length > 0 && (
+      {Object.keys(chosen.transportByLeg ?? {}).length > 0 && (
         <div className="px-4 py-3 border-b border-slate-100">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1">
             <Ship size={10} /> Getting There
           </p>
           <div className="flex flex-col gap-1">
-            {Object.entries(preferences.selectedTransportByLeg ?? {}).map(([city, t]) => (
+            {Object.entries(chosen.transportByLeg ?? {}).map(([city, t]) => (
               <div key={city} className="flex items-center justify-between text-xs">
                 <span className="text-slate-700 font-medium flex items-center gap-1">
                   <Check size={11} className="text-sage-600 shrink-0" />

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverError } from "@/lib/api/errors";
+import { serverError } from "@/lib/http/errors";
 import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL } from "@/lib/ai/client";
 import { logApiUsage } from "@/lib/ai/usageLog";
-import { readJsonBody, tooLong } from "@/lib/api/readJsonBody";
+import { readJsonBody, tooLong } from "@/lib/http/readJsonBody";
 import type { TripPreferences } from "@/types/trip";
 
 interface RefineBody {

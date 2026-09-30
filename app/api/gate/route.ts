@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverError } from "@/lib/api/errors";
+import { serverError } from "@/lib/http/errors";
 import { rateLimit } from "@/lib/rateLimit";
-import { readJsonBody } from "@/lib/api/readJsonBody";
+import { readJsonBody } from "@/lib/http/readJsonBody";
 import {
   GATE_COOKIE_NAME, GATE_SESSION_MAX_AGE_S, createGateToken, gateAccounts, matchGatePassword,
 } from "@/lib/gateAuth";

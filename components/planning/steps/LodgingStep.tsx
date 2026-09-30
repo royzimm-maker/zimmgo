@@ -8,7 +8,7 @@ import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
-import { fetchSmartPick } from "@/lib/api/smartPick";
+import { fetchSmartPick } from "@/lib/client/smartPick";
 import { chooseHotel, isAirbnbOnly } from "@/lib/planning/cityPicks";
 import { cn, scrollStepToTop } from "@/lib/utils";
 import { itineraryCities } from "@/lib/location";
@@ -39,7 +39,7 @@ const HOTEL_TIER: Record<number, string> = {
 };
 
 export function LodgingStep() {
-  const { trip, setLodging, setSelectedHotelForCity, setReviewSourcePref, setAutoPickHotels } = useTripStore();
+  const { trip, setLodging, setLodgingPick, setReviewSourcePref, setAutoPickHotels } = useTripStore();
   const existing = trip.preferences.lodging;
   // "zigy_review" is a transient state shown right after picking "Let ZiGy
   // choose for me" on the initial prompt — a focused summary of the pick
@@ -49,12 +49,12 @@ export function LodgingStep() {
   const [showMoreHotels, setShowMoreHotels] = useState(false);
   const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
   const { picking, pickSummary, error: pickError, run: runSmartPick } = useSmartPick();
-  // This step picks the primary city's hotel. Search by that city alone —
-  // avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings — and
-  // store the pick under the same key the itinerary will use for it
-  // (lib/location.ts itineraryCities), so every later screen finds it.
+  // This step picks the primary city's hotel, before there's an itinerary.
+  // Search by that city alone — avoids "Cultural district, Italy — Rome, &
+  // Amalfi Coast" strings. The pick is saved as a preference (lodgingPick);
+  // the itinerary's choice for this city starts from it.
   const destination = itineraryCities(null, trip.preferences.destination)[0] ?? "";
-  const savedPick = destination ? trip.preferences.selectedHotelsByCity?.[destination] : undefined;
+  const savedPick = trip.preferences.lodgingPick;
   const budgetMax = resolveBudget(trip.preferences)?.max ?? DEFAULT_BUDGET_MAX;
 
   const [types,          setTypes         ] = useState<LodgingType[]>(existing?.types ?? []);
@@ -289,7 +289,7 @@ export function LodgingStep() {
     );
 
     const picked = displayHotels.find((h) => h.id === selectedHotelId) ?? null;
-    if (destination) setSelectedHotelForCity(destination, picked);
+    setLodgingPick(picked);
   }
 
   // Live preview of the rating source the user is currently choosing, so the hotel

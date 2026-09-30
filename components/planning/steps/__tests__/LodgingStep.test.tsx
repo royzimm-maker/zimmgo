@@ -193,8 +193,8 @@ describe("LodgingStep — manual picking", () => {
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() => {
-      // Stored as the primary city's choice — the same place every later screen reads it from.
-      expect(useTripStore.getState().trip.preferences.selectedHotelsByCity?.Barcelona?.name).toBe("Hotel Neri");
+      // Saved as the Lodging step's pick — the itinerary's choice for Barcelona starts from it.
+      expect(useTripStore.getState().trip.preferences.lodgingPick?.name).toBe("Hotel Neri");
     });
   });
 });

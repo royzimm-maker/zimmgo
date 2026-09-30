@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { fetchSmartPick } from "@/lib/api/smartPick";
+import { fetchSmartPick } from "@/lib/client/smartPick";
 import type { SmartPickRequestBody, SmartPick } from "@/types/smartPick";
 
 export function useSmartPick() {

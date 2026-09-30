@@ -3,8 +3,8 @@
 // Booking.com docs: https://developers.booking.com
 
 import type { HotelOption } from "@/types/trip";
-import { seededInt, seededRandom, stableId } from "@/lib/api/mockRandom";
-import { resolvePool } from "@/lib/api/poolLookup";
+import { seededInt, seededRandom, stableId } from "@/lib/search/mockRandom";
+import { resolvePool } from "@/lib/search/poolLookup";
 
 interface HotelSearchParams {
   destination: string;

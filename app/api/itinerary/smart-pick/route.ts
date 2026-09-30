@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverError } from "@/lib/api/errors";
+import { serverError } from "@/lib/http/errors";
 import { rateLimit } from "@/lib/rateLimit";
 import { runSmartPick, SmartPickError } from "@/lib/ai/smartPick";
-import { readJsonBody, tooMany } from "@/lib/api/readJsonBody";
+import { readJsonBody, tooMany } from "@/lib/http/readJsonBody";
 import type { SmartPickRequestBody } from "@/types/smartPick";
 
 export async function POST(request: NextRequest) {

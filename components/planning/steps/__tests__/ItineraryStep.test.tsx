@@ -229,7 +229,7 @@ describe("ItineraryStep — plan my whole trip", () => {
     await waitFor(() => expect(screen.getByTestId("itinerary-view")).toBeInTheDocument());
     expect(posts(fetchMock)).toHaveLength(1);
     const trip = useTripStore.getState().trip;
-    expect(trip.preferences.selectedActivityIds).toEqual(["a1"]);
+    expect(trip.itineraries[0].selections?.activityIds).toEqual(["a1"]);
     expect(trip.itineraries[0].reviewCompleted).toBe(true);
     expect(trip.itineraries[0].finalizedPlan?.dayCards[1]).toEqual(["act-a1"]);
     expect(localStorage.getItem("zimmgo-pending-autoplan")).toBeNull();

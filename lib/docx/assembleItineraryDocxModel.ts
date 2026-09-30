@@ -23,6 +23,7 @@ import {
 } from "@/lib/utils";
 import { resolveCity, sameLocation } from "@/lib/location";
 import { chosenHotelForCity } from "@/lib/planning/hotelChoice";
+import { selectionsOf } from "@/lib/planning/selections";
 import { buildTripPlan, dayLines, type DayPlan } from "@/lib/itinerary/tripPlan";
 import { getVisaRequirementsForTrip } from "@/lib/data/visaRequirements";
 import type {
@@ -118,18 +119,18 @@ function pickHotelForLocation(
   cities: string[]
 ): DocxHotel | null {
   const city = resolveCity(location, cities, { fallbackToLast: true }) ?? location;
-  const choice = chosenHotelForCity(city, itinerary, preferences, cities);
+  const choice = chosenHotelForCity(city, itinerary, cities);
   if (!choice) return null;
   return { name: choice.hotel.name, writeup: hotelWriteup(choice.hotel), isTravellerPick: choice.byTraveller };
 }
 
 function splitRestaurantsForLocation(
   location: string,
-  preferences: TripPreferences,
+  itinerary: GeneratedItinerary,
   restaurants: RestaurantOption[]
 ): { booked: DocxPickRow[]; options: DocxPickRow[] } {
   const inLocation = restaurants.filter((r) => sameLocation(r.location, location));
-  const confirmedIds = new Set(preferences.selectedRestaurantIds ?? []);
+  const confirmedIds = new Set(selectionsOf(itinerary).restaurantIds ?? []);
   const toRow = (r: RestaurantOption): DocxPickRow => ({
     name: r.name,
     notes: `${r.cuisine} · ${r.priceRange}${r.mustOrder ? ` · Try: ${r.mustOrder}` : ""}`,
@@ -150,14 +151,13 @@ function gettingThereFor(
   legIndex: number,
   legOpenerDay: GeneratedItinerary["days"][number],
   location: string,
-  itinerary: GeneratedItinerary,
-  preferences: TripPreferences
+  itinerary: GeneratedItinerary
 ): string[] {
   if (legIndex === 0) {
-    const flight = preferences.selectedFlight ?? itinerary.flights[0];
+    const flight = selectionsOf(itinerary).flight ?? itinerary.flights[0];
     return flight ? [`✈ ${flight.airline} — ${flight.origin} → ${flight.destination}`] : [];
   }
-  const transportPick = preferences.selectedTransportByLeg?.[location];
+  const transportPick = selectionsOf(itinerary).transportByLeg?.[location];
   if (transportPick) {
     const icon = transportPick.mode === "ferry" ? "🚢" : "🚆";
     return [`${icon} ${transportPick.provider} to ${location}, ${transportPick.duration}`];
@@ -203,14 +203,14 @@ export function assembleItineraryDocxModel(
       highlight: dayHighlight(planFor.get(day.dayNumber)),
     }));
 
-    const { booked, options } = splitRestaurantsForLocation(leg.location, preferences, itinerary.restaurants ?? []);
+    const { booked, options } = splitRestaurantsForLocation(leg.location, itinerary, itinerary.restaurants ?? []);
 
     return {
       location: leg.location,
       dateRangeLabel: leg.dates.length > 1 ? `${formatDate(leg.dates[0])} – ${formatDate(leg.dates[leg.dates.length - 1])}` : formatDate(leg.dates[0]),
       nightCount: Math.max(0, leg.dayCount - 1) || leg.dayCount,
       hotel: pickHotelForLocation(leg.location, itinerary, preferences, cities),
-      gettingThere: gettingThereFor(legIndex, legDays[0], leg.location, itinerary, preferences),
+      gettingThere: gettingThereFor(legIndex, legDays[0], leg.location, itinerary),
       days,
       restaurantsBooked: booked,
       restaurantsOptions: options,

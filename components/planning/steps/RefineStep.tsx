@@ -15,8 +15,9 @@ import {
 import { Sparkles, ArrowRight, Hotel, UtensilsCrossed, Star, CalendarDays, CheckCircle2, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { CardInner, DraggableCard, DroppableContainer, type CardInfo } from "@/components/planning/refine/ScheduleCards";
-import { fetchSmartPick } from "@/lib/api/smartPick";
+import { fetchSmartPick } from "@/lib/client/smartPick";
 import { arrangeDays, chooseHotel, isAirbnbOnly } from "@/lib/planning/cityPicks";
+import { selectionsOf } from "@/lib/planning/selections";
 import { formatDate, scrollStepToTop } from "@/lib/utils";
 import { itineraryCities, resolveCity } from "@/lib/location";
 import { useTripStore } from "@/lib/store/tripStore";
@@ -40,6 +41,8 @@ function dayInCity(dayLocation: string | undefined, city: string, cities: string
 export function RefineStep() {
   const { trip, goToStep, saveFinalizedPlan, markItineraryReviewed, addWanderlogItem, setSelectedHotelForCity } = useTripStore();
   const itinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
+  // The traveller's choices from this itinerary (lib/planning/selections.ts).
+  const chosen = selectionsOf(itinerary);
 
   // Only the activities/restaurants the traveller actually picked in the
   // review wizard belong on this board — the full generated list (including
@@ -47,14 +50,14 @@ export function RefineStep() {
   // at all, and mismatch the "Where things stand" counts above, which are
   // already scoped to these same selected-id lists.
   const activities = useMemo<ActivityOption[]>(
-    () => (itinerary?.activities ?? []).filter((a) => (trip.preferences.selectedActivityIds ?? []).includes(a.id)),
+    () => (itinerary?.activities ?? []).filter((a) => (chosen.activityIds ?? []).includes(a.id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [itinerary?.id, trip.preferences.selectedActivityIds]
+    [itinerary?.id, chosen.activityIds]
   );
   const restaurants = useMemo<RestaurantOption[]>(
-    () => (itinerary?.restaurants ?? []).filter((r) => (trip.preferences.selectedRestaurantIds ?? []).includes(r.id)),
+    () => (itinerary?.restaurants ?? []).filter((r) => (chosen.restaurantIds ?? []).includes(r.id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [itinerary?.id, trip.preferences.selectedRestaurantIds]
+    [itinerary?.id, chosen.restaurantIds]
   );
   const days = itinerary?.days ?? [];
 
@@ -201,7 +204,7 @@ export function RefineStep() {
   // calls that gap out ("No hotel picked yet"). Fill it in here too, the same
   // way the flights/hotels/restaurants/activities wizard's smart-pick does.
   async function pickHotelIfNeeded(city: string): Promise<void> {
-    if (trip.preferences.selectedHotelsByCity?.[city]) return;
+    if (chosen.hotelsByCity?.[city]) return;
     if (isAirbnbOnly(trip.preferences.lodging?.types)) return;
     const cityHotels = (itinerary?.hotels ?? []).filter((h) => resolveCity(h.city ?? h.location, cities) === city);
     const choice = await chooseHotel(fetchSmartPick, city, trip.preferences, cityHotels);
@@ -325,12 +328,12 @@ export function RefineStep() {
   // this summary is to make clear that hotel/restaurant/activity picks
   // aren't starting from scratch here, only day-by-day scheduling is.
   const cityDecisions = cities.map((city) => {
-    const hotelName = trip.preferences.selectedHotelsByCity?.[city]?.name;
+    const hotelName = chosen.hotelsByCity?.[city]?.name;
     const restaurantCount = (itinerary.restaurants ?? []).filter(
-      (r) => resolveCardCity(r.location, cities) === city && (trip.preferences.selectedRestaurantIds ?? []).includes(r.id)
+      (r) => resolveCardCity(r.location, cities) === city && (chosen.restaurantIds ?? []).includes(r.id)
     ).length;
     const activityCount = itinerary.activities.filter(
-      (a) => resolveCardCity(a.location, cities) === city && (trip.preferences.selectedActivityIds ?? []).includes(a.id)
+      (a) => resolveCardCity(a.location, cities) === city && (chosen.activityIds ?? []).includes(a.id)
     ).length;
     const cityDays = days.filter((d) => dayInCity(d.location, city, cities));
     const scheduledDays = cityDays.filter((d) => (dayCards[d.dayNumber] ?? []).length > 0).length;

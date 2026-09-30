@@ -11,7 +11,7 @@ export interface GroundTransportProvider {
   mode: "ferry" | "train";
   provider: string;
   // A real provider search-results URL with {from}/{to}/{date} placeholders,
-  // filled in by lib/api/groundTransport.ts's searchGroundTransport(). Exact
+  // filled in by lib/search/groundTransport.ts's searchGroundTransport(). Exact
   // query-param names aren't guaranteed to match either site's actual
   // frontend precisely — see the PRODUCTION SWAP POINT comment there for why
   // that's fine for now.

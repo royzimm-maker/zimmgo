@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { searchGroundTransport } from "@/lib/api/groundTransport";
+import { searchGroundTransport } from "@/lib/search/groundTransport";
 import type { TripPreferences } from "@/types/trip";
 
 const emptyPreferences: TripPreferences = {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverError } from "@/lib/api/errors";
+import { serverError } from "@/lib/http/errors";
 import { waitUntil } from "@vercel/functions";
 import { rateLimit } from "@/lib/rateLimit";
-import { readJsonBody, tooMany } from "@/lib/api/readJsonBody";
+import { readJsonBody, tooMany } from "@/lib/http/readJsonBody";
 import { createJob, executeJob, findJobByKey, getJob } from "@/lib/itinerary/generationJobs";
 import { runSmartPick } from "@/lib/ai/smartPick";
 import { autoPlanTrip } from "@/lib/planning/autoPlanTrip";

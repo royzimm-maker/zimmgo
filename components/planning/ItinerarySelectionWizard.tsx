@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { useExpandablePreview } from "@/lib/hooks/useExpandablePreview";
-import { fetchSmartPick } from "@/lib/api/smartPick";
+import { fetchSmartPick } from "@/lib/client/smartPick";
 import { chooseActivities, chooseHotel, chooseRestaurants, isAirbnbOnly } from "@/lib/planning/cityPicks";
-import { fetchFlightSearch } from "@/lib/api/searchFlights";
-import { fetchGroundTransport } from "@/lib/api/searchGroundTransport";
+import { selectionsOf } from "@/lib/planning/selections";
+import { fetchFlightSearch } from "@/lib/client/searchFlights";
+import { fetchGroundTransport } from "@/lib/client/searchGroundTransport";
 import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 import { cn, formatDate, scrollStepToTop } from "@/lib/utils";
 import { itineraryCities, resolveCity } from "@/lib/location";
@@ -65,6 +66,9 @@ interface WizardStep {
 export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, onStepChange }: Props) {
   const { trip, setSelectedFlight, setSelectedTransportForLeg, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity, setItineraryFlights, setDates, goToStep } = useTripStore();
   const preferences = trip.preferences;
+  // The traveller's choices from this itinerary (lib/planning/selections.ts),
+  // read from the store's copy so a pick shows the moment it's made.
+  const chosen = selectionsOf(trip.itineraries.find((i) => i.id === itinerary.id) ?? itinerary);
 
   const [searchingFlights, setSearchingFlights] = useState(false);
   const [flightSearchError, setFlightSearchError] = useState<string | null>(null);
@@ -282,12 +286,12 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
   // pick the traveller already has requires scrolling past other options
   // to even see what was chosen.
   const displayHotels = useMemo(() => {
-    const pickedId = preferences.selectedHotelsByCity?.[currentCity]?.id;
+    const pickedId = chosen.hotelsByCity?.[currentCity]?.id;
     if (!pickedId) return hotelsForCity;
     const picked = hotelsForCity.find((h) => h.id === pickedId);
     if (!picked) return hotelsForCity;
     return [picked, ...hotelsForCity.filter((h) => h.id !== pickedId)];
-  }, [hotelsForCity, preferences.selectedHotelsByCity, currentCity]);
+  }, [hotelsForCity, chosen.hotelsByCity, currentCity]);
 
   async function handleSmartPickHotel() {
     setPickingHotel(true);
@@ -321,14 +325,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
   useEffect(() => {
     if (stage !== "hotels") return;
     if (!preferences.autoPickHotels) return;
-    if (preferences.selectedHotelsByCity?.[currentCity]) return;
+    if (chosen.hotelsByCity?.[currentCity]) return;
     if (autoPickedHotelFor.has(currentCity)) return;
     if (pickingHotel || hotelsForCity.length === 0) return;
 
     setAutoPickedHotelFor((prev) => new Set(prev).add(currentCity));
     handleSmartPickHotel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, currentCity, preferences.autoPickHotels, preferences.selectedHotelsByCity, hotelsForCity, pickingHotel]);
+  }, [stage, currentCity, preferences.autoPickHotels, chosen.hotelsByCity, hotelsForCity, pickingHotel]);
   async function handleSmartPickActivities() {
     setPickingActivities(true);
     setActivityPickError(null);
@@ -336,7 +340,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
       // Only activities that were offered for this city are added (checked in chooseActivities).
       const { ids, summary } = await chooseActivities(fetchSmartPick, currentCity, preferences, activitiesForCity);
       for (const id of ids) {
-        if (!(preferences.selectedActivityIds ?? []).includes(id)) toggleSelectedActivity(id);
+        if (!(chosen.activityIds ?? []).includes(id)) toggleSelectedActivity(id);
       }
       setActivityPickReasons((prev) => ({ ...prev, [currentCity]: summary }));
     } catch (e: unknown) {
@@ -352,7 +356,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     try {
       const { ids, summary } = await chooseRestaurants(fetchSmartPick, currentCity, preferences, restaurantsForCity);
       for (const id of ids) {
-        if (!(preferences.selectedRestaurantIds ?? []).includes(id)) toggleSelectedRestaurant(id);
+        if (!(chosen.restaurantIds ?? []).includes(id)) toggleSelectedRestaurant(id);
       }
       setRestaurantPickReasons((prev) => ({ ...prev, [currentCity]: summary }));
     } catch (e: unknown) {
@@ -394,15 +398,15 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
   // through its later stages (e.g. the hotel you just picked, visible while
   // you're now looking at restaurants).
   const cityRecap = useMemo(() => {
-    const hotel = preferences.selectedHotelsByCity?.[currentCity]?.name;
+    const hotel = chosen.hotelsByCity?.[currentCity]?.name;
     const restaurantCount = (itinerary.restaurants ?? [])
-      .filter((r) => resolveCity(r.location, cities, { fallbackToLast: true }) === currentCity && (preferences.selectedRestaurantIds ?? []).includes(r.id))
+      .filter((r) => resolveCity(r.location, cities, { fallbackToLast: true }) === currentCity && (chosen.restaurantIds ?? []).includes(r.id))
       .length;
     const activityCount = itinerary.activities
-      .filter((a) => resolveCity(a.location, cities, { fallbackToLast: true }) === currentCity && (preferences.selectedActivityIds ?? []).includes(a.id))
+      .filter((a) => resolveCity(a.location, cities, { fallbackToLast: true }) === currentCity && (chosen.activityIds ?? []).includes(a.id))
       .length;
     return { hotel, restaurantCount, activityCount };
-  }, [currentCity, cities, itinerary.restaurants, itinerary.activities, preferences.selectedHotelsByCity, preferences.selectedRestaurantIds, preferences.selectedActivityIds]);
+  }, [currentCity, cities, itinerary.restaurants, itinerary.activities, chosen.hotelsByCity, chosen.restaurantIds, chosen.activityIds]);
 
   const sectionTitle = stage === "flights" ? "Flights" : `${STAGE_META[stage].label} — ${currentCity}`;
   const sectionSubtitle = stage === "flights"
@@ -514,8 +518,8 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
             <FlightPairList
               flights={itinerary.flights}
               arrivalAirport={preferences.destination?.arrivalAirport ?? ""}
-              selectedFlightId={preferences.selectedFlight?.id}
-              onSelect={(f) => setSelectedFlight(preferences.selectedFlight?.id === f.id ? null : f)}
+              selectedFlightId={chosen.flight?.id}
+              onSelect={(f) => setSelectedFlight(chosen.flight?.id === f.id ? null : f)}
             />
           ) : preferences.dates?.type === "exact" && preferences.dates.skipFlightSearch ? (
             <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50 px-4 py-6 text-center">
@@ -631,9 +635,9 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
                 <TransportCard
                   key={t.id}
                   option={t}
-                  selected={preferences.selectedTransportByLeg?.[currentCity]?.id === t.id}
+                  selected={chosen.transportByLeg?.[currentCity]?.id === t.id}
                   onSelect={() => {
-                    const already = preferences.selectedTransportByLeg?.[currentCity]?.id === t.id;
+                    const already = chosen.transportByLeg?.[currentCity]?.id === t.id;
                     setSelectedTransportForLeg(currentCity, already ? null : t);
                   }}
                 />
@@ -705,7 +709,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
                 </div>
               )}
               {displayHotels.map((h) => {
-                const selected = preferences.selectedHotelsByCity?.[currentCity]?.id === h.id;
+                const selected = chosen.hotelsByCity?.[currentCity]?.id === h.id;
                 return (
                   <HotelCard
                     key={h.id}
@@ -762,7 +766,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
                   restaurant={r}
                   saved={wanderlogLabels.has(r.name)}
                   onSave={() => handleSaveToWanderlog(r.name, "restaurant", r.location, r.description)}
-                  selected={(preferences.selectedRestaurantIds ?? []).includes(r.id)}
+                  selected={(chosen.restaurantIds ?? []).includes(r.id)}
                   onSelect={() => toggleSelectedRestaurant(r.id)}
                 />
               ))}
@@ -827,7 +831,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
                     activity={a}
                     saved={wanderlogLabels.has(a.name)}
                     onSave={() => handleSaveToWanderlog(a.name, "activity", a.location, a.description)}
-                    selected={(preferences.selectedActivityIds ?? []).includes(a.id)}
+                    selected={(chosen.activityIds ?? []).includes(a.id)}
                     onSelect={() => toggleSelectedActivity(a.id)}
                   />
                 ))}

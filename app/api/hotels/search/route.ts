@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchHotels } from "@/lib/api/hotels";
+import { searchHotels } from "@/lib/search/hotels";
 import { rateLimit } from "@/lib/rateLimit";
-import { readJsonBody } from "@/lib/api/readJsonBody";
-import { serverError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/http/readJsonBody";
+import { serverError } from "@/lib/http/errors";
 import { parseWithSchema, type JsonSchema } from "@/lib/ai/toolInput";
 
 type HotelSearchParams = Parameters<typeof searchHotels>[0];

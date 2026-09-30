@@ -12,7 +12,7 @@ vi.mock("@/lib/ai/client", async (orig) => ({
 import { POST as smartPick } from "@/app/api/itinerary/smart-pick/route";
 import { POST as chat } from "@/app/api/ai/chat/route";
 import { POST as parseFull } from "@/app/api/trip/parse-full/route";
-import { readJsonBody } from "@/lib/api/readJsonBody";
+import { readJsonBody } from "@/lib/http/readJsonBody";
 
 function post(url: string, body: unknown) {
   return new NextRequest(`http://localhost${url}`, {

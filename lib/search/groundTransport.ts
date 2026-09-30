@@ -12,7 +12,7 @@
 // (TransportOption[]) stays the same either way.
 
 import type { TransportOption, TripPreferences } from "@/types/trip";
-import { seededInt, seededRandom, stableId } from "@/lib/api/mockRandom";
+import { seededInt, seededRandom, stableId } from "@/lib/search/mockRandom";
 import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 
 export async function searchGroundTransport(

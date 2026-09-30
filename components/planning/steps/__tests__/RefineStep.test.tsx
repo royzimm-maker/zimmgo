@@ -40,11 +40,6 @@ function freshTrip(overrides: Partial<Trip> = {}): Trip {
     preferences: {
       activities: [], activityRankings: {}, vibes: [], transportation: [],
       destination: { cities: ["Barcelona", "Andalusia"], displayName: "Spain" },
-      // RefineStep's board only shows activities/restaurants the traveller
-      // actually picked in the review wizard — both fixtures are "picked"
-      // by default so these tests exercise scheduling, not selection.
-      selectedActivityIds: ["a1", "a2"],
-      selectedRestaurantIds: ["r1", "r2"],
     },
     currentStep: "refine",
     completedSteps: [],
@@ -75,6 +70,10 @@ function makeItinerary(overrides: Partial<GeneratedItinerary> = {}): GeneratedIt
     currency: "USD",
     aiSummary: "",
     whyThisWorks: "",
+    // RefineStep's board only shows activities/restaurants the traveller
+    // actually picked in the review wizard — every fixture is "picked" by
+    // default so these tests exercise scheduling, not selection.
+    selections: { activityIds: ["a1", "a2"], restaurantIds: ["r1", "r2"] },
     ...overrides,
   };
 }
@@ -88,6 +87,12 @@ function statusPanel(): HTMLElement {
 
 function cityTab(city: string): HTMLElement {
   return screen.getByRole("button", { name: new RegExp(`^${city}`) });
+}
+
+// The traveller's choices live on the itinerary being refined.
+function latestSelections() {
+  const { itineraries } = useTripStore.getState().trip;
+  return itineraries[itineraries.length - 1]?.selections ?? {};
 }
 
 beforeEach(() => {
@@ -137,13 +142,10 @@ describe("RefineStep — status panel", () => {
     });
     useTripStore.setState({
       trip: freshTrip({
-        itineraries: [itinerary],
-        preferences: {
-          ...freshTrip().preferences,
-          selectedHotelsByCity: { Barcelona: hotelBarcelona },
-          selectedRestaurantIds: ["r1"],
-          selectedActivityIds: ["a1", "a2"],
-        },
+        itineraries: [{
+          ...itinerary,
+          selections: { hotelsByCity: { Barcelona: hotelBarcelona }, restaurantIds: ["r1"], activityIds: ["a1", "a2"] },
+        }],
       }),
     });
     render(<RefineStep />);
@@ -250,18 +252,15 @@ describe("RefineStep — ZiGy smart-arrange", () => {
       expect(screen.getByText("1 of 4 items placed")).toBeInTheDocument();
     });
     expect(screen.getByText(/Arranged Barcelona\./)).toBeInTheDocument();
-    expect(useTripStore.getState().trip.preferences.selectedHotelsByCity?.Barcelona?.name).toBe("Hotel Neri");
+    expect(latestSelections().hotelsByCity?.Barcelona?.name).toBe("Hotel Neri");
   });
 
   it("doesn't overwrite an already-selected hotel for that city", async () => {
     const itinerary = makeItinerary();
     useTripStore.setState({
       trip: freshTrip({
-        itineraries: [itinerary],
-        preferences: {
-          ...freshTrip().preferences,
-          selectedHotelsByCity: { Barcelona: hotelAndalusia }, // deliberately "wrong" pick, to prove it's untouched
-        },
+        // A deliberately "wrong" pick for Barcelona, to prove it's untouched.
+        itineraries: [{ ...itinerary, selections: { ...itinerary.selections, hotelsByCity: { Barcelona: hotelAndalusia } } }],
       }),
     });
     const fetchMock = mockScheduleAndHotelFetch();
@@ -274,7 +273,7 @@ describe("RefineStep — ZiGy smart-arrange", () => {
     await waitFor(() => {
       expect(screen.getByText("1 of 4 items placed")).toBeInTheDocument();
     });
-    expect(useTripStore.getState().trip.preferences.selectedHotelsByCity?.Barcelona?.name).toBe("Four Seasons");
+    expect(latestSelections().hotelsByCity?.Barcelona?.name).toBe("Four Seasons");
   });
 
   it("schedules every city at once and shows a trip-wide message instead of the next-city nudge", async () => {

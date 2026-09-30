@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverError } from "@/lib/api/errors";
+import { serverError } from "@/lib/http/errors";
 import { rateLimit } from "@/lib/rateLimit";
-import { readJsonBody } from "@/lib/api/readJsonBody";
+import { readJsonBody } from "@/lib/http/readJsonBody";
 import { assembleItineraryDocxModel } from "@/lib/docx/assembleItineraryDocxModel";
 import { renderItineraryDocx } from "@/lib/docx/renderItineraryDocx";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";

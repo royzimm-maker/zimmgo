@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { logServerError, toPublicError } from "@/lib/api/errors";
+import { logServerError, toPublicError } from "@/lib/http/errors";
 
 // Background jobs (itinerary generation, auto-plan) kept in the GenerationJob
 // table so the client can poll them and resume after a refresh.

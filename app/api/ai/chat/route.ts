@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverError } from "@/lib/api/errors";
+import { serverError } from "@/lib/http/errors";
 import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL } from "@/lib/ai/client";
 import { buildChatSystemPrompt } from "@/lib/ai/prompts";
@@ -12,7 +12,7 @@ import {
 } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
 import { findToolInput } from "@/lib/ai/toolInput";
-import { readJsonBody, tooLong, tooMany } from "@/lib/api/readJsonBody";
+import { readJsonBody, tooLong, tooMany } from "@/lib/http/readJsonBody";
 import type { TripPreferences, ChatMessage, StepId, LodgingType, AirlineAlliance } from "@/types/trip";
 
 interface ChatRequest {

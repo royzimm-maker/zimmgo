@@ -163,14 +163,11 @@ export interface TripPreferences {
   dailyFoodBudgetPerPerson?: number;     // food spend in $ per person per day
   splurge?: SplurgePreference;           // occasional higher-end meals, separate from the daily food budget
   lodging?: LodgingPreference;
-  // The traveller's hotel choice for each city, keyed by the itinerary's
-  // cities (lib/location.ts itineraryCities) — the only place a hotel choice
-  // is stored, for single- and multi-city trips alike. Read it through
-  // lib/planning/hotelChoice.ts, which falls back to ZiGy's recommendation.
-  selectedHotelsByCity?: Record<string, HotelOption>;
-  // Inter-city ferry/train picks, keyed by the arriving city — same
-  // per-leg convention as travelNoteByCity in the generate route.
-  selectedTransportByLeg?: Record<string, TransportOption>;
+  // The hotel the traveller picked on the Lodging step, before there's an
+  // itinerary — a request for the primary city, like the other preferences
+  // here. Generation includes it among the hotels, and a new itinerary's
+  // hotel choice for that city starts from it (see ItinerarySelections).
+  lodgingPick?: HotelOption;
   // Set when the traveller used "Let ZiGy choose for me" on the Lodging
   // step — that step only ever searches/picks a hotel for the trip's
   // primary city, so this tells the itinerary review wizard's per-city
@@ -178,9 +175,6 @@ export interface TripPreferences {
   // instead of leaving each one sitting on a blank picker as if nothing
   // had been decided.
   autoPickHotels?: boolean;
-  selectedFlight?: FlightOption;
-  selectedRestaurantIds?: string[]; // restaurants the traveller picked in for their plan (vs. just Wanderlog-saved)
-  selectedActivityIds?: string[];   // activities the traveller picked in for their plan (vs. just Wanderlog-saved)
   airlinePrefs?: AirlinePreference;
   // Road trips and other no-flight itineraries — set on the Flights step
   // when the traveller says they're driving. Suppresses the departure-
@@ -402,8 +396,26 @@ export interface GeneratedItinerary {
   neighborhoods?: NeighborhoodOption[];
   refinements?: ItineraryRefinements;
   wanderlog?: WanderlogItem[];
+  // What the traveller chose from this itinerary's options. Kept here, not
+  // in TripPreferences: they're decisions about these specific hotels,
+  // flights and activities, so they belong to — and are replaced with — the
+  // itinerary they refer to.
+  selections?: ItinerarySelections;
   finalizedPlan?: FinalizedPlan;
   reviewCompleted?: boolean; // true once the user has stepped through the flights/hotels/restaurants/activities wizard
+}
+
+export interface ItinerarySelections {
+  // The hotel chosen for each city, keyed by the itinerary's cities
+  // (lib/location.ts itineraryCities). Read through
+  // lib/planning/hotelChoice.ts, which falls back to ZiGy's recommendation.
+  hotelsByCity?: Record<string, HotelOption>;
+  // Activities / restaurants picked for the plan (vs. just Wanderlog-saved).
+  activityIds?: string[];
+  restaurantIds?: string[];
+  flight?: FlightOption;
+  // Inter-city ferry/train picks, keyed by the arriving city.
+  transportByLeg?: Record<string, TransportOption>;
 }
 
 // ─── Top-level Trip entity ─────────────────────────────────────────────────────

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverError } from "@/lib/api/errors";
-import { searchFlights } from "@/lib/api/flights";
+import { serverError } from "@/lib/http/errors";
+import { searchFlights } from "@/lib/search/flights";
 import { rateLimit } from "@/lib/rateLimit";
-import { readJsonBody } from "@/lib/api/readJsonBody";
+import { readJsonBody } from "@/lib/http/readJsonBody";
 import { parseWithSchema, type JsonSchema } from "@/lib/ai/toolInput";
 import type { TripPreferences } from "@/types/trip";
 

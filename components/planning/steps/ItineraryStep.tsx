@@ -14,10 +14,10 @@ import { cn, formatDate, groupItineraryDaysByLocation, parseLocalDate } from "@/
 import { getVisaRequirementsForTrip } from "@/lib/data/visaRequirements";
 import {
   startAutoPlan, waitForAutoPlan, loadPendingAutoPlan, clearPendingAutoPlan, type PendingAutoPlan,
-} from "@/lib/api/autoPlan";
+} from "@/lib/client/autoPlan";
 import {
   startGeneration, waitForGeneration, loadPendingGeneration, clearPendingGeneration, type PendingGeneration,
-} from "@/lib/api/generateItinerary";
+} from "@/lib/client/generateItinerary";
 import type { GeneratedItinerary } from "@/types/trip";
 
 // Sourced from the generated days themselves, not the raw preferences — the

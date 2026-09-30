@@ -5,13 +5,15 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuid } from "uuid";
 import { SCHEMA_VERSION, MAX_CHAT_MESSAGES, migratePersistedState } from "@/lib/sync/schema";
 import { safeLocalStorage } from "@/lib/store/safeStorage";
+import { carryOverSelections, cityForHotel } from "@/lib/planning/selections";
+import { itineraryCities } from "@/lib/location";
 import type {
   Trip,
-  TripPreferences,
   StepId,
   GeneratedItinerary,
   ItineraryRefinements,
   FinalizedPlan,
+  ItinerarySelections,
   ChatMessage,
   Destination,
   DatePreference,
@@ -76,6 +78,7 @@ interface TripState {
   setReviewSourcePref: (pref: ReviewSourcePreference) => void;
   setBeliPref: (pref: BeliPreference) => void;
   setSelectedHotelForCity: (city: string, hotel: HotelOption | null) => void;
+  setLodgingPick: (hotel: HotelOption | null) => void;
   setSelectedTransportForLeg: (city: string, option: TransportOption | null) => void;
   setAutoPickHotels: (value: boolean) => void;
   setSelectedFlight: (flight: import("@/types/trip").FlightOption | null) => void;
@@ -154,6 +157,36 @@ export function hasRealProgress(trip: Trip): boolean {
     !!trip.preferences.destination
   );
 }
+
+// ── Selections ──
+// The traveller's choices belong to the itinerary they're about
+// (GeneratedItinerary.selections). The selection setters act on the latest
+// itinerary — the one being reviewed and shown; with none, they do nothing.
+function withLatestSelections(
+  s: Pick<TripState, "trip">,
+  change: (selections: ItinerarySelections) => ItinerarySelections
+): Partial<TripState> {
+  const itineraries = s.trip.itineraries;
+  const latest = itineraries[itineraries.length - 1];
+  if (!latest) return {};
+  return {
+    trip: {
+      ...s.trip,
+      itineraries: [...itineraries.slice(0, -1), { ...latest, selections: change(latest.selections ?? {}) }],
+      updatedAt: new Date().toISOString(),
+    },
+  };
+}
+
+function withEntry<T>(map: Record<string, T> | undefined, key: string, value: T | null): Record<string, T> {
+  const next = { ...(map ?? {}) };
+  if (value) next[key] = value;
+  else delete next[key];
+  return next;
+}
+
+const toggled = (ids: string[] | undefined, id: string) =>
+  (ids ?? []).includes(id) ? (ids ?? []).filter((x) => x !== id) : [...(ids ?? []), id];
 
 export const useTripStore = create<TripState>()(
   persist(
@@ -285,23 +318,11 @@ export const useTripStore = create<TripState>()(
           },
         })),
 
-      setSelectedActivityIds: (selectedActivityIds) =>
-        set((s) => ({
-          trip: {
-            ...s.trip,
-            preferences: { ...s.trip.preferences, selectedActivityIds },
-            updatedAt: new Date().toISOString(),
-          },
-        })),
+      setSelectedActivityIds: (activityIds) =>
+        set((s) => withLatestSelections(s, (sel) => ({ ...sel, activityIds }))),
 
-      setSelectedRestaurantIds: (selectedRestaurantIds) =>
-        set((s) => ({
-          trip: {
-            ...s.trip,
-            preferences: { ...s.trip.preferences, selectedRestaurantIds },
-            updatedAt: new Date().toISOString(),
-          },
-        })),
+      setSelectedRestaurantIds: (restaurantIds) =>
+        set((s) => withLatestSelections(s, (sel) => ({ ...sel, restaurantIds }))),
 
       setDates: (dates) =>
         set((s) => ({
@@ -362,32 +383,24 @@ export const useTripStore = create<TripState>()(
         })),
 
       setSelectedHotelForCity: (city, hotel) =>
+        set((s) => withLatestSelections(s, (sel) => ({ ...sel, hotelsByCity: withEntry(sel.hotelsByCity, city, hotel) }))),
+
+      // The Lodging step's pick, made before there's an itinerary. It's kept
+      // as a preference (a new itinerary's choice for that city starts from
+      // it) and, if an itinerary already exists, also becomes its choice for
+      // that city — so the most recent decision is the one every screen shows.
+      setLodgingPick: (hotel) =>
         set((s) => {
-          const next = { ...(s.trip.preferences.selectedHotelsByCity ?? {}) };
-          if (hotel) next[city] = hotel;
-          else delete next[city];
-          return {
-            trip: {
-              ...s.trip,
-              preferences: { ...s.trip.preferences, selectedHotelsByCity: next },
-              updatedAt: new Date().toISOString(),
-            },
-          };
+          const trip = { ...s.trip, preferences: { ...s.trip.preferences, lodgingPick: hotel ?? undefined } };
+          const latest = trip.itineraries[trip.itineraries.length - 1];
+          if (!latest) return { trip: { ...trip, updatedAt: new Date().toISOString() } };
+          const city = hotel ? cityForHotel(hotel, itineraryCities(latest, trip.preferences.destination)) : undefined;
+          if (!city) return { trip: { ...trip, updatedAt: new Date().toISOString() } };
+          return withLatestSelections({ trip }, (sel) => ({ ...sel, hotelsByCity: withEntry(sel.hotelsByCity, city, hotel) }));
         }),
 
       setSelectedTransportForLeg: (city, option) =>
-        set((s) => {
-          const next = { ...(s.trip.preferences.selectedTransportByLeg ?? {}) };
-          if (option) next[city] = option;
-          else delete next[city];
-          return {
-            trip: {
-              ...s.trip,
-              preferences: { ...s.trip.preferences, selectedTransportByLeg: next },
-              updatedAt: new Date().toISOString(),
-            },
-          };
-        }),
+        set((s) => withLatestSelections(s, (sel) => ({ ...sel, transportByLeg: withEntry(sel.transportByLeg, city, option) }))),
 
       setAutoPickHotels: (autoPickHotels) =>
         set((s) => ({
@@ -398,43 +411,14 @@ export const useTripStore = create<TripState>()(
           },
         })),
 
-      setSelectedFlight: (selectedFlight) =>
-        set((s) => ({
-          trip: {
-            ...s.trip,
-            preferences: {
-              ...s.trip.preferences,
-              selectedFlight: selectedFlight ?? undefined,
-            },
-            updatedAt: new Date().toISOString(),
-          },
-        })),
+      setSelectedFlight: (flight) =>
+        set((s) => withLatestSelections(s, (sel) => ({ ...sel, flight: flight ?? undefined }))),
 
       toggleSelectedRestaurant: (id) =>
-        set((s) => {
-          const current = s.trip.preferences.selectedRestaurantIds ?? [];
-          const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
-          return {
-            trip: {
-              ...s.trip,
-              preferences: { ...s.trip.preferences, selectedRestaurantIds: next },
-              updatedAt: new Date().toISOString(),
-            },
-          };
-        }),
+        set((s) => withLatestSelections(s, (sel) => ({ ...sel, restaurantIds: toggled(sel.restaurantIds, id) }))),
 
       toggleSelectedActivity: (id) =>
-        set((s) => {
-          const current = s.trip.preferences.selectedActivityIds ?? [];
-          const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
-          return {
-            trip: {
-              ...s.trip,
-              preferences: { ...s.trip.preferences, selectedActivityIds: next },
-              updatedAt: new Date().toISOString(),
-            },
-          };
-        }),
+        set((s) => withLatestSelections(s, (sel) => ({ ...sel, activityIds: toggled(sel.activityIds, id) }))),
 
       setAirlines: (airlinePrefs) =>
         set((s) => ({
@@ -521,16 +505,23 @@ export const useTripStore = create<TripState>()(
         })),
 
       addItinerary: (itinerary) =>
-        set((s) => ({
-          trip: {
-            ...s.trip,
-            // Replaces rather than appends: only the latest itinerary is ever
-            // shown or edited, and keeping every regeneration made the saved
-            // trip grow without bound (see lib/sync/schema.ts MIGRATIONS[1]).
-            itineraries: [itinerary],
-            updatedAt: new Date().toISOString(),
-          },
-        })),
+        set((s) => {
+          // Choices from the previous itinerary that still apply carry over,
+          // plus the Lodging step's pick (lib/planning/selections.ts).
+          const previous = s.trip.itineraries[s.trip.itineraries.length - 1];
+          const selections = itinerary.selections
+            ?? carryOverSelections(previous?.selections, s.trip.preferences.lodgingPick, itinerary, s.trip.preferences.destination);
+          return {
+            trip: {
+              ...s.trip,
+              // Replaces rather than appends: only the latest itinerary is ever
+              // shown or edited, and keeping every regeneration made the saved
+              // trip grow without bound (see lib/sync/schema.ts MIGRATIONS[1]).
+              itineraries: [{ ...itinerary, selections }],
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }),
 
       // Used by the manual "search flights" fallback in the review wizard,
       // for itineraries generated without any (e.g. search_flights came back

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Anthropic from "@anthropic-ai/sdk";
-import { toPublicError, serverError } from "@/lib/api/errors";
+import { toPublicError, serverError } from "@/lib/http/errors";
 import { AIDeadlineError, withinDeadline } from "@/lib/ai/client";
 
 const apiError = (status: number) => Anthropic.APIError.generate(status, { type: "error", error: { type: "x", message: "raw body" } }, "raw", new Headers());

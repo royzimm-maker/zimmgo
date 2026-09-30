@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverError } from "@/lib/api/errors";
+import { serverError } from "@/lib/http/errors";
 import { rateLimit } from "@/lib/rateLimit";
 import { getAnthropicClient, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
 import { buildFullTripParsePrompt } from "@/lib/ai/prompts";
 import { PARSE_FULL_TRIP_TOOL } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
 import { findToolInput } from "@/lib/ai/toolInput";
-import { readJsonBody, tooLong } from "@/lib/api/readJsonBody";
+import { readJsonBody, tooLong } from "@/lib/http/readJsonBody";
 
 export interface ParseFullTripResult {
   cities: string[];

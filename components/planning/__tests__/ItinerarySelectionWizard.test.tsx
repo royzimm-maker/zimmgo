@@ -60,7 +60,7 @@ function freshTrip(): Trip {
     },
     currentStep: "itinerary",
     completedSteps: [],
-    itineraries: [],
+    itineraries: [makeItinerary()],
     createdAt: now,
     updatedAt: now,
   };
@@ -90,6 +90,12 @@ beforeEach(() => {
   useTripStore.setState({ trip: freshTrip() });
 });
 
+// The traveller's choices live on the itinerary being reviewed.
+function latestSelections() {
+  const { itineraries } = useTripStore.getState().trip;
+  return itineraries[itineraries.length - 1]?.selections ?? {};
+}
+
 describe("ItinerarySelectionWizard — cross-city hotel auto-pick", () => {
   it("auto-picks a hotel for the first city with no user interaction", async () => {
     vi.stubGlobal("fetch", mockSmartPickFetch());
@@ -103,7 +109,7 @@ describe("ItinerarySelectionWizard — cross-city hotel auto-pick", () => {
     );
 
     await waitFor(() => {
-      expect(useTripStore.getState().trip.preferences.selectedHotelsByCity?.["Barcelona"]?.name).toBe(
+      expect(latestSelections().hotelsByCity?.["Barcelona"]?.name).toBe(
         "Hotel Neri"
       );
     });
@@ -129,7 +135,7 @@ describe("ItinerarySelectionWizard — cross-city hotel auto-pick", () => {
     // Wait for Barcelona's auto-pick to land, then advance through
     // Barcelona's restaurants/activities stages into Andalusia's hotels.
     await waitFor(() => {
-      expect(useTripStore.getState().trip.preferences.selectedHotelsByCity?.["Barcelona"]).toBeDefined();
+      expect(latestSelections().hotelsByCity?.["Barcelona"]).toBeDefined();
     });
 
     await user.click(screen.getByRole("button", { name: /Continue to Restaurants in Barcelona/i }));
@@ -137,7 +143,7 @@ describe("ItinerarySelectionWizard — cross-city hotel auto-pick", () => {
     await user.click(screen.getByRole("button", { name: /Continue to Andalusia/i }));
 
     await waitFor(() => {
-      expect(useTripStore.getState().trip.preferences.selectedHotelsByCity?.["Andalusia"]?.name).toBe(
+      expect(latestSelections().hotelsByCity?.["Andalusia"]?.name).toBe(
         "Four Seasons"
       );
     });
@@ -150,10 +156,7 @@ describe("ItinerarySelectionWizard — cross-city hotel auto-pick", () => {
     useTripStore.setState((s) => ({
       trip: {
         ...s.trip,
-        preferences: {
-          ...s.trip.preferences,
-          selectedHotelsByCity: { Barcelona: barcelonaHotel },
-        },
+        itineraries: s.trip.itineraries.map((it) => ({ ...it, selections: { hotelsByCity: { Barcelona: barcelonaHotel } } })),
       },
     }));
 
@@ -216,7 +219,7 @@ function greeceTrip(): Trip {
     },
     currentStep: "itinerary",
     completedSteps: [],
-    itineraries: [],
+    itineraries: [makeGreeceItinerary()],
     createdAt: now,
     updatedAt: now,
   };
@@ -254,7 +257,7 @@ describe("ItinerarySelectionWizard — ground transport stage", () => {
 
     await user.click(screen.getByRole("button", { name: /select this option/i }));
 
-    const picked = useTripStore.getState().trip.preferences.selectedTransportByLeg?.Mykonos;
+    const picked = latestSelections().transportByLeg?.Mykonos;
     expect(picked?.provider).toBe("Ferryhopper");
     expect(picked?.id).toBe("gt-1");
   });
@@ -272,7 +275,7 @@ describe("ItinerarySelectionWizard — ground transport stage", () => {
 
     // No selection made — Continue still moves on to Mykonos's Hotels stage.
     await user.click(screen.getByRole("button", { name: /Continue to Hotels in Mykonos/i }));
-    expect(useTripStore.getState().trip.preferences.selectedTransportByLeg?.Mykonos).toBeUndefined();
+    expect(latestSelections().transportByLeg?.Mykonos).toBeUndefined();
   });
 
   it("doesn't include a transport stage for a destination with no matching regional operator", () => {
@@ -300,15 +303,15 @@ describe("ItinerarySelectionWizard — cities come from the itinerary", () => {
     // Planned for Barcelona + Andalusia; the traveller has since typed Madrid.
     const trip = freshTrip();
     useTripStore.setState({
-      trip: { ...trip, preferences: { ...trip.preferences, destination: { cities: ["Madrid"], displayName: "Madrid" } } },
+      trip: { ...trip, itineraries: [itinerary], preferences: { ...trip.preferences, destination: { cities: ["Madrid"], displayName: "Madrid" } } },
     });
 
     render(<ItinerarySelectionWizard itinerary={itinerary} onComplete={() => {}} onRegenerate={() => {}} />);
 
     // Keyed exactly as the Refine step and auto-plan will look it up.
     await waitFor(() => {
-      expect(useTripStore.getState().trip.preferences.selectedHotelsByCity?.Barcelona?.name).toBe("Hotel Neri");
+      expect(latestSelections().hotelsByCity?.Barcelona?.name).toBe("Hotel Neri");
     });
-    expect(useTripStore.getState().trip.preferences.selectedHotelsByCity).not.toHaveProperty("Madrid");
+    expect(latestSelections().hotelsByCity).not.toHaveProperty("Madrid");
   });
 });

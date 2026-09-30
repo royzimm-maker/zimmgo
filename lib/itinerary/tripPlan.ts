@@ -44,7 +44,7 @@ export function buildTripPlan(itinerary: GeneratedItinerary, preferences: TripPr
   for (const r of itinerary.restaurants ?? []) cards.set(restaurantCardId(r), { cardId: restaurantCardId(r), kind: "restaurant", name: r.name, restaurant: r });
 
   const plan = itinerary.finalizedPlan;
-  const stayFor = (city: string) => chosenHotelForCity(city, itinerary, preferences, cities);
+  const stayFor = (city: string) => chosenHotelForCity(city, itinerary, cities);
 
   return {
     cities,

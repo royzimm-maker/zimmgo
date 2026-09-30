@@ -3,7 +3,7 @@
 // Amadeus docs: https://developers.amadeus.com/self-service/category/flights
 
 import type { FlightOption } from "@/types/trip";
-import { seededInt, seededRandom, stableId } from "@/lib/api/mockRandom";
+import { seededInt, seededRandom, stableId } from "@/lib/search/mockRandom";
 
 interface FlightSearchParams {
   origin: string;

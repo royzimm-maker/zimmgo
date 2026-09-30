@@ -5,7 +5,7 @@ import {
   Music, Sparkles, Smartphone, ChevronDown, ChevronUp,
   ExternalLink, MapPin, Bus, Ticket, Heart,
 } from "lucide-react";
-import { fetchLocalDiscovery } from "@/lib/api/localDiscovery";
+import { fetchLocalDiscovery } from "@/lib/client/localDiscovery";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { TripPreferences } from "@/types/trip";
 import type { LocalDiscovery as Discovery } from "@/types/localDiscovery";

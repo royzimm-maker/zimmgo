@@ -24,7 +24,7 @@ const prefs = (over: Partial<TripPreferences> = {}) =>
 
 describe("buildTripPlan — stays", () => {
   it("gives each day its own city's stay: the traveller's choice, else ZiGy's recommendation", () => {
-    const plan = buildTripPlan(itinerary(), prefs({ selectedHotelsByCity: { Rome: hotel("rome-2", "Rome") } }));
+    const plan = buildTripPlan(itinerary({ selections: { hotelsByCity: { Rome: hotel("rome-2", "Rome") } } }), prefs());
     expect(plan.days.map((d) => [d.day.dayNumber, d.stay?.hotel.id, d.stay?.byTraveller])).toEqual([
       [1, "rome-2", true], [2, "rome-2", true], [3, "flo-zigy", false],
     ]);

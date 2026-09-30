@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { searchFlights } from "@/lib/api/flights";
-import { searchHotels } from "@/lib/api/hotels";
-import { searchActivities } from "@/lib/api/activities";
-import { searchRestaurants } from "@/lib/api/restaurants";
-import { searchGroundTransport } from "@/lib/api/groundTransport";
-import { seededRandom, stableId } from "@/lib/api/mockRandom";
+import { searchFlights } from "@/lib/search/flights";
+import { searchHotels } from "@/lib/search/hotels";
+import { searchActivities } from "@/lib/search/activities";
+import { searchRestaurants } from "@/lib/search/restaurants";
+import { searchGroundTransport } from "@/lib/search/groundTransport";
+import { seededRandom, stableId } from "@/lib/search/mockRandom";
 import type { TripPreferences } from "@/types/trip";
 
 const prefs = { activities: [], activityRankings: {}, vibes: [], transportation: [] } as unknown as TripPreferences;

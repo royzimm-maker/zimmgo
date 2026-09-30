@@ -1,4 +1,4 @@
-import { pendingJobStore, startJob, waitForJob, type PendingJob } from "@/lib/api/jobClient";
+import { pendingJobStore, startJob, waitForJob, type PendingJob } from "@/lib/client/jobClient";
 import type { AutoPlanResult } from "@/lib/planning/autoPlanTrip";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 

@@ -23,7 +23,7 @@ function itinerary(over: Partial<GeneratedItinerary> = {}): GeneratedItinerary {
 
 describe("itinerary clipboard export", () => {
   it("lists each city's chosen stay, not every hotel option", () => {
-    const text = buildItineraryClipboardText(itinerary(), prefs({ selectedHotelsByCity: { Lisbon: hotel("l2", "Lisbon Two", "Lisbon") } }), "T");
+    const text = buildItineraryClipboardText(itinerary({ selections: { hotelsByCity: { Lisbon: hotel("l2", "Lisbon Two", "Lisbon") } } }), prefs(), "T");
     expect(text).toContain("WHERE YOU'RE STAYING");
     expect(text).toContain("• Lisbon Two — Lisbon — $120/night\n");
     expect(text).toContain("• Porto Inn — Porto — $120/night (ZiGy's recommendation)");

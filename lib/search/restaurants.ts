@@ -1,11 +1,11 @@
 // Restaurants API module
 // Production: integrate with OpenTable, TheFork, or Google Places API
 
-import { stableId } from "@/lib/api/mockRandom";
+import { stableId } from "@/lib/search/mockRandom";
 import type { RestaurantOption, RestaurantTier } from "@/types/trip";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
 import { sameLocation } from "@/lib/location";
-import { resolvePool } from "@/lib/api/poolLookup";
+import { resolvePool } from "@/lib/search/poolLookup";
 
 interface RestaurantSearchParams {
   destination: string;

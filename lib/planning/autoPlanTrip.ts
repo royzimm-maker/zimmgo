@@ -9,6 +9,7 @@
 // Runs server-side as a background job (/api/itinerary/auto-plan); the pick
 // function is injected so it calls the AI directly there and stays testable.
 import { itineraryCities, resolveCity } from "@/lib/location";
+import { selectionsOf } from "@/lib/planning/selections";
 import type { GeneratedItinerary, TripPreferences, HotelOption } from "@/types/trip";
 import {
   arrangeDays, chooseActivities, chooseHotel, chooseRestaurants, isAirbnbOnly,
@@ -84,9 +85,11 @@ export async function autoPlanTrip(
   // Same city keys the wizard and Refine step use, so picks line up.
   const cities = itineraryCities(itinerary, preferences.destination);
 
-  const existingHotels = preferences.selectedHotelsByCity ?? {};
-  const alreadyPickedActs = new Set(preferences.selectedActivityIds ?? []);
-  const alreadyPickedRests = new Set(preferences.selectedRestaurantIds ?? []);
+  // What the traveller already chose on this itinerary is kept, not re-picked.
+  const chosen = selectionsOf(itinerary);
+  const existingHotels = chosen.hotelsByCity ?? {};
+  const alreadyPickedActs = new Set(chosen.activityIds ?? []);
+  const alreadyPickedRests = new Set(chosen.restaurantIds ?? []);
   const airbnbOnly = isAirbnbOnly(preferences.lodging?.types);
 
   // A hotel in the wrong city is worse than none, so hotels don't fall back;

@@ -57,7 +57,7 @@ describe("migratePersistedState", () => {
   });
 });
 
-describe("schema v2 → v3: one place for hotel choices", () => {
+describe("schema v2 → current: the Lodging step's single hotel pick", () => {
   const hotel = (id: string, city: string) => ({ id, name: id, city, location: city });
   const trip = (preferences: Record<string, unknown>) => ({
     id: "t1", name: "T", currentStep: "itinerary", completedSteps: ["destination"], createdAt: now, updatedAt: now,
@@ -67,24 +67,69 @@ describe("schema v2 → v3: one place for hotel choices", () => {
 
   it("moves the Lodging step's single pick under its itinerary city", () => {
     const s = migratePersistedState({ trip: trip({ selectedHotel: hotel("h1", "Florence") }) }, 2) as unknown as SyncBlob;
-    expect(s.trip.preferences.selectedHotelsByCity).toEqual({ Florence: hotel("h1", "Florence") });
+    // v3 filed it by city; v4 moved city choices onto the itinerary.
+    expect(s.trip.itineraries[0].selections?.hotelsByCity).toEqual({ Florence: hotel("h1", "Florence") });
     expect(s.trip.preferences).not.toHaveProperty("selectedHotel");
+    expect(s.trip.preferences).not.toHaveProperty("selectedHotelsByCity");
   });
 
   it("keeps a per-city choice made later in the review", () => {
     const later = hotel("h2", "Rome");
     const s = migratePersistedState({ trip: trip({ selectedHotel: hotel("h1", "Rome"), selectedHotelsByCity: { Rome: later } }) }, 2) as unknown as SyncBlob;
-    expect(s.trip.preferences.selectedHotelsByCity).toEqual({ Rome: later });
+    expect(s.trip.itineraries[0].selections?.hotelsByCity).toEqual({ Rome: later });
   });
 
   it("files a pick it can't place under the first city", () => {
     const s = migratePersistedState({ trip: trip({ selectedHotel: hotel("h1", "Somewhere else") }) }, 2) as unknown as SyncBlob;
-    expect(Object.keys(s.trip.preferences.selectedHotelsByCity ?? {})).toEqual(["Rome"]);
+    expect(Object.keys(s.trip.itineraries[0].selections?.hotelsByCity ?? {})).toEqual(["Rome"]);
   });
 
   it("migrates saved trips too", () => {
     const s = migratePersistedState({ trip: trip({}), savedTrips: [trip({ selectedHotel: hotel("h3", "Rome") })] }, 2) as unknown as SyncBlob;
-    expect(s.savedTrips[0].preferences.selectedHotelsByCity).toEqual({ Rome: hotel("h3", "Rome") });
+    expect(s.savedTrips[0].itineraries[0].selections?.hotelsByCity).toEqual({ Rome: hotel("h3", "Rome") });
+  });
+});
+
+describe("schema v3 → v4: decisions move onto the itinerary", () => {
+  const hotel = (id: string, city: string) => ({ id, name: id, city, location: city });
+  const base = { activities: [], activityRankings: {}, vibes: [], transportation: [], destination: { cities: ["Rome"], displayName: "Rome" } };
+  const decisions = {
+    selectedHotelsByCity: { Rome: hotel("h1", "Rome") },
+    selectedActivityIds: ["a1"],
+    selectedRestaurantIds: ["r1"],
+    selectedFlight: { id: "f1" },
+    selectedTransportByLeg: { Rome: { id: "t1" } },
+  };
+  const trip = (preferences: Record<string, unknown>, itineraries: unknown[]) => ({
+    id: "t1", name: "T", currentStep: "itinerary", completedSteps: ["destination"], createdAt: now, updatedAt: now,
+    preferences: { ...base, ...preferences }, itineraries,
+  });
+  const itin = (extra: Record<string, unknown> = {}) => ({ id: "i1", days: [{ dayNumber: 1, location: "Rome" }], ...extra });
+
+  it("moves every decision from preferences onto the latest itinerary", () => {
+    const s = migratePersistedState({ trip: trip(decisions, [itin()]) }, 3) as unknown as SyncBlob;
+    expect(s.trip.itineraries[0].selections).toEqual({
+      hotelsByCity: { Rome: hotel("h1", "Rome") }, activityIds: ["a1"], restaurantIds: ["r1"],
+      flight: { id: "f1" }, transportByLeg: { Rome: { id: "t1" } },
+    });
+    for (const field of Object.keys(decisions)) expect(s.trip.preferences).not.toHaveProperty(field);
+  });
+
+  it("keeps a choice already recorded on the itinerary", () => {
+    const s = migratePersistedState({ trip: trip(decisions, [itin({ selections: { activityIds: ["a9"] } })]) }, 3) as unknown as SyncBlob;
+    expect(s.trip.itineraries[0].selections?.activityIds).toEqual(["a9"]);
+    expect(s.trip.itineraries[0].selections?.restaurantIds).toEqual(["r1"]);
+  });
+
+  it("with no itinerary yet, keeps the Lodging step's hotel as lodgingPick", () => {
+    const s = migratePersistedState({ trip: trip(decisions, []) }, 3) as unknown as SyncBlob;
+    expect(s.trip.preferences.lodgingPick).toEqual(hotel("h1", "Rome"));
+    expect(s.trip.preferences).not.toHaveProperty("selectedHotelsByCity");
+  });
+
+  it("migrates saved trips too", () => {
+    const s = migratePersistedState({ trip: trip({}, []), savedTrips: [trip(decisions, [itin()])] }, 3) as unknown as SyncBlob;
+    expect(s.savedTrips[0].itineraries[0].selections?.flight).toEqual({ id: "f1" });
   });
 });
 
