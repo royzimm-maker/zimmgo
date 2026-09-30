@@ -4,6 +4,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { toPublicError, serverError } from "@/lib/http/errors";
 import { AIDeadlineError, withinDeadline } from "@/lib/ai/client";
 
+const sentry = vi.hoisted(() => ({ isEnabled: vi.fn(() => false), captureException: vi.fn(), flush: vi.fn(async () => true) }));
+vi.mock("@sentry/nextjs", () => sentry);
+vi.mock("@vercel/functions", () => ({ waitUntil: vi.fn() }));
+
 const apiError = (status: number) => Anthropic.APIError.generate(status, { type: "error", error: { type: "x", message: "raw body" } }, "raw", new Headers());
 
 beforeEach(() => vi.spyOn(console, "error").mockImplementation(() => {}));
@@ -54,5 +58,22 @@ describe("withinDeadline", () => {
 
   it("refuses to start a call there isn't time for", () => {
     expect(() => withinDeadline(now + 5_000, 75_000)).toThrow(AIDeadlineError);
+  });
+});
+
+describe("error reporting", () => {
+  it("reports a server error to Sentry with its route and the ref the client sees", async () => {
+    sentry.isEnabled.mockReturnValue(true);
+    const error = new Error("boom");
+    const { ref } = await serverError("itinerary/generate", error).json();
+    expect(sentry.captureException).toHaveBeenCalledWith(error, { tags: { route: "itinerary/generate", ref } });
+    expect(sentry.flush).toHaveBeenCalled();
+  });
+
+  it("sends nothing while Sentry isn't configured", () => {
+    sentry.isEnabled.mockReturnValue(false);
+    sentry.captureException.mockClear();
+    serverError("chat", new Error("boom"));
+    expect(sentry.captureException).not.toHaveBeenCalled();
   });
 });

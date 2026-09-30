@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { serverError } from "@/lib/http/errors";
 import { prisma } from "@/lib/db";
 import { estimateCostUsd } from "@/lib/ai/usageLog";
+import { secretsMatch } from "@/lib/gateAuth";
 
 // Aggregated view of app/api/**/route.ts's logged Anthropic usage (see
 // lib/ai/usageLog.ts) — real measured token counts and an estimated dollar
@@ -12,51 +13,60 @@ import { estimateCostUsd } from "@/lib/ai/usageLog";
 // system in this app at all) — set ADMIN_TOKEN in the environment to enable
 // this route; it refuses every request until that's set, so it can't be
 // left open by accident.
+
+const DEFAULT_DAYS = 30;
+const MAX_DAYS = 366; // a year back bounds the scan; a bad value falls back to 30
+
+interface RouteTotals { calls: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; costUsd: number }
+const round4 = (n: number) => Math.round(n * 10000) / 10000;
+
 export async function GET(request: NextRequest) {
   const configuredToken = process.env.ADMIN_TOKEN;
   if (!configuredToken) {
     return NextResponse.json({ error: "ADMIN_TOKEN is not configured on the server" }, { status: 503 });
   }
-  if (request.headers.get("x-admin-token") !== configuredToken) {
+  if (!(await secretsMatch(request.headers.get("x-admin-token") ?? "", configuredToken))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const days = Number(request.nextUrl.searchParams.get("days") ?? 30);
+    const requested = Number(request.nextUrl.searchParams.get("days") ?? DEFAULT_DAYS);
+    const days = Number.isFinite(requested) && requested > 0 ? Math.min(requested, MAX_DAYS) : DEFAULT_DAYS;
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    const events = await prisma.apiUsageEvent.findMany({
+    // Summed in the database, one row per route and model — cost is linear
+    // in tokens, so pricing each group's totals is exact.
+    const groups = await prisma.apiUsageEvent.groupBy({
+      by: ["route", "model"],
       where: { createdAt: { gte: since } },
-      select: { route: true, model: true, inputTokens: true, outputTokens: true, cacheReadTokens: true, cacheWriteTokens: true },
+      _count: { _all: true },
+      _sum: { inputTokens: true, outputTokens: true, cacheReadTokens: true, cacheWriteTokens: true },
     });
 
-    const byRoute = new Map<string, { calls: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; costUsd: number }>();
-    let totalCostUsd = 0;
+    const byRoute: Record<string, RouteTotals> = {};
     let totalCalls = 0;
-
-    for (const e of events) {
-      const cost = estimateCostUsd(e.model, e);
-      totalCostUsd += cost;
-      totalCalls += 1;
-
-      const row = byRoute.get(e.route) ?? { calls: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, costUsd: 0 };
-      row.calls += 1;
-      row.inputTokens += e.inputTokens;
-      row.outputTokens += e.outputTokens;
-      row.cacheReadTokens += e.cacheReadTokens;
-      row.cacheWriteTokens += e.cacheWriteTokens;
+    let totalCostUsd = 0;
+    for (const g of groups) {
+      const tokens = {
+        inputTokens: g._sum.inputTokens ?? 0,
+        outputTokens: g._sum.outputTokens ?? 0,
+        cacheReadTokens: g._sum.cacheReadTokens ?? 0,
+        cacheWriteTokens: g._sum.cacheWriteTokens ?? 0,
+      };
+      const cost = estimateCostUsd(g.model, tokens);
+      const row = (byRoute[g.route] ??= { calls: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, costUsd: 0 });
+      row.calls += g._count._all;
+      row.inputTokens += tokens.inputTokens;
+      row.outputTokens += tokens.outputTokens;
+      row.cacheReadTokens += tokens.cacheReadTokens;
+      row.cacheWriteTokens += tokens.cacheWriteTokens;
       row.costUsd += cost;
-      byRoute.set(e.route, row);
+      totalCalls += g._count._all;
+      totalCostUsd += cost;
     }
+    for (const row of Object.values(byRoute)) row.costUsd = round4(row.costUsd);
 
-    return NextResponse.json({
-      windowDays: days,
-      totalCalls,
-      totalCostUsd: Math.round(totalCostUsd * 10000) / 10000,
-      byRoute: Object.fromEntries(
-        Array.from(byRoute.entries()).map(([route, r]) => [route, { ...r, costUsd: Math.round(r.costUsd * 10000) / 10000 }])
-      ),
-    });
+    return NextResponse.json({ windowDays: days, totalCalls, totalCostUsd: round4(totalCostUsd), byRoute });
   } catch (error: unknown) {
     return serverError("admin/usage-summary", error);
   }

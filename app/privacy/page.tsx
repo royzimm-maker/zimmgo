@@ -49,6 +49,13 @@ export default function PrivacyPage() {
           </section>
 
           <section>
+            <h2 className="text-sm font-semibold text-slate-900 mb-1.5">Error reports</h2>
+            <p>
+              When something breaks, ZimmGo sends an error report to Sentry, an error-monitoring service, so it can be fixed. A report contains the error itself, where in the app it happened, and your browser type — not your trip content, cookies, IP address, or anything you typed.
+            </p>
+          </section>
+
+          <section>
             <h2 className="text-sm font-semibold text-slate-900 mb-1.5">What&apos;s in local storage, specifically</h2>
             <ul className="list-disc pl-5 flex flex-col gap-1">
               <li>Your current and saved trips (preferences, itineraries, Wanderlog items, chat history)</li>

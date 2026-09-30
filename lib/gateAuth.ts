@@ -57,6 +57,12 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/** Whether a submitted secret equals the configured one, without leaking its length or how much matched. */
+export async function secretsMatch(submitted: string, configured: string): Promise<boolean> {
+  const [probe, digest] = await Promise.all([hmacHex("zimmgo-secret-compare", submitted), hmacHex("zimmgo-secret-compare", configured)]);
+  return timingSafeEqual(probe, digest);
+}
+
 // Which person's password this is, if any. Both sides are hashed to the same
 // length first, and every account is checked without stopping early, so
 // neither the password's length nor its position in the list leaks.

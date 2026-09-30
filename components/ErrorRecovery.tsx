@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useTripStore } from "@/lib/store/tripStore";
 
 // Shown when rendering crashes: full-page by app/error.tsx and
@@ -27,7 +28,8 @@ export function ErrorRecovery({
 
   useEffect(() => {
     console.error("[app error]", error);
-  }, [error]);
+    Sentry.captureException(error, { tags: { screen: inline ? "step" : "page" } });
+  }, [error, inline]);
 
   function startFresh() {
     try {

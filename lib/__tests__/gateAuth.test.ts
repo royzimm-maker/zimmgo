@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
 import {
-  GATE_SESSION_MAX_AGE_S, createGateToken, gateAccounts, matchGatePassword, safeNextPath, timingSafeEqual, verifyGateToken,
+  GATE_SESSION_MAX_AGE_S, createGateToken, gateAccounts, matchGatePassword, safeNextPath, secretsMatch, timingSafeEqual, verifyGateToken,
 } from "@/lib/gateAuth";
 
 const alex = { label: "alex", password: "alex-pw" };
@@ -97,5 +97,14 @@ describe("safeNextPath", () => {
     for (const next of ["https://evil.example", "//evil.example/x", "/\\evil.example", "javascript:alert(1)", "", null, undefined]) {
       expect(safeNextPath(next)).toBe("/");
     }
+  });
+});
+
+describe("secretsMatch", () => {
+  it("matches only the exact secret, whatever the lengths", async () => {
+    expect(await secretsMatch("secret", "secret")).toBe(true);
+    expect(await secretsMatch("secre", "secret")).toBe(false);
+    expect(await secretsMatch("secret!", "secret")).toBe(false);
+    expect(await secretsMatch("", "secret")).toBe(false);
   });
 });

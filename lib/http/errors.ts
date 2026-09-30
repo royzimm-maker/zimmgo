@@ -1,4 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
+import * as Sentry from "@sentry/nextjs";
+import { waitUntil } from "@vercel/functions";
 import { NextResponse } from "next/server";
 import { AIDeadlineError } from "@/lib/ai/client";
 
@@ -7,7 +9,7 @@ import { AIDeadlineError } from "@/lib/ai/client";
 // database host, Anthropic errors carry API error bodies, and neither means
 // anything to someone planning a trip. The full error is logged with a short
 // reference that's also returned, so a reported message can be matched to
-// its log line.
+// its log line and its error report (Sentry, when configured).
 
 export interface PublicError {
   status: number;
@@ -36,6 +38,12 @@ export function toPublicError(error: unknown): PublicError {
 export function logServerError(route: string, error: unknown): string {
   const ref = crypto.randomUUID().slice(0, 8);
   console.error(`[${route}] ref=${ref}`, error);
+  if (Sentry.isEnabled()) {
+    Sentry.captureException(error, { tags: { route, ref } });
+    // A serverless function can be frozen right after it responds; keep it
+    // alive until the report is sent.
+    waitUntil(Sentry.flush(2000));
+  }
   return ref;
 }
 
