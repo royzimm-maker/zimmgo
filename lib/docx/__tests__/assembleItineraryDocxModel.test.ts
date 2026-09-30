@@ -49,8 +49,7 @@ function makeItinerary(overrides: Partial<GeneratedItinerary> = {}): GeneratedIt
       { date: "2026-09-09", dayNumber: 2, theme: "Explore", location: "Barcelona", morning: [], afternoon: [], evening: [], meals: [] },
       { date: "2026-09-10", dayNumber: 3, theme: "Andalusia arrival", location: "Andalusia", morning: [], afternoon: [], evening: [], meals: [], notes: "Take the AVE high-speed train to Andalusia." },
     ],
-    flights: [flight1], hotels: [hotelBarcelona, hotelAndalusia], activities: [act1, act2], restaurants: [rest1, rest2],
-    totalEstimatedCost: 1000, currency: "USD", aiSummary: "", whyThisWorks: "",
+    flights: [flight1], hotels: [hotelBarcelona, hotelAndalusia], activities: [act1, act2], restaurants: [rest1, rest2], currency: "USD", aiSummary: "", whyThisWorks: "",
     ...overrides,
   };
 }

@@ -12,7 +12,7 @@ const m = vi.hoisted(() => ({
   runGeneration: vi.fn(),
 }));
 vi.mock("@/lib/itinerary/runGeneration", () => ({ runGeneration: m.runGeneration }));
-vi.mock("@/lib/itinerary/generationJobs", () => ({
+vi.mock("@/lib/jobs/backgroundJobs", () => ({
   findJobByKey: m.findJobByKey, createJob: m.createJob, executeJob: m.executeJob, getJob: m.getJob,
 }));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: m.rateLimit }));

@@ -19,7 +19,6 @@ import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoo
 import { applyReviewSourcePref } from "@/lib/data/reviewSources";
 import { applyBeliPreference } from "@/lib/data/beli";
 import { groupByLocation, parseLocalDate, extractIataCode } from "@/lib/utils";
-import { estimateTripBudget } from "@/lib/budget";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay, TransportOption } from "@/types/trip";
 
@@ -450,14 +449,6 @@ async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary>
     preferences.destination?.cities
   );
 
-  // Same inputs (numDays, flights, hotels, activities) the Estimated Budget
-  // Breakdown reads from the returned itinerary below, via the shared
-  // estimator — so the two totals shown to the user can never disagree.
-  const { total: totalEstimatedCost } = estimateTripBudget(
-    { numDays, flights, hotels: ratedHotels, activities: ratedActivities },
-    preferences
-  );
-
   return {
     id: uuid(),
     tripId,
@@ -469,7 +460,6 @@ async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary>
     hotels: ratedHotels,
     activities: ratedActivities,
     restaurants: ratedRestaurants.length ? ratedRestaurants : undefined,
-    totalEstimatedCost,
     currency: "USD",
     aiSummary: summaryFallback,
     whyThisWorks: whyFallback,

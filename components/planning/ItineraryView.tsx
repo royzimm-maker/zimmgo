@@ -12,6 +12,7 @@ import { Section, StatCard } from "@/components/planning/ItineraryCards";
 import { useTripStore } from "@/lib/store/tripStore";
 import { TripGlance } from "@/components/planning/TripGlance";
 import { BudgetBreakdown } from "@/components/planning/BudgetBreakdown";
+import { estimateTripBudget } from "@/lib/budget";
 import { PackingList } from "@/components/planning/PackingList";
 import { PreTripTasks } from "@/components/planning/PreTripTasks";
 import { Wanderlog } from "@/components/planning/Wanderlog";
@@ -128,7 +129,7 @@ export function ItineraryView({ itinerary }: Props) {
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Days" value={`${itinerary.days.length}`} icon={<Clock size={14} />} />
-        <StatCard label="Est. total" value={formatCurrency(itinerary.totalEstimatedCost, preferences.preferredCurrency)} icon={<Star size={14} />} />
+        <StatCard label="Est. total" value={formatCurrency(estimateTripBudget(itinerary, preferences).total, preferences.preferredCurrency)} icon={<Star size={14} />} />
         <StatCard label="Activities" value={`${itinerary.activities.length}`} icon={<MapPin size={14} />} />
       </div>
 

@@ -1,22 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Star, ExternalLink, Check, Sparkles, AlertCircle } from "lucide-react";
+import { Star, Sparkles, AlertCircle } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { ChooseModePrompt, type ModeChoice } from "@/components/planning/ChooseModePrompt";
 import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
+import { LodgingHotelCard } from "@/components/planning/LodgingHotelCard";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { fetchSmartPick } from "@/lib/client/smartPick";
+import { fetchHotelSearch } from "@/lib/client/searchHotels";
+import { assembleLodging, lodgingFromPicks, lodgingPickCandidates, type LodgingDraft } from "@/lib/planning/lodgingPicks";
 import { chooseHotel, isAirbnbOnly } from "@/lib/planning/cityPicks";
 import { cn, scrollStepToTop } from "@/lib/utils";
 import { itineraryCities } from "@/lib/location";
-import { formatCurrency } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import { REVIEW_SOURCES, applyReviewSourcePref } from "@/lib/data/reviewSources";
-import type { HotelOption, LodgingPreference, LodgingStarRating, LodgingType, ReviewSource } from "@/types/trip";
+import type { HotelOption, LodgingStarRating, LodgingType, ReviewSource } from "@/types/trip";
 
 const TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[] = [
   { id: "hotel",    label: "Hotel",        icon: "🏨", sublabel: "Traditional hotel, full service" },
@@ -31,12 +33,6 @@ const AMENITIES = [
   "Rooftop bar", "Spa", "City center location", "Kitchen / kitchenette",
   "High walkability",
 ];
-
-const HOTEL_TIER: Record<number, string> = {
-  5: "The full five-star treatment",
-  4: "Seriously comfortable, no drama",
-  3: "Sleep well, spend the savings",
-};
 
 export function LodgingStep() {
   const { trip, setLodging, setLodgingPick, setReviewSourcePref, setAutoPickHotels } = useTripStore();
@@ -96,31 +92,17 @@ export function LodgingStep() {
   const [hotelPickReason, setHotelPickReason] = useState<string | null>(null);
   const [hotelPickError,  setHotelPickError ] = useState<string | null>(null);
 
-  // A custom type typed into "Other…" (e.g. "hostel") has to be included
-  // here too — it previously only got merged into the *saved* preference
-  // (assembleLodging, below) and never into what's actually searched for,
-  // so picking only a custom type fetched nothing at all.
-  const effectiveTypes = otherTypeOpen && otherTypeValue.trim()
-    ? [...types, otherTypeValue.trim() as LodgingType]
-    : types;
+  // The form as it stands, and the lodging it saves as (lib/planning/lodgingPicks.ts).
+  const draft: LodgingDraft = { types, minStars, amenities, otherTypeOpen, otherTypeValue, amenityOpen, otherAmenity };
+  // A custom type typed into "Other…" (e.g. "hostel") is searched for too,
+  // not only saved — picking only a custom type must still fetch hotels.
+  const effectiveTypes = assembleLodging(draft).types;
 
   async function fetchHotels(stars: number, typesOverride?: LodgingType[]): Promise<HotelOption[]> {
     if (!destination) return [];
     setHotelsLoading(true);
     try {
-      const effTypes = typesOverride ?? effectiveTypes;
-      const res = await fetch("/api/hotels/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          destination,
-          min_stars: stars,
-          max_price_per_night: budgetMax,
-          types: effTypes.length > 0 ? effTypes : undefined,
-        }),
-      });
-      const data = await res.json() as HotelOption[];
-      const list = Array.isArray(data) ? data : [];
+      const list = await fetchHotelSearch({ destination, minStars: stars, maxPricePerNight: budgetMax, types: typesOverride ?? effectiveTypes });
       setHotels(list);
       setVisibleHotelCount(3);
       return list;
@@ -152,24 +134,8 @@ export function LodgingStep() {
   // the store) and gets silently clobbered the moment chat applies its own
   // update, since that overwrites the store and this step's own sync-from-
   // store effect above then overwrites the local draft to match.
-  function assembleLodging(overrides: Partial<{
-    types: LodgingType[]; minStars: LodgingStarRating; amenities: string[];
-    otherTypeOpen: boolean; otherTypeValue: string; amenityOpen: boolean; otherAmenity: string;
-  }> = {}): LodgingPreference {
-    const t   = overrides.types ?? types;
-    const oto = overrides.otherTypeOpen ?? otherTypeOpen;
-    const otv = overrides.otherTypeValue ?? otherTypeValue;
-    const a   = overrides.amenities ?? amenities;
-    const ao  = overrides.amenityOpen ?? amenityOpen;
-    const oa  = overrides.otherAmenity ?? otherAmenity;
-    return {
-      types: oto && otv.trim() ? [...t, otv.trim() as LodgingType] : t,
-      minStars: overrides.minStars ?? minStars,
-      amenities: ao && oa.trim() ? [...a, oa.trim()] : a,
-    };
-  }
-  function syncLodging(overrides?: Parameters<typeof assembleLodging>[0]) {
-    setLodging(assembleLodging(overrides));
+  function syncLodging(overrides: Partial<LodgingDraft> = {}) {
+    setLodging(assembleLodging({ ...draft, ...overrides }));
   }
 
   function handleStarsChange(s: LodgingStarRating) {
@@ -219,32 +185,14 @@ export function LodgingStep() {
     // stage reads this to auto-run the same smart pick for the other
     // stops instead of leaving each one on a blank picker.
     setAutoPickHotels(true);
-    const candidates = [
-      ...TYPES.map((t) => ({ id: `type:${t.id}`, label: `Lodging type: ${t.label}` })),
-      ...([3, 4, 5] as LodgingStarRating[]).map((s) => ({ id: `stars:${s}`, label: `${s}-star minimum` })),
-      ...AMENITIES.map((a) => ({ id: `amenity:${a}`, label: `Amenity: ${a}` })),
-    ];
-    const picks = await runSmartPick({ kind: "lodging", preferences: trip.preferences, candidates });
-
-    const stripPrefix = (id: string, prefix: string) =>
-      id.startsWith(prefix) ? id.slice(prefix.length) : null;
-
-    const pickedTypes = picks
-      .map((p) => stripPrefix(p.id, "type:") as LodgingType | null)
-      .filter((t): t is LodgingType => t !== null && TYPES.some((x) => x.id === t));
-    const pickedStarsValue = picks
-      .map((p) => stripPrefix(p.id, "stars:"))
-      .find((s): s is string => s !== null);
-    const pickedAmenities = picks
-      .map((p) => stripPrefix(p.id, "amenity:"))
-      .filter((a): a is string => a !== null && AMENITIES.includes(a));
-
-    const nextTypes = pickedTypes.length ? pickedTypes : types;
-    const nextStars = pickedStarsValue ? (Number(pickedStarsValue) as LodgingStarRating) : minStars;
-    if (pickedTypes.length) setTypes(pickedTypes);
-    if (pickedStarsValue) setMinStars(nextStars);
-    setAmenities(pickedAmenities);
-    syncLodging({ types: nextTypes, minStars: nextStars, amenities: pickedAmenities });
+    const picks = await runSmartPick({ kind: "lodging", preferences: trip.preferences, candidates: lodgingPickCandidates(TYPES, AMENITIES) });
+    const next = lodgingFromPicks(picks, { types: TYPES.map((t) => t.id), amenities: AMENITIES }, { types, minStars });
+    const nextTypes = next.types;
+    const nextStars = next.minStars;
+    setTypes(nextTypes);
+    setMinStars(nextStars);
+    setAmenities(next.amenities);
+    syncLodging({ types: nextTypes, minStars: nextStars, amenities: next.amenities });
 
     // Also choose a specific hotel matching those filters — otherwise this
     // only narrows "Choose your stay" below and still leaves it unresolved.
@@ -274,13 +222,7 @@ export function LodgingStep() {
   }
 
   function handleContinue() {
-    const allTypes = [...types];
-    if (otherTypeOpen && otherTypeValue.trim()) allTypes.push(otherTypeValue.trim() as LodgingType);
-    const allAmenities = [...amenities];
-    if (amenityOpen && otherAmenity.trim()) allAmenities.push(otherAmenity.trim());
-
-    const pref: LodgingPreference = { types: allTypes, minStars, amenities: allAmenities };
-    setLodging(pref);
+    setLodging(assembleLodging(draft));
 
     setReviewSourcePref(
       reviewMode === "single" && reviewSource
@@ -319,89 +261,15 @@ export function LodgingStep() {
       (savedPick?.id === selectedHotelId ? savedPick : null)
     : null;
 
-  // Shared between the manual grid and the "show me other options" list on
-  // the ZiGy-review screen, so both read as the exact same picker.
   function renderHotelCard(h: HotelOption) {
-    const selected = selectedHotelId === h.id;
-    const tierLabel = HOTEL_TIER[h.stars] ?? HOTEL_TIER[4];
     return (
-      <div
+      <LodgingHotelCard
         key={h.id}
-        role="button"
-        tabIndex={0}
-        onClick={() => setSelectedHotelId((prev) => prev === h.id ? null : h.id)}
-        onKeyDown={(e) => e.key === "Enter" && setSelectedHotelId((prev) => prev === h.id ? null : h.id)}
-        className={cn(
-          "flex flex-col rounded-xl border overflow-hidden cursor-pointer transition-all duration-150",
-          selected
-            ? "border-brand-500 ring-2 ring-brand-200 bg-brand-50/40"
-            : "border-slate-200 hover:border-slate-300 bg-white"
-        )}
-      >
-        {h.imageUrl && (
-          <div className="relative w-full h-28 shrink-0 bg-slate-100">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={h.imageUrl} alt={h.name} className="w-full h-full object-cover" />
-            <span
-              className="absolute top-1.5 left-1.5 rounded-full px-2 py-0.5 text-[9px] font-semibold shadow-sm"
-              style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
-            >
-              {tierLabel}
-            </span>
-            {selected && (
-              <span className="absolute top-1.5 right-1.5 flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[9px] font-bold text-white shadow">
-                <Check size={9} /> Your pick
-              </span>
-            )}
-            <span className="absolute bottom-1 right-1.5 rounded bg-black/50 px-1.5 py-0.5 text-[8px] text-white/80 font-medium tracking-wide">
-              Illustrative
-            </span>
-          </div>
-        )}
-        <div className="flex flex-col flex-1 p-3">
-          <div className="flex items-center gap-1">
-            {Array.from({ length: h.stars }).map((_, i) => (
-              <Star key={i} size={10} className="fill-amber-400 text-amber-400" />
-            ))}
-          </div>
-          <span className={cn("mt-1 font-semibold text-sm leading-tight", selected ? "text-brand-700" : "text-slate-800")}>
-            {h.name}
-          </span>
-          {!h.imageUrl && <p className="text-[11px] text-slate-500 mt-0.5 italic">{tierLabel}</p>}
-          <p className="text-[11px] text-slate-400 mt-0.5">{h.location}</p>
-
-          <div className="flex-1" />
-
-          <div className="mt-3 flex items-end justify-between gap-2 pt-2 border-t border-slate-100">
-            <div>
-              <p className="font-bold text-slate-900 text-sm">
-                {formatCurrency(h.pricePerNight, trip.preferences.preferredCurrency)}<span className="font-normal text-xs text-slate-400">/night</span>
-              </p>
-              <p className="text-xs text-sage-700 font-medium">{h.rating}/10</p>
-              {h.ratingSource && (
-                <p className="text-[9px] text-slate-400">{h.ratingSource}</p>
-              )}
-            </div>
-            {selected ? (
-              !h.imageUrl && (
-                <span className="flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white shrink-0">
-                  <Check size={9} /> Your pick
-                </span>
-              )
-            ) : (
-              <a
-                href={h.bookingUrl}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0 flex items-center gap-0.5 text-[11px] text-brand-500 hover:underline"
-              >
-                View <ExternalLink size={9} />
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
+        hotel={h}
+        selected={selectedHotelId === h.id}
+        onToggle={() => setSelectedHotelId((prev) => (prev === h.id ? null : h.id))}
+        currency={trip.preferences.preferredCurrency}
+      />
     );
   }
 

@@ -1,5 +1,7 @@
-import { formatCurrency } from "@/lib/utils";
-import type { FlightOption, HotelOption, ActivityOption, TripPreferences, BudgetRange } from "@/types/trip";
+import { formatCurrency, pairFlights } from "@/lib/utils";
+import { buildTripPlan, type TripPlan } from "@/lib/itinerary/tripPlan";
+import { selectionsOf } from "@/lib/planning/selections";
+import type { ActivityOption, BudgetRange, GeneratedItinerary, TripPreferences } from "@/types/trip";
 
 export type CabinClass = "economy" | "premium_economy" | "business" | "first";
 
@@ -63,6 +65,8 @@ export interface BudgetEstimate {
   total: number;
   perPerson: number;
   travelers: number;
+  /** The cabin of the flights being priced, before any "what if" cabin change. */
+  baseCabin: CabinClass;
 }
 
 // Exploratory "what if" adjustments a user can apply in the budget breakdown
@@ -75,41 +79,43 @@ export interface BudgetOverrides {
   activityIntensity?: number;
 }
 
-// Single source of truth for the trip's total cost estimate — used both when
-// the itinerary is first generated (Trip-at-a-Glance's "Est. total") and in
-// the Estimated Budget Breakdown, so the two numbers can never drift apart
-// the way a hotel[0]-only / first-4-activities-only shortcut previously did.
+// The trip's cost estimate, priced from what the traveller is actually
+// doing: the chosen flight pair, each night at that city's chosen stay, and
+// the activities they picked. Where they haven't chosen yet, ZiGy's
+// recommendation stands in (the first flight pair, ZiGy's hotel per city,
+// every suggested activity). Computed on demand — never stored — so it
+// follows the traveller's picks. Used by Trip-at-a-Glance's "Est. total" and
+// the Estimated Budget Breakdown, so the two can't disagree.
 export function estimateTripBudget(
-  input: {
-    numDays: number;
-    flights: FlightOption[];
-    hotels: HotelOption[];
-    activities: ActivityOption[];
-  },
+  itinerary: GeneratedItinerary,
   preferences: TripPreferences,
   overrides: BudgetOverrides = {}
 ): BudgetEstimate {
-  const { numDays, flights, hotels, activities } = input;
+  const numDays = itinerary.days.length;
   const travelers = preferences.travelers ?? 1;
   const rooms = preferences.rooms ?? 1;
   const dailyFood = overrides.dailyFoodBudgetPerPerson ?? preferences.dailyFoodBudgetPerPerson ?? 80;
+  const chosen = selectionsOf(itinerary);
+  const plan = buildTripPlan(itinerary, preferences);
 
-  // Flights list contains alternative options — only the first two represent
-  // the outbound + return legs actually being budgeted.
-  const baseCabin = normalizeCabinClass(flights[0]?.cabinClass);
+  const pairs = pairFlights(itinerary.flights, preferences.destination?.arrivalAirport ?? "");
+  const pair = pairs.find((p) => p.outbound.id === chosen.flight?.id) ?? pairs[0];
+  const baseCabin = normalizeCabinClass(pair?.outbound.cabinClass);
   const targetCabin = overrides.cabinClass ?? baseCabin;
   const cabinRatio = CABIN_CLASS_MULTIPLIERS[targetCabin] / CABIN_CLASS_MULTIPLIERS[baseCabin];
-  const flightCost = flights.slice(0, 2).reduce((s, f) => s + f.price, 0) * travelers * cabinRatio;
+  const flightCost = pair ? (pair.outbound.price + (pair.ret?.price ?? 0)) * travelers * cabinRatio : 0;
 
-  const hotelNights = Math.max(numDays - 1, 1);
-  const searchedAvgNightly = hotels.length
-    ? hotels.reduce((s, h) => s + h.pricePerNight, 0) / hotels.length
-    : 0;
-  const avgNightly = overrides.lodgingTier ? LODGING_TIER_NIGHTLY[overrides.lodgingTier] : searchedAvgNightly;
+  // One night per day except the last, each at that day's city's stay.
+  const offeredAvg = itinerary.hotels.length ? itinerary.hotels.reduce((s, h) => s + h.pricePerNight, 0) / itinerary.hotels.length : 0;
+  const nights = plan.days.slice(0, -1).map((d) => d.stay?.hotel.pricePerNight ?? offeredAvg);
+  if (!nights.length) nights.push(plan.days[0]?.stay?.hotel.pricePerNight ?? offeredAvg);
+  const hotelNights = nights.length;
+  const avgNightly = overrides.lodgingTier ? LODGING_TIER_NIGHTLY[overrides.lodgingTier] : nights.reduce((s, n) => s + n, 0) / hotelNights;
   const hotelCost = avgNightly * hotelNights * rooms;
 
+  const activities = plannedActivities(itinerary, plan);
   const activityIntensity = overrides.activityIntensity ?? 1;
-  const activityCost = activities.reduce((s, a) => s + a.price, 0) * travelers * activityIntensity;
+  const activityCost = activities.list.reduce((s, a) => s + a.price, 0) * travelers * activityIntensity;
 
   const foodCost = dailyFood * travelers * numDays;
   const transportCost = Math.round(numDays * 25 * travelers);
@@ -117,14 +123,27 @@ export function estimateTripBudget(
   const misc = Math.round(subtotal * 0.1);
   const total = subtotal + misc;
 
+  const n = activities.list.length;
   const lines: BudgetLine[] = [
     { id: "flights",    label: "Flights",                    amount: flightCost,    note: `${travelers} traveler${travelers > 1 ? "s" : ""}, outbound + return · ${CABIN_CLASS_LABELS[targetCabin]}` },
     { id: "hotels",     label: "Hotels",                     amount: hotelCost,     note: `${hotelNights} night${hotelNights > 1 ? "s" : ""}, avg ${formatCurrency(avgNightly, preferences.preferredCurrency)}/night${rooms > 1 ? ` × ${rooms} rooms` : ""}` },
-    { id: "activities", label: "Activities & Tours",         amount: activityCost,  note: `${activities.length} experience${activities.length !== 1 ? "s" : ""}${activityIntensity !== 1 ? ` · ${activityIntensity < 1 ? "lighter" : "packed"} pace` : ""}` },
+    { id: "activities", label: "Activities & Tours",         amount: activityCost,  note: `${n} ${activities.picked ? "" : "suggested "}experience${n !== 1 ? "s" : ""}${activityIntensity !== 1 ? ` · ${activityIntensity < 1 ? "lighter" : "packed"} pace` : ""}` },
     { id: "food",       label: "Food & Dining",               amount: foodCost,      note: `~$${dailyFood}/person/day × ${numDays} days` },
     { id: "transport",  label: "Local Transportation",       amount: transportCost, note: "rideshare, transit, taxis" },
     { id: "misc",       label: "Miscellaneous (10% buffer)", amount: misc,          note: "tips, souvenirs, incidentals" },
   ];
 
-  return { lines, total, perPerson: Math.round(total / travelers), travelers };
+  return { lines, total, perPerson: Math.round(total / travelers), travelers, baseCabin };
+}
+
+// The activities the traveller is doing: those on their arranged days, else
+// the ones they picked, else (nothing chosen yet) everything ZiGy suggested.
+function plannedActivities(itinerary: GeneratedItinerary, plan: TripPlan): { list: ActivityOption[]; picked: boolean } {
+  if (itinerary.finalizedPlan) {
+    const list = plan.days.flatMap((d) => d.items.flatMap((i) => (i.kind === "activity" ? [i.activity] : [])));
+    return { list, picked: true };
+  }
+  const ids = selectionsOf(itinerary).activityIds;
+  if (ids?.length) return { list: itinerary.activities.filter((a) => ids.includes(a.id)), picked: true };
+  return { list: itinerary.activities, picked: false };
 }

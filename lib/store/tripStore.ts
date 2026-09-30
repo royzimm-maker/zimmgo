@@ -33,7 +33,6 @@ import type {
   BeliPreference,
   SchedulePace,
 } from "@/types/trip";
-import { calcProgress } from "@/types/trip";
 
 // ─── State shape ───────────────────────────────────────────────────────────────
 interface TripState {
@@ -114,9 +113,6 @@ interface TripState {
   // UI
   setGenerating: (val: boolean) => void;
   setSidebarOpen: (val: boolean) => void;
-
-  // Derived
-  progress: number;
 
   // User-level default (persists across trips, unlike trip.preferences)
   defaultDepartureAirport?: string;
@@ -199,10 +195,9 @@ export const useTripStore = create<TripState>()(
       chatMessages: [],
       isGenerating: false,
       sidebarOpen: false,
-      progress: 0,
 
       resetTrip: () =>
-        set({ trip: makeEmptyTrip(), chatMessages: [], progress: 0 }),
+        set({ trip: makeEmptyTrip(), chatMessages: [] }),
 
       setTripName: (name) =>
         set((s) => ({
@@ -213,7 +208,7 @@ export const useTripStore = create<TripState>()(
         set((s) => {
           const rest = s.savedTrips.filter((t) => t.id !== s.trip.id);
           const savedTrips = hasRealProgress(s.trip) ? [s.trip, ...rest] : rest;
-          return { trip: makeEmptyTrip(), chatMessages: [], progress: 0, savedTrips };
+          return { trip: makeEmptyTrip(), chatMessages: [], savedTrips };
         }),
 
       switchToTrip: (tripId) =>
@@ -227,14 +222,13 @@ export const useTripStore = create<TripState>()(
             trip: target,
             savedTrips,
             chatMessages: [],
-            progress: calcProgress(target.completedSteps),
           };
         }),
 
       deleteTrip: (tripId) =>
         set((s) => {
           if (tripId === s.trip.id) {
-            return { trip: makeEmptyTrip(), chatMessages: [], progress: 0 };
+            return { trip: makeEmptyTrip(), chatMessages: [] };
           }
           return { savedTrips: s.savedTrips.filter((t) => t.id !== tripId) };
         }),
@@ -259,7 +253,6 @@ export const useTripStore = create<TripState>()(
               completedSteps: completed,
               updatedAt: new Date().toISOString(),
             },
-            progress: calcProgress(completed),
           };
         }),
 
@@ -272,7 +265,6 @@ export const useTripStore = create<TripState>()(
               completedSteps: completed,
               updatedAt: new Date().toISOString(),
             },
-            progress: calcProgress(completed),
           };
         }),
 
@@ -660,7 +652,6 @@ export const useTripStore = create<TripState>()(
         trip: state.trip,
         savedTrips: state.savedTrips,
         chatMessages: state.chatMessages,
-        progress: state.progress,
         // Deliberately survives resetTrip() — a new trip should still default
         // to the airport the user flies from most, unlike trip-scoped prefs.
         defaultDepartureAirport: state.defaultDepartureAirport,

@@ -5,7 +5,6 @@ import { DollarSign, ChevronDown, ChevronUp, Info, RotateCcw } from "lucide-reac
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   estimateTripBudget,
-  normalizeCabinClass,
   CABIN_CLASS_LABELS,
   CABIN_CLASS_MULTIPLIERS,
   LODGING_TIER_NIGHTLY,
@@ -56,18 +55,14 @@ export function BudgetBreakdown({ itinerary, preferences }: Props) {
   const [expandedLine, setExpandedLine] = useState<BudgetLine["id"] | null>(null);
   const [overrides, setOverrides] = useState<BudgetOverrides>({});
 
-  const budgetInput = { numDays: itinerary.days.length, flights: itinerary.flights, hotels: itinerary.hotels, activities: itinerary.activities };
-
-  // Same estimator used server-side to set totalEstimatedCost (Trip-at-a-
-  // Glance's "Est. total") — passing the same itinerary data back through it
-  // here keeps the two numbers shown to the user identical when no "what if"
-  // adjustments are active.
-  const baseline = estimateTripBudget(budgetInput, preferences);
-  const { lines, total, perPerson, travelers } = estimateTripBudget(budgetInput, preferences, overrides);
+  // The same estimate as the "Est. total" stat, so the two match when no
+  // "what if" adjustments are active.
+  const baseline = estimateTripBudget(itinerary, preferences);
+  const { lines, total, perPerson, travelers } = estimateTripBudget(itinerary, preferences, overrides);
 
   const hasOverrides = Object.keys(overrides).length > 0;
   const delta = total - baseline.total;
-  const baseCabin = normalizeCabinClass(itinerary.flights[0]?.cabinClass);
+  const baseCabin = baseline.baseCabin;
 
   function toggleLine(id: BudgetLine["id"]) {
     if (!ADJUSTABLE_LINE_IDS.includes(id)) return;

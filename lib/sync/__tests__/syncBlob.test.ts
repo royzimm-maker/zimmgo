@@ -9,7 +9,7 @@ function trip(id: string, updatedAt: string, name = id, completedSteps: Trip["co
   };
 }
 function blob(active: Trip, saved: Trip[] = [], extra: Partial<SyncBlob> = {}): SyncBlob {
-  return { trip: active, savedTrips: saved, chatMessages: [], progress: 0, ...extra };
+  return { trip: active, savedTrips: saved, chatMessages: [], ...extra };
 }
 
 const T1 = "2026-09-01T00:00:00.000Z";
@@ -52,13 +52,6 @@ describe("mergeSyncBlobs", () => {
     expect(merged.trip.name).toBe("local");
   });
 
-  it("recomputes progress from the resolved active trip", () => {
-    const local = blob(trip("a", T1), [], { progress: 0 });
-    const server = blob(trip("a", T2, "a", ["destination", "dates"]));
-
-    expect(mergeSyncBlobs(local, server).progress).toBeGreaterThan(0);
-  });
-
   it("keeps local chat and device defaults, falling back to the server's when unset locally", () => {
     const local = blob(trip("a", T1), [], { defaultCurrency: "EUR" });
     const server = blob(trip("a", T1), [], { defaultCurrency: "USD", defaultDepartureAirport: "BOS" });
@@ -80,7 +73,7 @@ describe("isSyncBlob", () => {
     expect(isSyncBlob({})).toBe(false);
     expect(isSyncBlob({ ...blob(trip("a", T1)), trip: { id: "a" } })).toBe(false);
     expect(isSyncBlob({ ...blob(trip("a", T1)), savedTrips: [{}] })).toBe(false);
-    expect(isSyncBlob({ ...blob(trip("a", T1)), progress: "0" })).toBe(false);
+    expect(isSyncBlob({ ...blob(trip("a", T1)), chatMessages: "hi" })).toBe(false);
   });
 });
 

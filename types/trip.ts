@@ -385,7 +385,6 @@ export interface GeneratedItinerary {
   groundTransport?: TransportOption[];
   activities: ActivityOption[];
   restaurants?: RestaurantOption[];
-  totalEstimatedCost: number;
   currency: string;
   aiSummary: string;
   whyThisWorks: string;

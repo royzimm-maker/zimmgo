@@ -17,7 +17,7 @@ const SERVER_ONLY_FILES = [
   "lib/db.ts",
   "lib/rateLimit.ts",
   "lib/itinerary/runGeneration.ts",
-  "lib/itinerary/generationJobs.ts",
+  "lib/jobs/backgroundJobs.ts",
   "lib/data/localDiscovery.ts", // every destination's guide — served per destination instead
   "lib/sync/retention.ts",
 ];

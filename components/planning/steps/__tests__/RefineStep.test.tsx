@@ -66,7 +66,6 @@ function makeItinerary(overrides: Partial<GeneratedItinerary> = {}): GeneratedIt
     hotels: [hotelBarcelona, hotelAndalusia],
     activities: [act1, act2],
     restaurants: [rest1, rest2],
-    totalEstimatedCost: 1000,
     currency: "USD",
     aiSummary: "",
     whyThisWorks: "",

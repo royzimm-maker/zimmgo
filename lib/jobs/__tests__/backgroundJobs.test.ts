@@ -9,10 +9,10 @@ const m = vi.hoisted(() => ({
   deleteMany: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({
-  prisma: { generationJob: { create: m.create, findUnique: m.findUnique, update: m.update, deleteMany: m.deleteMany } },
+  prisma: { backgroundJob: { create: m.create, findUnique: m.findUnique, update: m.update, deleteMany: m.deleteMany } },
 }));
 
-import { createJob, executeJob, getJob, STALE_AFTER_MS, JOB_TIME_BUDGET_MS } from "@/lib/itinerary/generationJobs";
+import { createJob, executeJob, getJob, STALE_AFTER_MS, JOB_TIME_BUDGET_MS } from "@/lib/jobs/backgroundJobs";
 import { AIDeadlineError } from "@/lib/ai/client";
 
 function row(over: Record<string, unknown> = {}) {

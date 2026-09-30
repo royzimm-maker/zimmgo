@@ -3,7 +3,7 @@ import { serverError } from "@/lib/http/errors";
 import { waitUntil } from "@vercel/functions";
 import { rateLimit } from "@/lib/rateLimit";
 import { checkListLimits, readJsonBody } from "@/lib/http/readJsonBody";
-import { createJob, executeJob, findJobByKey, getJob } from "@/lib/itinerary/generationJobs";
+import { createJob, executeJob, findJobByKey, getJob } from "@/lib/jobs/backgroundJobs";
 import { runSmartPick } from "@/lib/ai/smartPick";
 import { autoPlanTrip } from "@/lib/planning/autoPlanTrip";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";

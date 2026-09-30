@@ -17,8 +17,7 @@ function itinerary(): GeneratedItinerary {
     flights: [],
     hotels: [hotel("h-rome", "Rome"), hotel("h-flo", "Florence")],
     activities: [act("a-rome", "Rome"), act("a-flo", "Florence")],
-    restaurants: [],
-    totalEstimatedCost: 0, currency: "USD", aiSummary: "", whyThisWorks: "",
+    restaurants: [], currency: "USD", aiSummary: "", whyThisWorks: "",
   } as GeneratedItinerary;
 }
 

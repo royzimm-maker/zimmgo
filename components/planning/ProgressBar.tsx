@@ -3,11 +3,12 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
-import { ORDERED_STEPS, STEP_META, type StepId } from "@/types/trip";
+import { ORDERED_STEPS, STEP_META, calcProgress, type StepId } from "@/types/trip";
 
 export function ProgressBar() {
-  const { trip, progress, goToStep } = useTripStore();
+  const { trip, goToStep } = useTripStore();
   const { currentStep, completedSteps } = trip;
+  const progress = calcProgress(completedSteps);
 
   return (
     <div className="flex flex-col gap-3">

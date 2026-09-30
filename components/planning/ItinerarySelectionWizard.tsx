@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, Sparkles, Search, AlertCircle, Check, Ship, TrainFront } from "lucide-react";
+import { Plane, Hotel, UtensilsCrossed, Star, ArrowLeft, ArrowRight, Sparkles, Search, AlertCircle, Check, Ship } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTripStore } from "@/lib/store/tripStore";
 import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
@@ -11,9 +11,12 @@ import { chooseActivities, chooseHotel, chooseRestaurants, isAirbnbOnly } from "
 import { selectionsOf } from "@/lib/planning/selections";
 import { fetchFlightSearch } from "@/lib/client/searchFlights";
 import { fetchGroundTransport } from "@/lib/client/searchGroundTransport";
-import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 import { cn, formatDate, scrollStepToTop } from "@/lib/utils";
-import { itineraryCities, resolveCity } from "@/lib/location";
+import { itineraryCities } from "@/lib/location";
+import { useAsyncTask, useCityPick } from "@/lib/hooks/useAsyncTask";
+import {
+  STAGE_LABELS, buildWizardSteps, cityOptions, cityRecap as recapFor, groupStepsByCity, nextStepLabel, stepIdxsForCity, type Stage,
+} from "@/lib/planning/wizardSteps";
 import {
   Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard, TransportCard,
 } from "@/components/planning/ItineraryCards";
@@ -34,8 +37,6 @@ interface Props {
   onStepChange?: (stepIdx: number) => void;
 }
 
-type Stage = "flights" | "transport" | "hotels" | "restaurants" | "activities";
-
 // "2026-11" -> "November 2026"
 function flexibleMonthLabel(yyyyMm: string): string {
   const [yr, mo] = yyyyMm.split("-").map(Number);
@@ -46,32 +47,22 @@ function flexibleMonthLabel(yyyyMm: string): string {
 const RESTAURANT_PREVIEW_COUNT = 3;
 const ACTIVITY_PREVIEW_COUNT = 4;
 
-const STAGE_META: Record<Stage, { label: string; icon: React.ReactNode }> = {
-  flights:     { label: "Flights",      icon: <Plane size={16} /> },
-  transport:   { label: "Getting there", icon: <Ship size={16} /> },
-  hotels:      { label: "Hotels",       icon: <Hotel size={16} /> },
-  restaurants: { label: "Restaurants",  icon: <UtensilsCrossed size={16} /> },
-  activities:  { label: "Activities",   icon: <Star size={16} /> },
+const STAGE_ICONS: Record<Stage, React.ReactNode> = {
+  flights:     <Plane size={16} />,
+  transport:   <Ship size={16} />,
+  hotels:      <Hotel size={16} />,
+  restaurants: <UtensilsCrossed size={16} />,
+  activities:  <Star size={16} />,
 };
 
-// One entry in the flattened step list — flights has no city; every other
-// stage belongs to exactly one city, so the wizard fully personalizes a
-// single location (hotel, then restaurants, then activities) before moving
-// to the next one, instead of doing one category across every city at a time.
-interface WizardStep {
-  stage: Stage;
-  city: string | null;
-}
-
+// The review UI. What it walks through and what each city offers live in
+// lib/planning/wizardSteps.ts; the picks themselves in lib/planning/cityPicks.ts.
 export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, onStepChange }: Props) {
   const { trip, setSelectedFlight, setSelectedTransportForLeg, setSelectedHotelForCity, toggleSelectedRestaurant, toggleSelectedActivity, setItineraryFlights, setDates, goToStep } = useTripStore();
   const preferences = trip.preferences;
   // The traveller's choices from this itinerary (lib/planning/selections.ts),
   // read from the store's copy so a pick shows the moment it's made.
   const chosen = selectionsOf(trip.itineraries.find((i) => i.id === itinerary.id) ?? itinerary);
-
-  const [searchingFlights, setSearchingFlights] = useState(false);
-  const [flightSearchError, setFlightSearchError] = useState<string | null>(null);
 
   // The itinerary already resolved a flexible date window into real
   // calendar dates (see buildDays in the generate route — it lands on the
@@ -115,25 +106,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     onRegenerate();
   }
 
-  async function handleSearchFlights() {
-    setSearchingFlights(true);
-    setFlightSearchError(null);
-    try {
-      const flights = await fetchFlightSearch(preferences);
-      setItineraryFlights(itinerary.id, flights);
-    } catch (e: unknown) {
-      setFlightSearchError(e instanceof Error ? e.message : "Flight search failed");
-    } finally {
-      setSearchingFlights(false);
-    }
+  const flightSearch = useAsyncTask("Flight search failed");
+  const searchingFlights = flightSearch.running;
+  const flightSearchError = flightSearch.error;
+  function handleSearchFlights() {
+    return flightSearch.run(async () => setItineraryFlights(itinerary.id, await fetchFlightSearch(preferences)));
   }
 
   const { wanderlogLabels, handleSaveToWanderlog } = useWanderlogSave(itinerary);
-
-  // Skip the Hotels stage entirely for Airbnb-only trips — itinerary.hotels
-  // still gets populated during generation regardless of lodging type, so
-  // without this the wizard showed a hotel-picking stage nobody asked to see.
-  const airbnbOnlyLodging = isAirbnbOnly(preferences.lodging?.types);
 
   // The cities this itinerary was planned for — the keys picks are stored
   // under, shared with the Refine step and auto-plan (lib/location.ts). A
@@ -143,29 +123,12 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     return c.length ? c : ["Your destination"];
   }, [itinerary, preferences.destination]);
 
-  const perCityStages = useMemo<Stage[]>(
-    () => (airbnbOnlyLodging ? ["restaurants", "activities"] : ["hotels", "restaurants", "activities"]),
-    [airbnbOnlyLodging]
+  const airbnbOnly = isAirbnbOnly(preferences.lodging?.types);
+  const steps = useMemo(
+    () => buildWizardSteps(cities, { airbnbOnly, noFlights: !!preferences.noFlightsNeeded }),
+    [cities, airbnbOnly, preferences.noFlightsNeeded]
   );
-
-  const steps = useMemo<WizardStep[]>(() => {
-    // Road trips / other no-flight itineraries skip the flights review
-    // entirely — there's nothing to search or select.
-    const list: WizardStep[] = preferences.noFlightsNeeded ? [] : [{ stage: "flights", city: null }];
-    cities.forEach((city, i) => {
-      // A ferry/train stage only makes sense as the leg INTO this city from
-      // the previous one, and only where a real regional operator matches
-      // (most legs match nothing and skip this stage entirely) — keyed by
-      // the arriving city, same convention as travelNoteByCity/
-      // selectedTransportByLeg.
-      const prevCity = i > 0 ? cities[i - 1] : null;
-      if (prevCity && getGroundTransportProvider(`${prevCity} ${city}`)) {
-        list.push({ stage: "transport", city });
-      }
-      for (const stage of perCityStages) list.push({ stage, city });
-    });
-    return list;
-  }, [cities, perCityStages, preferences.noFlightsNeeded]);
+  const stepGroups = useMemo(() => groupStepsByCity(steps), [steps]);
 
   const [stepIdx, setStepIdx] = useState(0);
 
@@ -177,15 +140,6 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     onStepChange?.(stepIdx);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIdx]);
-  const [pickingHotel, setPickingHotel] = useState(false);
-  const [hotelPickReasons, setHotelPickReasons] = useState<Record<string, string>>({});
-  const [hotelPickError, setHotelPickError] = useState<string | null>(null);
-  const [pickingActivities, setPickingActivities] = useState(false);
-  const [activityPickReasons, setActivityPickReasons] = useState<Record<string, string>>({});
-  const [activityPickError, setActivityPickError] = useState<string | null>(null);
-  const [pickingRestaurants, setPickingRestaurants] = useState(false);
-  const [restaurantPickReasons, setRestaurantPickReasons] = useState<Record<string, string>>({});
-  const [restaurantPickError, setRestaurantPickError] = useState<string | null>(null);
 
   const step = steps[stepIdx];
   const stage = step.stage;
@@ -212,22 +166,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
   }, [stage, itinerary.id, itinerary.flights.length, preferences.dates, preferences.destination]);
 
   const canGoBack = stepIdx > 0;
-
-  // Consecutive steps sharing a city (or the leading flights step) clustered
-  // together, so the progress bar visually groups by destination instead of
-  // reading as one flat, undifferentiated row of ticks.
-  const stepGroups = useMemo(() => {
-    const groups: { key: string; idxs: number[] }[] = [];
-    steps.forEach((s, i) => {
-      const key = s.city ?? "__flights__";
-      const last = groups[groups.length - 1];
-      if (last && last.key === key) last.idxs.push(i);
-      else groups.push({ key, idxs: [i] });
-    });
-    return groups;
-  }, [steps]);
-
-  const cityStepIdxsCurrent = steps.reduce<number[]>((acc, s, idx) => (s.city === currentCity ? [...acc, idx] : acc), []);
+  const cityStepIdxsCurrent = stepIdxsForCity(steps, currentCity);
   const cityStagePosition = cityStepIdxsCurrent.indexOf(stepIdx) + 1;
   const cityStageTotal = cityStepIdxsCurrent.length;
 
@@ -243,84 +182,78 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     if (stepIdx > 0) setStepIdx((i) => i - 1);
   }
 
-  // The "transport" stage is only ever included keyed by the arriving
-  // city (see the steps construction above) — the departing city is
-  // simply the one immediately before it in the trip's ordered city list.
+  const options = useMemo(() => cityOptions(itinerary, cities, currentCity), [itinerary, cities, currentCity]);
+  const hotelsForCity = options.hotels;
+  const restaurantsForCity = options.restaurants;
+  const activitiesForCity = options.activities;
+  const cityRecap = recapFor(itinerary, cities, currentCity, chosen);
+
+  // The "transport" stage is keyed by the arriving city; the departing city
+  // is the one before it in the trip's ordered city list.
   const transportFromCity = stage === "transport" ? cities[cities.indexOf(currentCity) - 1] ?? null : null;
 
-  const transportForLeg = useMemo(
-    () => (itinerary.groundTransport ?? []).filter((t) => t.toCity === currentCity),
-    [itinerary.groundTransport, currentCity]
-  );
-
-  // Manual fallback for a leg generation didn't produce any options for —
-  // mirrors handleSearchFlights, just against the ground-transport search
-  // endpoint instead.
-  const [searchingTransport, setSearchingTransport] = useState(false);
-  const [transportSearchError, setTransportSearchError] = useState<string | null>(null);
+  // Manual fallback for a leg generation didn't produce any options for.
+  const transportSearch = useAsyncTask("Ground transport search failed");
+  const searchingTransport = transportSearch.running;
+  const transportSearchError = transportSearch.error;
   const [manualTransportResults, setManualTransportResults] = useState<TransportOption[]>([]);
-
-  async function handleSearchTransport() {
+  function handleSearchTransport() {
     if (!transportFromCity) return;
-    setSearchingTransport(true);
-    setTransportSearchError(null);
-    try {
-      const date = itinerary.days.find((d) => d.location === currentCity)?.date ?? itinerary.days[0]?.date ?? "";
-      setManualTransportResults(await fetchGroundTransport(transportFromCity, currentCity, date, preferences));
-    } catch (e: unknown) {
-      setTransportSearchError(e instanceof Error ? e.message : "Ground transport search failed");
-    } finally {
-      setSearchingTransport(false);
-    }
+    const date = itinerary.days.find((d) => d.location === currentCity)?.date ?? itinerary.days[0]?.date ?? "";
+    return transportSearch.run(async () => setManualTransportResults(await fetchGroundTransport(transportFromCity, currentCity, date, preferences)));
   }
-
-  const displayedTransportOptions = transportForLeg.length ? transportForLeg : manualTransportResults;
-
-  const hotelsForCity = useMemo(
-    () => itinerary.hotels.filter((h) => resolveCity(h.city ?? h.location, cities) === currentCity),
-    [itinerary.hotels, cities, currentCity]
-  );
+  const displayedTransportOptions = options.transport.length ? options.transport : manualTransportResults;
 
   // The traveller's (or ZiGy's) current pick for this city shown first —
-  // otherwise it can land anywhere in the raw search-result order, and a
-  // pick the traveller already has requires scrolling past other options
-  // to even see what was chosen.
+  // otherwise it can land anywhere in the raw search-result order.
+  const pickedHotelId = chosen.hotelsByCity?.[currentCity]?.id;
   const displayHotels = useMemo(() => {
-    const pickedId = chosen.hotelsByCity?.[currentCity]?.id;
-    if (!pickedId) return hotelsForCity;
-    const picked = hotelsForCity.find((h) => h.id === pickedId);
-    if (!picked) return hotelsForCity;
-    return [picked, ...hotelsForCity.filter((h) => h.id !== pickedId)];
-  }, [hotelsForCity, chosen.hotelsByCity, currentCity]);
+    const picked = hotelsForCity.find((h) => h.id === pickedHotelId);
+    return picked ? [picked, ...hotelsForCity.filter((h) => h.id !== pickedHotelId)] : hotelsForCity;
+  }, [hotelsForCity, pickedHotelId]);
 
-  async function handleSmartPickHotel() {
-    setPickingHotel(true);
-    setHotelPickError(null);
-    try {
-      const choice = await chooseHotel(fetchSmartPick, currentCity, preferences, hotelsForCity);
-      if (choice) {
-        setSelectedHotelForCity(currentCity, choice.hotel);
-        setHotelPickReasons((prev) => ({ ...prev, [currentCity]: choice.reason }));
-      }
-    } catch (e: unknown) {
-      // A real failure (bad API key, network blip) shouldn't look identical
-      // to "ZiGy picked nothing" — the picker UI is still there as a fallback
-      // either way, but the user deserves to know why.
-      setHotelPickError(e instanceof Error ? e.message : "ZiGy couldn't pick a hotel right now");
-    } finally {
-      setPickingHotel(false);
-    }
+  // ZiGy's picks for the current city. Only options offered for this city
+  // can be picked (checked in lib/planning/cityPicks.ts).
+  const hotelPick = useCityPick("ZiGy couldn't pick a hotel right now");
+  const activityPick = useCityPick("ZiGy couldn't pick activities right now");
+  const restaurantPick = useCityPick("ZiGy couldn't pick restaurants right now");
+  const [pickingHotel, hotelPickReasons, hotelPickError] = [hotelPick.running, hotelPick.reasons, hotelPick.error];
+  const [pickingActivities, activityPickReasons, activityPickError] = [activityPick.running, activityPick.reasons, activityPick.error];
+  const [pickingRestaurants, restaurantPickReasons, restaurantPickError] = [restaurantPick.running, restaurantPick.reasons, restaurantPick.error];
+
+  function handleSmartPickHotel() {
+    const city = currentCity;
+    return hotelPick.run(city, async () => {
+      const choice = await chooseHotel(fetchSmartPick, city, preferences, hotelsForCity);
+      if (!choice) return undefined;
+      setSelectedHotelForCity(city, choice.hotel);
+      return choice.reason;
+    });
   }
 
-  // The Lodging step's own "Let ZiGy choose for me" only ever searches and
-  // picks a hotel for the trip's primary city — it has no way to know about
-  // the other stops in a multi-city trip. Honor that same choice here for
-  // every city (including the primary one, which also never got a pick
-  // written into selectedHotelsByCity) by auto-running the same per-city
-  // smart pick a user would otherwise have to click "Let ZiGy choose the
-  // hotel for {city}" to trigger themselves. A city the traveller already
-  // picked for (manually or via a previous auto-pick) is left alone, and a
-  // failed attempt isn't retried — it just falls back to the manual picker.
+  function handleSmartPickActivities() {
+    const city = currentCity;
+    return activityPick.run(city, async () => {
+      const { ids, summary } = await chooseActivities(fetchSmartPick, city, preferences, activitiesForCity);
+      for (const id of ids) if (!(chosen.activityIds ?? []).includes(id)) toggleSelectedActivity(id);
+      return summary;
+    });
+  }
+
+  function handleSmartPickRestaurants() {
+    const city = currentCity;
+    return restaurantPick.run(city, async () => {
+      const { ids, summary } = await chooseRestaurants(fetchSmartPick, city, preferences, restaurantsForCity);
+      for (const id of ids) if (!(chosen.restaurantIds ?? []).includes(id)) toggleSelectedRestaurant(id);
+      return summary;
+    });
+  }
+
+  // The Lodging step's "Let ZiGy choose for me" only picks a hotel for the
+  // trip's primary city. Honor that choice here for every city by
+  // auto-running the same per-city pick the traveller could click. A city
+  // with a hotel already chosen is left alone, and a failed attempt isn't
+  // retried — it falls back to the manual picker.
   const [autoPickedHotelFor, setAutoPickedHotelFor] = useState<Set<string>>(new Set());
   useEffect(() => {
     if (stage !== "hotels") return;
@@ -333,59 +266,13 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     handleSmartPickHotel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, currentCity, preferences.autoPickHotels, chosen.hotelsByCity, hotelsForCity, pickingHotel]);
-  async function handleSmartPickActivities() {
-    setPickingActivities(true);
-    setActivityPickError(null);
-    try {
-      // Only activities that were offered for this city are added (checked in chooseActivities).
-      const { ids, summary } = await chooseActivities(fetchSmartPick, currentCity, preferences, activitiesForCity);
-      for (const id of ids) {
-        if (!(chosen.activityIds ?? []).includes(id)) toggleSelectedActivity(id);
-      }
-      setActivityPickReasons((prev) => ({ ...prev, [currentCity]: summary }));
-    } catch (e: unknown) {
-      setActivityPickError(e instanceof Error ? e.message : "ZiGy couldn't pick activities right now");
-    } finally {
-      setPickingActivities(false);
-    }
-  }
 
-  async function handleSmartPickRestaurants() {
-    setPickingRestaurants(true);
-    setRestaurantPickError(null);
-    try {
-      const { ids, summary } = await chooseRestaurants(fetchSmartPick, currentCity, preferences, restaurantsForCity);
-      for (const id of ids) {
-        if (!(chosen.restaurantIds ?? []).includes(id)) toggleSelectedRestaurant(id);
-      }
-      setRestaurantPickReasons((prev) => ({ ...prev, [currentCity]: summary }));
-    } catch (e: unknown) {
-      setRestaurantPickError(e instanceof Error ? e.message : "ZiGy couldn't pick restaurants right now");
-    } finally {
-      setPickingRestaurants(false);
-    }
-  }
-
-  // Highest-rated first, so capping to the preview count always surfaces the best options.
-  const restaurantsForCity = useMemo(
-    () => (itinerary.restaurants ?? [])
-      .filter((r) => resolveCity(r.location, cities, { fallbackToLast: true }) === currentCity)
-      .sort((a, b) => b.rating - a.rating),
-    [itinerary.restaurants, cities, currentCity]
-  );
   const {
     visible: visibleRestaurants,
     hasMore: hasMoreRestaurants,
     expanded: restaurantsExpanded,
     expand: expandRestaurants,
   } = useExpandablePreview(restaurantsForCity, RESTAURANT_PREVIEW_COUNT, currentCity);
-
-  const activitiesForCity = useMemo(
-    () => itinerary.activities
-      .filter((a) => resolveCity(a.location, cities, { fallbackToLast: true }) === currentCity)
-      .sort((a, b) => b.rating - a.rating),
-    [itinerary.activities, cities, currentCity]
-  );
   const {
     visible: visibleActivities,
     hasMore: hasMoreActivities,
@@ -393,22 +280,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     expand: expandActivities,
   } = useExpandablePreview(activitiesForCity, ACTIVITY_PREVIEW_COUNT, currentCity);
 
-  // Since a city's hotel/restaurants/activities are now reviewed back-to-back,
-  // this recap shows what's already locked in for this city as you move
-  // through its later stages (e.g. the hotel you just picked, visible while
-  // you're now looking at restaurants).
-  const cityRecap = useMemo(() => {
-    const hotel = chosen.hotelsByCity?.[currentCity]?.name;
-    const restaurantCount = (itinerary.restaurants ?? [])
-      .filter((r) => resolveCity(r.location, cities, { fallbackToLast: true }) === currentCity && (chosen.restaurantIds ?? []).includes(r.id))
-      .length;
-    const activityCount = itinerary.activities
-      .filter((a) => resolveCity(a.location, cities, { fallbackToLast: true }) === currentCity && (chosen.activityIds ?? []).includes(a.id))
-      .length;
-    return { hotel, restaurantCount, activityCount };
-  }, [currentCity, cities, itinerary.restaurants, itinerary.activities, chosen.hotelsByCity, chosen.restaurantIds, chosen.activityIds]);
-
-  const sectionTitle = stage === "flights" ? "Flights" : `${STAGE_META[stage].label} — ${currentCity}`;
+  const sectionTitle = stage === "flights" ? "Flights" : `${STAGE_LABELS[stage]} — ${currentCity}`;
   const sectionSubtitle = stage === "flights"
     ? "Select your preferred option — prices are roundtrip per person, estimated."
     : stage === "transport"
@@ -417,24 +289,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     ? "Tap a hotel to pick it for this city — you can change it later."
     : "Tap \"Add\" to include a pick in your plan — the bookmark saves it to your Wanderlog instead, without scheduling it.";
 
-  // What "Continue" advances to, so it reads as "move to the next thing in
-  // this picks review" rather than looking like the page-level navigation
-  // (Back / Skip / Personalize) that sits right below this wizard.
-  const nextStep = steps[stepIdx + 1];
-  const isLastStep = !nextStep;
-  const nextLabel = isLastStep
-    ? "Finish review"
-    // Coming straight off Flights, "Continue to {city}" reads like it's
-    // describing where the flight just picked is headed (confusing when the
-    // visible card is the return leg flying the other way) — phrase it as
-    // starting that city's planning instead. Between two cities later in the
-    // wizard there's no flight card to conflict with, so the plain "Continue
-    // to {city}" reads fine there.
-    : step.stage === "flights"
-    ? `Plan the ${nextStep.city} leg`
-    : nextStep.city !== step.city
-    ? `Continue to ${nextStep.city}`
-    : `Continue to ${STAGE_META[nextStep.stage].label} in ${nextStep.city}`;
+  const nextLabel = nextStepLabel(step, steps[stepIdx + 1]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -447,7 +302,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
         {cities.length > 1 && (
           <div className="flex flex-wrap items-center gap-1 mb-2.5">
             {cities.map((city, i) => {
-              const cityStepIdxs = steps.reduce<number[]>((acc, s, idx) => (s.city === city ? [...acc, idx] : acc), []);
+              const cityStepIdxs = stepIdxsForCity(steps, city);
               const cityFirstIdx = cityStepIdxs[0];
               const cityLastIdx = cityStepIdxs[cityStepIdxs.length - 1];
               const isDone = stepIdx > cityLastIdx;
@@ -512,7 +367,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
       </div>
 
       {/* Stage content */}
-      <Section title={sectionTitle} icon={STAGE_META[stage].icon} subtitle={sectionSubtitle}>
+      <Section title={sectionTitle} icon={STAGE_ICONS[stage]} subtitle={sectionSubtitle}>
         {stage === "flights" && (
           itinerary.flights.length > 0 ? (
             <FlightPairList

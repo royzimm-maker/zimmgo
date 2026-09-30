@@ -2,8 +2,9 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { logServerError, toPublicError } from "@/lib/http/errors";
 
-// Background jobs (itinerary generation, auto-plan) kept in the GenerationJob
-// table so the client can poll them and resume after a refresh.
+// Background jobs — itinerary generation and auto-plan today — kept in the
+// BackgroundJob table so the client can poll them and resume after a refresh.
+// Each caller namespaces its own request keys (e.g. "autoplan:<id>").
 
 // A job still "running" this long after its last update can't still be alive
 // — the functions' maxDuration (150s) has passed — so it's reported as failed
@@ -25,7 +26,7 @@ export interface JobView {
   error: string | null;
 }
 
-type JobRow = NonNullable<Awaited<ReturnType<typeof prisma.generationJob.findUnique>>>;
+type JobRow = NonNullable<Awaited<ReturnType<typeof prisma.backgroundJob.findUnique>>>;
 
 function view(job: JobRow): JobView {
   return {
@@ -38,7 +39,7 @@ function view(job: JobRow): JobView {
 }
 
 export async function findJobByKey(requestKey: string): Promise<JobView | null> {
-  const job = await prisma.generationJob.findUnique({ where: { requestKey } });
+  const job = await prisma.backgroundJob.findUnique({ where: { requestKey } });
   return job ? view(job) : null;
 }
 
@@ -46,11 +47,11 @@ export async function findJobByKey(requestKey: string): Promise<JobView | null> 
 // the same key got there first. `created` tells the caller whether it owns
 // running the job.
 export async function createJob(requestKey: string): Promise<{ job: JobView; created: boolean }> {
-  prisma.generationJob
+  prisma.backgroundJob
     .deleteMany({ where: { createdAt: { lt: new Date(Date.now() - KEEP_JOBS_MS) } } })
     .catch(() => {});
   try {
-    const job = await prisma.generationJob.create({
+    const job = await prisma.backgroundJob.create({
       data: { requestKey, status: "running", stage: "Starting…" },
     });
     return { job: view(job), created: true };
@@ -73,27 +74,27 @@ export async function executeJob(jobId: string, work: JobWork): Promise<void> {
   const deadline = Date.now() + JOB_TIME_BUDGET_MS;
   try {
     const result = await work(async (stage) => {
-      await prisma.generationJob.update({ where: { id: jobId }, data: { stage } }).catch(() => {});
+      await prisma.backgroundJob.update({ where: { id: jobId }, data: { stage } }).catch(() => {});
     }, deadline);
-    await prisma.generationJob.update({
+    await prisma.backgroundJob.update({
       where: { id: jobId },
       data: { status: "done", stage: null, result: result as Prisma.InputJsonValue },
     });
   } catch (error: unknown) {
     logServerError(`job ${jobId}`, error);
     const { message } = toPublicError(error);
-    await prisma.generationJob
+    await prisma.backgroundJob
       .update({ where: { id: jobId }, data: { status: "error", error: message } })
       .catch(() => {});
   }
 }
 
 export async function getJob(jobId: string): Promise<JobView | null> {
-  const job = await prisma.generationJob.findUnique({ where: { id: jobId } });
+  const job = await prisma.backgroundJob.findUnique({ where: { id: jobId } });
   if (!job) return null;
   if (job.status === "running" && Date.now() - job.updatedAt.getTime() > STALE_AFTER_MS) {
     const message = "This stopped before finishing — please try again.";
-    await prisma.generationJob
+    await prisma.backgroundJob
       .update({ where: { id: jobId }, data: { status: "error", error: message } })
       .catch(() => {});
     return { ...view(job), status: "error", error: message };

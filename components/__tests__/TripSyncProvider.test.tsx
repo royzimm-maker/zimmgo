@@ -3,7 +3,7 @@ import { render, act } from "@testing-library/react";
 import { TripSyncProvider } from "@/components/TripSyncProvider";
 import { useTripStore } from "@/lib/store/tripStore";
 import { SCHEMA_VERSION } from "@/lib/sync/schema";
-import { calcProgress, type Trip } from "@/types/trip";
+import type { Trip } from "@/types/trip";
 
 function trip(id: string, updatedAt: string, opts: Partial<Trip> = {}): Trip {
   return {
@@ -29,7 +29,7 @@ function gets(fetchMock: ReturnType<typeof vi.fn>) {
 }
 
 function setLocal(t: Trip, savedTrips: Trip[] = []) {
-  useTripStore.setState({ trip: t, savedTrips, chatMessages: [], progress: 0 });
+  useTripStore.setState({ trip: t, savedTrips, chatMessages: [] });
 }
 
 beforeEach(() => {
@@ -66,7 +66,7 @@ describe("TripSyncProvider — hydration safety", () => {
     // The cleared-cache case: local is a blank new trip, the server holds
     // real work, and the first GET happens to fail.
     const saved = trip("real", T2, { name: "Lisbon", completedSteps: ["destination", "dates"] });
-    const serverBlob = { schemaVersion: SCHEMA_VERSION, trip: saved, savedTrips: [], chatMessages: [], progress: calcProgress(["destination", "dates"]) };
+    const serverBlob = { schemaVersion: SCHEMA_VERSION, trip: saved, savedTrips: [], chatMessages: [] };
     let attempts = 0;
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       if (init?.method === "PUT") return json({ ok: true, version: 4 });
@@ -91,7 +91,7 @@ describe("TripSyncProvider — hydration safety", () => {
     // has `broken` as the active trip.
     const broken = trip("broken", T2, { name: "Crashes", completedSteps: ["destination", "dates"] });
     setLocal(trip("fresh", T1), [broken]);
-    const serverBlob = { schemaVersion: SCHEMA_VERSION, trip: broken, savedTrips: [], chatMessages: [], progress: calcProgress(broken.completedSteps) };
+    const serverBlob = { schemaVersion: SCHEMA_VERSION, trip: broken, savedTrips: [], chatMessages: [] };
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
       init?.method === "PUT" ? json({ ok: true, version: 4 }) : json({ data: serverBlob, version: 3 }));
     vi.stubGlobal("fetch", fetchMock);

@@ -30,7 +30,7 @@ describe("migratePersistedState", () => {
     expect(s.trip.itineraries[0]).toMatchObject({ id: "i1", days: [{ dayNumber: 1 }], flights: [], hotels: [], activities: [] });
     expect(s.savedTrips).toEqual([]);
     expect(s.chatMessages).toEqual([]);
-    expect(s.progress).not.toBe(77); // recomputed from completedSteps
+    expect(s).not.toHaveProperty("progress"); // computed from completedSteps, never saved
   });
 
   it("gives trips missing timestamps the oldest possible time, so they never win a sync merge", () => {
@@ -163,5 +163,20 @@ describe("tripStore persistence", () => {
     expect(trip.completedSteps).toEqual(["destination"]);
     expect(JSON.parse(localStorage.getItem("zimmgo-trip")!).version).toBe(SCHEMA_VERSION);
     localStorage.removeItem("zimmgo-trip");
+  });
+});
+
+describe("schema v4 → v5: derived values aren't saved", () => {
+  it("drops the stored progress and each itinerary's cost snapshot", () => {
+    const t = (id: string) => ({
+      id, name: id, currentStep: "itinerary", completedSteps: ["destination"], createdAt: now, updatedAt: now,
+      preferences: { activities: [], activityRankings: {}, vibes: [], transportation: [] },
+      itineraries: [{ id: "i1", days: [], flights: [], hotels: [], activities: [], totalEstimatedCost: 1234 }],
+    });
+    const s = migratePersistedState({ trip: t("a"), savedTrips: [t("b")], chatMessages: [], progress: 40 }, 4) as unknown as SyncBlob;
+    expect(s).not.toHaveProperty("progress");
+    expect(s.trip.itineraries[0]).not.toHaveProperty("totalEstimatedCost");
+    expect(s.savedTrips[0].itineraries[0]).not.toHaveProperty("totalEstimatedCost");
+    expect(s.trip.itineraries[0].id).toBe("i1");
   });
 });

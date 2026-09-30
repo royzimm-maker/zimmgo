@@ -1,4 +1,3 @@
-import { calcProgress } from "@/types/trip";
 import type { Trip, ChatMessage, BeliPreference } from "@/types/trip";
 
 // The exact shape tripStore.ts's own `partialize` persists to localStorage —
@@ -10,7 +9,6 @@ export interface SyncBlob {
   trip: Trip;
   savedTrips: Trip[];
   chatMessages: ChatMessage[];
-  progress: number;
   defaultDepartureAirport?: string;
   defaultBeliPref?: BeliPreference;
   defaultCurrency?: string;
@@ -36,8 +34,7 @@ export function isSyncBlob(b: unknown): b is SyncBlob {
   return (
     isTrip(x.trip) &&
     Array.isArray(x.savedTrips) && x.savedTrips.every(isTrip) &&
-    Array.isArray(x.chatMessages) &&
-    typeof x.progress === "number"
+    Array.isArray(x.chatMessages)
   );
 }
 
@@ -88,7 +85,6 @@ export function mergeSyncBlobs(local: SyncBlob, server: SyncBlob): SyncBlob {
     trip: active,
     savedTrips: savedIds.map((id) => byId.get(id)!),
     chatMessages: local.chatMessages,
-    progress: calcProgress(active.completedSteps),
     defaultDepartureAirport: local.defaultDepartureAirport ?? server.defaultDepartureAirport,
     defaultBeliPref: local.defaultBeliPref ?? server.defaultBeliPref,
     defaultCurrency: local.defaultCurrency ?? server.defaultCurrency,

@@ -38,12 +38,13 @@ model RateLimitWindow {
   @@index([windowStart])
 }
 
-// Itinerary generation runs as a background job the client polls, so a
-// dropped connection or page refresh resumes the same run instead of paying
-// for a new one (see app/api/itinerary/generate/route.ts).
-model GenerationJob {
+// Long AI work (itinerary generation, auto-plan) runs as a background job
+// the client polls, so a dropped connection or page refresh resumes the same
+// run instead of paying for a new one (see lib/jobs/backgroundJobs.ts).
+// The table keeps its original name, so no database change is needed.
+model BackgroundJob {
   id         String   @id @default(cuid())
-  requestKey String   @unique // client-generated id for this generation intent
+  requestKey String   @unique // client-generated id for this run, namespaced by job kind
   status     String   // "running" | "done" | "error"
   stage      String?  // human-readable progress label
   result     Json?
@@ -52,6 +53,7 @@ model GenerationJob {
   updatedAt  DateTime @updatedAt
 
   @@index([createdAt])
+  @@map("GenerationJob")
 }
 
 // One row per Anthropic API call, across every route that calls

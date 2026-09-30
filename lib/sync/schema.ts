@@ -1,4 +1,4 @@
-import { ORDERED_STEPS, calcProgress } from "@/types/trip";
+import { ORDERED_STEPS } from "@/types/trip";
 import { isSyncBlob, type SyncBlob } from "@/lib/sync/syncBlob";
 import { itineraryCities, resolveCity } from "@/lib/location";
 
@@ -14,7 +14,7 @@ import { itineraryCities, resolveCity } from "@/lib/location";
 //   3. extend normalizeTrip if the new field needs a safe default.
 // Old data is then upgraded when a browser loads it, when a synced copy is
 // pulled from the server, and when an older tab pushes to the server.
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 // Chat history kept per device — the chat route only sends the last 12.
 export const MAX_CHAT_MESSAGES = 100;
@@ -100,6 +100,21 @@ const MIGRATIONS: Record<number, (state: Loose) => Loose> = {
     };
     return { ...state, trip: moveDecisions(state.trip), savedTrips: arr(state.savedTrips).map(moveDecisions) };
   },
+  // 4 → 5: derived values are computed, not saved. Planning progress comes
+  // from completedSteps, and the cost estimate from the itinerary and the
+  // traveller's picks (lib/budget.ts) — the stored copies only went stale.
+  4: (state) => {
+    const without = (o: Loose, key: string) => {
+      const copy = { ...o };
+      delete copy[key];
+      return copy;
+    };
+    const dropCostSnapshot = (t: unknown) =>
+      isObj(t) && Array.isArray(t.itineraries)
+        ? { ...t, itineraries: t.itineraries.map((it) => (isObj(it) ? without(it, "totalEstimatedCost") : it)) }
+        : t;
+    return { ...without(state, "progress"), trip: dropCostSnapshot(state.trip), savedTrips: arr(state.savedTrips).map(dropCostSnapshot) };
+  },
 };
 
 const isObj = (v: unknown): v is Loose => !!v && typeof v === "object" && !Array.isArray(v);
@@ -155,7 +170,6 @@ function normalizeState(state: Loose): Loose {
     ...next,
     savedTrips,
     chatMessages: arr(state.chatMessages).filter(isObj),
-    progress: trip ? calcProgress(trip.completedSteps as never) : 0,
   };
 }
 
