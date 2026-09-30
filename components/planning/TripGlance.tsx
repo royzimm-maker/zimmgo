@@ -2,7 +2,8 @@
 
 import { Plane, Hotel, Users, Calendar, MapPin, Check, Ship } from "lucide-react";
 import { formatDate, formatCurrency, pairFlights } from "@/lib/utils";
-import { resolveCity } from "@/lib/location";
+import { itineraryCities } from "@/lib/location";
+import { chosenHotelForCity, type HotelChoice } from "@/lib/planning/hotelChoice";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 
@@ -14,7 +15,7 @@ interface Props {
 
 export function TripGlance({ itinerary, preferences }: Props) {
   const { trip, setSelectedFlight } = useTripStore();
-  const { days, flights, hotels } = itinerary;
+  const { days, flights } = itinerary;
   const travelers = preferences.travelers ?? 1;
   const destination = preferences.destination?.displayName ?? "Your destination";
   const selectedFlightId = trip.preferences.selectedFlight?.id;
@@ -32,25 +33,16 @@ export function TripGlance({ itinerary, preferences }: Props) {
   const arrivalAirport = preferences.destination?.arrivalAirport ?? "";
   const pairs = pairFlights(flights, arrivalAirport);
 
-  // Show the traveller's actual pick per city (made in the Hotels review
-  // stage) rather than dumping the full raw fetched pool — otherwise a
-  // multi-city trip shows several unselected-looking hotels per city and
-  // the choice they already made is invisible here.
-  const cities = preferences.destination?.cities?.filter(Boolean) ?? [];
-  const displayHotels = (() => {
-    if (preferences.selectedHotel) return [preferences.selectedHotel];
-    const byCity = preferences.selectedHotelsByCity;
-    if (byCity && Object.keys(byCity).length) {
-      if (cities.length) return cities.map((c) => byCity[c]).filter((h): h is NonNullable<typeof h> => Boolean(h));
-      return Object.values(byCity);
-    }
-    if (cities.length > 1) {
-      return cities
-        .map((c) => hotels.find((h) => resolveCity(h.city ?? h.location, cities) === c))
-        .filter((h): h is NonNullable<typeof h> => Boolean(h));
-    }
-    return hotels.slice(0, 1);
-  })();
+  // One stay per city — the traveller's choice, or ZiGy's recommendation
+  // where they haven't chosen (lib/planning/hotelChoice.ts) — rather than the
+  // whole fetched pool, which would make the choice they made invisible.
+  const cities = itineraryCities(itinerary, preferences.destination);
+  const stays = cities
+    .map((c) => chosenHotelForCity(c, itinerary, preferences, cities))
+    .filter((s): s is HotelChoice => s !== null);
+  const lodgingLabel = stays.every((s) => s.byTraveller)
+    ? "Your Lodging"
+    : stays.some((s) => s.byTraveller) ? "Lodging" : "Recommended Lodging";
 
   return (
     <div className="rounded-xl border border-brand-200 bg-white overflow-hidden">
@@ -140,19 +132,17 @@ export function TripGlance({ itinerary, preferences }: Props) {
       )}
 
       {/* Hotels summary */}
-      {displayHotels.length > 0 && (
+      {stays.length > 0 && (
         <div className="px-4 py-3 border-b border-slate-100">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1">
             <Hotel size={10} />
-            {preferences.selectedHotel || preferences.selectedHotelsByCity ? "Your Lodging" : "Recommended Lodging"}
+            {lodgingLabel}
           </p>
           <div className="flex flex-col gap-1">
-            {displayHotels.map((h) => (
+            {stays.map(({ hotel: h, byTraveller }) => (
               <div key={h.id} className="flex items-center justify-between text-xs">
                 <span className="text-slate-700 font-medium flex items-center gap-1">
-                  {(preferences.selectedHotel || preferences.selectedHotelsByCity) && (
-                    <Check size={11} className="text-sage-600 shrink-0" />
-                  )}
+                  {byTraveller && <Check size={11} className="text-sage-600 shrink-0" aria-label="Your choice" />}
                   {h.name}
                 </span>
                 <span className="text-slate-500">{h.location} · {formatCurrency(h.pricePerNight, preferences.preferredCurrency)}/night</span>

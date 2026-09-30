@@ -8,7 +8,7 @@
 //
 // Runs server-side as a background job (/api/itinerary/auto-plan); the pick
 // function is injected so it calls the AI directly there and stays testable.
-import { resolveCity } from "@/lib/location";
+import { itineraryCities, resolveCity } from "@/lib/location";
 import type { GeneratedItinerary, TripPreferences, HotelOption } from "@/types/trip";
 import type { SmartPickRequestBody, SmartPickResponse } from "@/types/smartPick";
 
@@ -78,10 +78,8 @@ export async function autoPlanTrip(
   pick: PickFn,
   onProgress: (message: string) => Promise<void> | void = () => {}
 ): Promise<AutoPlanResult> {
-  const cities: string[] = [];
-  for (const day of itinerary.days) {
-    if (day.location && !cities.includes(day.location)) cities.push(day.location);
-  }
+  // Same city keys the wizard and Refine step use, so picks line up.
+  const cities = itineraryCities(itinerary, preferences.destination);
 
   const existingHotels = preferences.selectedHotelsByCity ?? {};
   const alreadyPickedActs = new Set(preferences.selectedActivityIds ?? []);

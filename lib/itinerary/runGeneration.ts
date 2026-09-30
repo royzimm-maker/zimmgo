@@ -395,9 +395,14 @@ async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary>
     groundTransport.push(...await searchGroundTransport(fromCity, toCity, days[i].date, preferences));
   }
 
-  // If user pre-selected a hotel in the Lodging step, use it; otherwise use AI-searched results
-  if (preferences.selectedHotel) {
-    hotels = [preferences.selectedHotel, ...hotels.filter((h) => h.id !== preferences.selectedHotel!.id)];
+  // Hotels the traveller already chose (the Lodging step's pick, or a pick
+  // kept from an earlier itinerary) are always among the results, so the
+  // choice stays visible and selectable. Which hotel is "the" stay is decided
+  // by lib/planning/hotelChoice.ts, not by list order.
+  const chosen = Object.values(preferences.selectedHotelsByCity ?? {});
+  if (chosen.length) {
+    const chosenIds = new Set(chosen.map((h) => h.id));
+    hotels = [...chosen, ...hotels.filter((h) => !chosenIds.has(h.id))];
   }
 
   const dest = preferences.destination?.displayName ?? "your destination";

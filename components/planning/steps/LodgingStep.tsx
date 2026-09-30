@@ -10,6 +10,7 @@ import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { fetchSmartPick } from "@/lib/api/smartPick";
 import { cn, scrollStepToTop } from "@/lib/utils";
+import { itineraryCities } from "@/lib/location";
 import { formatCurrency } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
@@ -37,7 +38,7 @@ const HOTEL_TIER: Record<number, string> = {
 };
 
 export function LodgingStep() {
-  const { trip, setLodging, setSelectedHotel, setReviewSourcePref, setAutoPickHotels } = useTripStore();
+  const { trip, setLodging, setSelectedHotelForCity, setReviewSourcePref, setAutoPickHotels } = useTripStore();
   const existing = trip.preferences.lodging;
   // "zigy_review" is a transient state shown right after picking "Let ZiGy
   // choose for me" on the initial prompt — a focused summary of the pick
@@ -47,9 +48,12 @@ export function LodgingStep() {
   const [showMoreHotels, setShowMoreHotels] = useState(false);
   const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
   const { picking, pickSummary, error: pickError, run: runSmartPick } = useSmartPick();
-  // Use only the primary city for hotel search — avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings
-  const destination = trip.preferences.destination?.cities?.[0]
-    ?? trip.preferences.destination?.displayName ?? "";
+  // This step picks the primary city's hotel. Search by that city alone —
+  // avoids "Cultural district, Italy — Rome, & Amalfi Coast" strings — and
+  // store the pick under the same key the itinerary will use for it
+  // (lib/location.ts itineraryCities), so every later screen finds it.
+  const destination = itineraryCities(null, trip.preferences.destination)[0] ?? "";
+  const savedPick = destination ? trip.preferences.selectedHotelsByCity?.[destination] : undefined;
   const budgetMax = resolveBudget(trip.preferences)?.max ?? DEFAULT_BUDGET_MAX;
 
   const [types,          setTypes         ] = useState<LodgingType[]>(existing?.types ?? []);
@@ -81,7 +85,7 @@ export function LodgingStep() {
   const [hotelsLoading,   setHotelsLoading  ] = useState(false);
   const [visibleHotelCount, setVisibleHotelCount] = useState(3);
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(
-    trip.preferences.selectedHotel?.id ?? null
+    savedPick?.id ?? null
   );
   // Separate from `picking`/`pickSummary` (which cover the type/stars/amenity
   // filters) — this covers the follow-up step of actually choosing one of the
@@ -286,7 +290,7 @@ export function LodgingStep() {
     );
 
     const picked = displayHotels.find((h) => h.id === selectedHotelId) ?? null;
-    setSelectedHotel(picked);
+    if (destination) setSelectedHotelForCity(destination, picked);
   }
 
   // Live preview of the rating source the user is currently choosing, so the hotel
@@ -313,7 +317,7 @@ export function LodgingStep() {
   // own fetch effect has resolved.
   const topPickedHotel = selectedHotelId
     ? hotels.find((h) => h.id === selectedHotelId) ??
-      (trip.preferences.selectedHotel?.id === selectedHotelId ? trip.preferences.selectedHotel : null)
+      (savedPick?.id === selectedHotelId ? savedPick : null)
     : null;
 
   // Shared between the manual grid and the "show me other options" list on

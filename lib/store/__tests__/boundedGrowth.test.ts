@@ -41,7 +41,7 @@ describe("saved trip size stays bounded", () => {
 
     const s = migratePersistedState(v1, 1) as unknown as SyncBlob;
 
-    expect(SCHEMA_VERSION).toBe(2);
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(2);
     expect(s.trip.itineraries.map((i: { id: string }) => i.id)).toEqual(["a-latest"]);
     expect(s.savedTrips[0].itineraries.map((i: { id: string }) => i.id)).toEqual(["b-latest"]);
     expect(s.chatMessages).toHaveLength(MAX_CHAT_MESSAGES);

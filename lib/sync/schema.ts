@@ -1,5 +1,6 @@
 import { ORDERED_STEPS, calcProgress } from "@/types/trip";
 import { isSyncBlob, type SyncBlob } from "@/lib/sync/syncBlob";
+import { itineraryCities, resolveCity } from "@/lib/location";
 
 // Versioning for everything the app persists: the localStorage store
 // (zustand `persist`, key "zimmgo-trip") and the device blob synced to the
@@ -13,7 +14,7 @@ import { isSyncBlob, type SyncBlob } from "@/lib/sync/syncBlob";
 //   3. extend normalizeTrip if the new field needs a safe default.
 // Old data is then upgraded when a browser loads it, when a synced copy is
 // pulled from the server, and when an older tab pushes to the server.
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 // Chat history kept per device — the chat route only sends the last 12.
 export const MAX_CHAT_MESSAGES = 100;
@@ -40,6 +41,27 @@ const MIGRATIONS: Record<number, (state: Loose) => Loose> = {
       savedTrips: arr(state.savedTrips).map(latestOnly),
       chatMessages: arr(state.chatMessages).slice(-MAX_CHAT_MESSAGES),
     };
+  },
+  // 2 → 3: one place for hotel choices. The Lodging step's single
+  // `selectedHotel` moves into `selectedHotelsByCity`, under the itinerary
+  // city it belongs to (the first city if it can't be placed). A per-city
+  // choice already there wins — it was made later, in the review.
+  2: (state) => {
+    const moveSingleHotelPick = (t: unknown) => {
+      if (!isObj(t) || !isObj(t.preferences) || !isObj(t.preferences.selectedHotel)) return t;
+      const { selectedHotel, ...preferences } = t.preferences;
+      const hotel = selectedHotel as Loose;
+      const itineraries = arr(t.itineraries).filter(isObj) as { days: { location?: string }[] }[];
+      const cities = itineraryCities(
+        itineraries.length ? { days: arr(itineraries[itineraries.length - 1].days) as { location?: string }[] } : null,
+        isObj(preferences.destination) ? (preferences.destination as { cities?: string[]; displayName?: string }) : undefined
+      );
+      const city = resolveCity(String(hotel.city ?? hotel.location ?? ""), cities) ?? cities[0];
+      const byCity = isObj(preferences.selectedHotelsByCity) ? { ...preferences.selectedHotelsByCity } : {};
+      if (city && !byCity[city]) byCity[city] = hotel;
+      return { ...t, preferences: { ...preferences, selectedHotelsByCity: byCity } };
+    };
+    return { ...state, trip: moveSingleHotelPick(state.trip), savedTrips: arr(state.savedTrips).map(moveSingleHotelPick) };
   },
 };
 

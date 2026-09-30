@@ -17,7 +17,7 @@ import { StepShell } from "@/components/planning/StepShell";
 import { CardInner, DraggableCard, DroppableContainer, type CardInfo } from "@/components/planning/refine/ScheduleCards";
 import { fetchSmartPick } from "@/lib/api/smartPick";
 import { formatDate, scrollStepToTop } from "@/lib/utils";
-import { resolveCity } from "@/lib/location";
+import { itineraryCities, resolveCity } from "@/lib/location";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { ActivityOption, RestaurantOption } from "@/types/trip";
 
@@ -57,18 +57,10 @@ export function RefineStep() {
   );
   const days = itinerary?.days ?? [];
 
-  // Distinct cities in trip order, derived from day locations
-  const cities = useMemo(() => {
-    const seen = new Set<string>();
-    const list: string[] = [];
-    for (const day of days) {
-      if (day.location && !seen.has(day.location)) {
-        seen.add(day.location);
-        list.push(day.location);
-      }
-    }
-    return list;
-  }, [days]);
+  // The itinerary's cities in trip order — the same keys the wizard and
+  // auto-plan store picks under (lib/location.ts itineraryCities).
+  const destination = trip.preferences.destination;
+  const cities = useMemo(() => itineraryCities(itinerary, destination), [itinerary, destination]);
 
   const [activeCity, setActiveCity] = useState<string | null>(null);
   const effectiveCity = activeCity ?? cities[0] ?? null;

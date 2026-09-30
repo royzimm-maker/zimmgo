@@ -21,7 +21,8 @@
 import {
   groupItineraryDaysByLocation, formatDate, parseLocalDate,
 } from "@/lib/utils";
-import { sameLocation } from "@/lib/location";
+import { itineraryCities, resolveCity, sameLocation } from "@/lib/location";
+import { chosenHotelForCity } from "@/lib/planning/hotelChoice";
 import { getVisaRequirementsForTrip } from "@/lib/data/visaRequirements";
 import type {
   GeneratedItinerary, TripPreferences, ActivityOption, RestaurantOption, HotelOption,
@@ -138,23 +139,17 @@ function hotelWriteup(hotel: HotelOption): string {
   return highlights ? `${hotel.location}. ${highlights}.` : `${hotel.location}.`;
 }
 
+// Same choice the on-screen itinerary shows (lib/planning/hotelChoice.ts).
 function pickHotelForLocation(
   location: string,
+  itinerary: GeneratedItinerary,
   preferences: TripPreferences,
-  hotels: HotelOption[]
+  cities: string[]
 ): DocxHotel | null {
-  const picked =
-    preferences.selectedHotelsByCity?.[location] ??
-    (preferences.selectedHotel && sameLocation(preferences.selectedHotel.city ?? preferences.selectedHotel.location, location)
-      ? preferences.selectedHotel
-      : undefined) ??
-    hotels.find((h) => sameLocation(h.city ?? h.location, location));
-  if (!picked) return null;
-  const isTravellerPick = Boolean(
-    preferences.selectedHotelsByCity?.[location]?.id === picked.id ||
-    preferences.selectedHotel?.id === picked.id
-  );
-  return { name: picked.name, writeup: hotelWriteup(picked), isTravellerPick };
+  const city = resolveCity(location, cities, { fallbackToLast: true }) ?? location;
+  const choice = chosenHotelForCity(city, itinerary, preferences, cities);
+  if (!choice) return null;
+  return { name: choice.hotel.name, writeup: hotelWriteup(choice.hotel), isTravellerPick: choice.byTraveller };
 }
 
 function splitRestaurantsForLocation(
@@ -204,6 +199,7 @@ export function assembleItineraryDocxModel(
   preferences: TripPreferences
 ): DocxModel {
   const lookup = cardLookup(itinerary);
+  const cities = itineraryCities(itinerary, preferences.destination);
   const fallbackLocation = preferences.destination?.displayName ?? "Your destination";
   const legs = groupItineraryDaysByLocation(itinerary.days, fallbackLocation);
 
@@ -211,7 +207,7 @@ export function assembleItineraryDocxModel(
   const glanceRows: DocxGlanceRow[] = itinerary.days.map((day) => {
     const location = day.location ?? fallbackLocation;
     const dow = parseLocalDate(day.date).toLocaleDateString("en-US", { weekday: "short" });
-    const hotel = pickHotelForLocation(location, preferences, itinerary.hotels);
+    const hotel = pickHotelForLocation(location, itinerary, preferences, cities);
     const isTransitionDay = prevLocation !== null && location !== prevLocation;
     prevLocation = location;
     return {
@@ -241,7 +237,7 @@ export function assembleItineraryDocxModel(
       location: leg.location,
       dateRangeLabel: leg.dates.length > 1 ? `${formatDate(leg.dates[0])} – ${formatDate(leg.dates[leg.dates.length - 1])}` : formatDate(leg.dates[0]),
       nightCount: Math.max(0, leg.dayCount - 1) || leg.dayCount,
-      hotel: pickHotelForLocation(leg.location, preferences, itinerary.hotels),
+      hotel: pickHotelForLocation(leg.location, itinerary, preferences, cities),
       gettingThere: gettingThereFor(legIndex, legDays[0], leg.location, itinerary, preferences),
       days,
       restaurantsBooked: booked,

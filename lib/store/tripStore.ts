@@ -75,7 +75,6 @@ interface TripState {
   setLodging: (lodging: LodgingPreference) => void;
   setReviewSourcePref: (pref: ReviewSourcePreference) => void;
   setBeliPref: (pref: BeliPreference) => void;
-  setSelectedHotel: (hotel: HotelOption | null) => void;
   setSelectedHotelForCity: (city: string, hotel: HotelOption | null) => void;
   setSelectedTransportForLeg: (city: string, option: TransportOption | null) => void;
   setAutoPickHotels: (value: boolean) => void;
@@ -360,18 +359,6 @@ export const useTripStore = create<TripState>()(
             updatedAt: new Date().toISOString(),
           },
           defaultBeliPref: beliPref,
-        })),
-
-      setSelectedHotel: (selectedHotel) =>
-        set((s) => ({
-          trip: {
-            ...s.trip,
-            preferences: {
-              ...s.trip.preferences,
-              selectedHotel: selectedHotel ?? undefined,
-            },
-            updatedAt: new Date().toISOString(),
-          },
         })),
 
       setSelectedHotelForCity: (city, hotel) =>

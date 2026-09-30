@@ -286,3 +286,29 @@ describe("ItinerarySelectionWizard — ground transport stage", () => {
     expect(screen.queryByText("Getting there — Andalusia")).not.toBeInTheDocument();
   });
 });
+
+describe("ItinerarySelectionWizard — cities come from the itinerary", () => {
+  it("reviews and stores picks under the itinerary's cities, even after the traveller edited their destinations", async () => {
+    vi.stubGlobal("fetch", mockSmartPickFetch());
+    const itinerary = {
+      ...makeItinerary(),
+      days: [
+        { date: "2026-09-08", dayNumber: 1, theme: "", location: "Barcelona", morning: [], afternoon: [], evening: [], meals: [] },
+        { date: "2026-09-09", dayNumber: 2, theme: "", location: "Andalusia", morning: [], afternoon: [], evening: [], meals: [] },
+      ],
+    } as GeneratedItinerary;
+    // Planned for Barcelona + Andalusia; the traveller has since typed Madrid.
+    const trip = freshTrip();
+    useTripStore.setState({
+      trip: { ...trip, preferences: { ...trip.preferences, destination: { cities: ["Madrid"], displayName: "Madrid" } } },
+    });
+
+    render(<ItinerarySelectionWizard itinerary={itinerary} onComplete={() => {}} onRegenerate={() => {}} />);
+
+    // Keyed exactly as the Refine step and auto-plan will look it up.
+    await waitFor(() => {
+      expect(useTripStore.getState().trip.preferences.selectedHotelsByCity?.Barcelona?.name).toBe("Hotel Neri");
+    });
+    expect(useTripStore.getState().trip.preferences.selectedHotelsByCity).not.toHaveProperty("Madrid");
+  });
+});

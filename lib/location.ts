@@ -75,3 +75,26 @@ export function resolveCity(
     (fallbackToLast ? cities[cities.length - 1] : undefined)
   );
 }
+
+/**
+ * The cities an itinerary was planned for, in visiting order — the one key
+ * for every per-city decision about it (hotel picks, city tabs, auto-plan,
+ * the day view and exports). Taken from its days, which generation assigns
+ * from the traveller's city list at the time: that stays right even if the
+ * traveller edits their destinations later, and leaves out a city that got
+ * no days. Falls back to the traveller's list, then the destination's name,
+ * when there's no itinerary yet.
+ */
+export function itineraryCities(
+  itinerary: { days: { location?: string }[] } | null | undefined,
+  destination?: { cities?: string[]; displayName?: string }
+): string[] {
+  const fromDays: string[] = [];
+  for (const day of itinerary?.days ?? []) {
+    if (day.location && !fromDays.includes(day.location)) fromDays.push(day.location);
+  }
+  if (fromDays.length) return fromDays;
+  const planned = (destination?.cities ?? []).filter(Boolean);
+  if (planned.length) return planned;
+  return destination?.displayName ? [destination.displayName] : [];
+}

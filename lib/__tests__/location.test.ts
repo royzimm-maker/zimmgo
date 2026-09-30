@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sameLocation, resolveCity, locationWords } from "@/lib/location";
+import { sameLocation, resolveCity, locationWords, itineraryCities } from "@/lib/location";
 
 describe("sameLocation", () => {
   it.each([
@@ -61,5 +61,31 @@ describe("resolveCity", () => {
   it("returns nothing without a location or cities", () => {
     expect(resolveCity(undefined, cities, { fallbackToLast: true })).toBeUndefined();
     expect(resolveCity("Rome", [], { fallbackToLast: true })).toBeUndefined();
+  });
+});
+
+describe("itineraryCities", () => {
+  const days = (...locations: string[]) => ({ days: locations.map((location) => ({ location })) });
+  const destination = { cities: ["Rome", "Florence"], displayName: "Italy" };
+
+  it("is the itinerary's cities in visiting order", () => {
+    expect(itineraryCities(days("Rome", "Rome", "Florence"), destination)).toEqual(["Rome", "Florence"]);
+  });
+
+  it("stays with what the itinerary was planned for after the traveller edits their destinations", () => {
+    // The itinerary was generated for Rome + Florence; the traveller later typed Venice.
+    expect(itineraryCities(days("Rome", "Florence"), { cities: ["Venice"] })).toEqual(["Rome", "Florence"]);
+  });
+
+  it("leaves out a city the itinerary gave no days", () => {
+    // 3 days across 4 cities: Siena got none.
+    expect(itineraryCities(days("Rome", "Florence", "Pisa"), { cities: ["Rome", "Florence", "Siena", "Pisa"] }))
+      .toEqual(["Rome", "Florence", "Pisa"]);
+  });
+
+  it("falls back to the traveller's cities, then the destination name, before there's an itinerary", () => {
+    expect(itineraryCities(null, destination)).toEqual(["Rome", "Florence"]);
+    expect(itineraryCities(null, { cities: [], displayName: "Iceland" })).toEqual(["Iceland"]);
+    expect(itineraryCities(undefined, undefined)).toEqual([]);
   });
 });

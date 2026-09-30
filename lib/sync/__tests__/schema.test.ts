@@ -57,6 +57,37 @@ describe("migratePersistedState", () => {
   });
 });
 
+describe("schema v2 → v3: one place for hotel choices", () => {
+  const hotel = (id: string, city: string) => ({ id, name: id, city, location: city });
+  const trip = (preferences: Record<string, unknown>) => ({
+    id: "t1", name: "T", currentStep: "itinerary", completedSteps: ["destination"], createdAt: now, updatedAt: now,
+    preferences: { activities: [], activityRankings: {}, vibes: [], transportation: [], destination: { cities: ["Rome", "Florence"], displayName: "Italy" }, ...preferences },
+    itineraries: [{ id: "i1", days: [{ dayNumber: 1, location: "Rome" }, { dayNumber: 2, location: "Florence" }] }],
+  });
+
+  it("moves the Lodging step's single pick under its itinerary city", () => {
+    const s = migratePersistedState({ trip: trip({ selectedHotel: hotel("h1", "Florence") }) }, 2) as unknown as SyncBlob;
+    expect(s.trip.preferences.selectedHotelsByCity).toEqual({ Florence: hotel("h1", "Florence") });
+    expect(s.trip.preferences).not.toHaveProperty("selectedHotel");
+  });
+
+  it("keeps a per-city choice made later in the review", () => {
+    const later = hotel("h2", "Rome");
+    const s = migratePersistedState({ trip: trip({ selectedHotel: hotel("h1", "Rome"), selectedHotelsByCity: { Rome: later } }) }, 2) as unknown as SyncBlob;
+    expect(s.trip.preferences.selectedHotelsByCity).toEqual({ Rome: later });
+  });
+
+  it("files a pick it can't place under the first city", () => {
+    const s = migratePersistedState({ trip: trip({ selectedHotel: hotel("h1", "Somewhere else") }) }, 2) as unknown as SyncBlob;
+    expect(Object.keys(s.trip.preferences.selectedHotelsByCity ?? {})).toEqual(["Rome"]);
+  });
+
+  it("migrates saved trips too", () => {
+    const s = migratePersistedState({ trip: trip({}), savedTrips: [trip({ selectedHotel: hotel("h3", "Rome") })] }, 2) as unknown as SyncBlob;
+    expect(s.savedTrips[0].preferences.selectedHotelsByCity).toEqual({ Rome: hotel("h3", "Rome") });
+  });
+});
+
 describe("migrateSyncBlob", () => {
   it("upgrades an unversioned blob and stamps the current version", () => {
     const r = migrateSyncBlob(v0State());

@@ -163,8 +163,11 @@ export interface TripPreferences {
   dailyFoodBudgetPerPerson?: number;     // food spend in $ per person per day
   splurge?: SplurgePreference;           // occasional higher-end meals, separate from the daily food budget
   lodging?: LodgingPreference;
-  selectedHotel?: HotelOption;
-  selectedHotelsByCity?: Record<string, HotelOption>; // per-city picks for multi-destination trips
+  // The traveller's hotel choice for each city, keyed by the itinerary's
+  // cities (lib/location.ts itineraryCities) — the only place a hotel choice
+  // is stored, for single- and multi-city trips alike. Read it through
+  // lib/planning/hotelChoice.ts, which falls back to ZiGy's recommendation.
+  selectedHotelsByCity?: Record<string, HotelOption>;
   // Inter-city ferry/train picks, keyed by the arriving city — same
   // per-leg convention as travelNoteByCity in the generate route.
   selectedTransportByLeg?: Record<string, TransportOption>;

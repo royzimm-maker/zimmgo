@@ -516,7 +516,7 @@ export function ItineraryStep() {
         />
       )}
       {latest && latest.reviewCompleted && (
-        <ItineraryView key={latest.id} itinerary={latest} hideSelectionSections />
+        <ItineraryView key={latest.id} itinerary={latest} />
       )}
     </StepShell>
   );

@@ -2,17 +2,15 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Plane, Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, UtensilsCrossed, Check, Calendar, List, Lightbulb, FileDown, AlertCircle } from "lucide-react";
+import { Hotel, Star, Clock, MapPin, ChevronDown, ChevronUp, ExternalLink, Printer, Copy, Check as CheckIcon, Check, Calendar, List, Lightbulb, FileDown, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { formatCurrency, formatDate, groupItineraryDaysByLocation } from "@/lib/utils";
-import { resolveCity, sameLocation } from "@/lib/location";
+import { itineraryCities } from "@/lib/location";
+import { hotelForDay } from "@/lib/planning/hotelChoice";
 import { buildItineraryClipboardHtml, buildItineraryClipboardText, itineraryClipboardTitle } from "@/lib/export/itineraryClipboard";
 import { RichText } from "@/components/planning/RichText";
-import {
-  Section, GroupedCards, StatCard, FlightPairList, HotelCard, RestaurantCard, ActivityCard,
-} from "@/components/planning/ItineraryCards";
+import { Section, StatCard } from "@/components/planning/ItineraryCards";
 import { useTripStore } from "@/lib/store/tripStore";
-import { useWanderlogSave } from "@/lib/hooks/useWanderlogSave";
 import { TripGlance } from "@/components/planning/TripGlance";
 import { BudgetBreakdown } from "@/components/planning/BudgetBreakdown";
 import { PackingList } from "@/components/planning/PackingList";
@@ -21,27 +19,22 @@ import { Wanderlog } from "@/components/planning/Wanderlog";
 import { LocalDiscovery } from "@/components/planning/LocalDiscovery";
 import { ItineraryCalendarView } from "@/components/planning/ItineraryCalendarView";
 import { exportItineraryDocx } from "@/lib/api/exportItineraryDocx";
-import type { GeneratedItinerary, HotelOption, ItineraryDay, TripPreferences } from "@/types/trip";
+import type { GeneratedItinerary, HotelOption, ItineraryDay } from "@/types/trip";
+
+// The finished itinerary, shown once the traveller has reviewed it. Choosing
+// flights, hotels, restaurants and activities happens in
+// ItinerarySelectionWizard, before this.
 interface Props {
   itinerary: GeneratedItinerary;
-  // When true, skip the Flights/Hotels/Restaurants/Top Experiences sections —
-  // used once the user has already stepped through ItinerarySelectionWizard for these.
-  hideSelectionSections?: boolean;
 }
 
-export function ItineraryView({ itinerary, hideSelectionSections = false }: Props) {
-  const { trip, setSelectedHotel, setSelectedFlight } = useTripStore();
+export function ItineraryView({ itinerary }: Props) {
+  const { trip } = useTripStore();
   const [expandedDay, setExpandedDay] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [exportingDocx, setExportingDocx] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [selectedHotelId, setSelectedHotelId] = useState<string | null>(
-    trip.preferences.selectedHotel?.id ?? null
-  );
-
-  const { wanderlogLabels, handleSaveToWanderlog } = useWanderlogSave(itinerary);
-
   // Build card-id → display info lookup for the finalized plan
   const cardNameMap = useMemo<Record<string, { name: string; kind: "activity" | "restaurant" }>>(() => {
     const m: Record<string, { name: string; kind: "activity" | "restaurant" }> = {};
@@ -50,10 +43,7 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
     return m;
   }, [itinerary.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const preferences = trip.preferences;
-  const tripCities = useMemo(
-    () => Array.from(new Set(itinerary.days.map((d) => d.location).filter((l): l is string => Boolean(l)))),
-    [itinerary.days]
-  );
+  const tripCities = useMemo(() => itineraryCities(itinerary, preferences.destination), [itinerary, preferences.destination]);
 
   function handlePrint() {
     window.print();
@@ -148,76 +138,6 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
         <StatCard label="Activities" value={`${itinerary.activities.length}`} icon={<MapPin size={14} />} />
       </div>
 
-      {/* Flights */}
-      {!hideSelectionSections && itinerary.flights.length > 0 && (
-        <Section
-          title="Recommended Flights"
-          icon={<Plane size={16} />}
-          subtitle="Select your preferred option — prices are roundtrip per person, estimated. Book directly with the airline."
-        >
-          <FlightPairList
-            flights={itinerary.flights}
-            arrivalAirport={preferences.destination?.arrivalAirport ?? ""}
-            selectedFlightId={trip.preferences.selectedFlight?.id}
-            onSelect={(f) => setSelectedFlight(trip.preferences.selectedFlight?.id === f.id ? null : f)}
-          />
-        </Section>
-      )}
-
-      {/* Hotels */}
-      {!hideSelectionSections && (preferences.selectedHotel ? (
-        <Section
-          title="Your Planned Stay"
-          icon={<Hotel size={16} />}
-          subtitle="Selected during planning — not yet booked. Use the link below to reserve."
-        >
-          <HotelCard hotel={preferences.selectedHotel} />
-        </Section>
-      ) : itinerary.hotels.length > 0 && (
-        <Section
-          title={itinerary.hotels.length > 1 ? "Choose Your Stay" : "Recommended Lodging"}
-          icon={<Hotel size={16} />}
-          subtitle={itinerary.hotels.length > 1 ? "Tap a hotel to select it — your choice is saved to your plan." : undefined}
-        >
-          <GroupedCards
-            items={itinerary.hotels}
-            renderCard={(h) => (
-              <HotelCard
-                key={h.id}
-                hotel={h}
-                selected={selectedHotelId === h.id}
-                onSelect={() => {
-                  const next = selectedHotelId === h.id ? null : h.id;
-                  setSelectedHotelId(next);
-                  setSelectedHotel(next ? h : null);
-                }}
-              />
-            )}
-          />
-        </Section>
-      ))}
-
-      {/* Restaurants — grouped by location */}
-      {!hideSelectionSections && itinerary.restaurants && itinerary.restaurants.length > 0 && (
-        <Section
-          title="Where to Eat"
-          icon={<UtensilsCrossed size={16} />}
-          subtitle="Tap the bookmark to save a pick to your Wanderlog for later."
-        >
-          <GroupedCards
-            items={itinerary.restaurants}
-            renderCard={(r) => (
-              <RestaurantCard
-                key={r.id}
-                restaurant={r}
-                saved={wanderlogLabels.has(r.name)}
-                onSave={() => handleSaveToWanderlog(r.name, "restaurant", r.location, r.description)}
-              />
-            )}
-          />
-        </Section>
-      )}
-
       </div>
 
       {/* Day-by-day — always visible, in either list or printable-calendar form */}
@@ -281,28 +201,6 @@ export function ItineraryView({ itinerary, hideSelectionSections = false }: Prop
       </Section>
 
       <div className={showCalendar ? "flex flex-col gap-6 print:hidden" : "contents"}>
-      {/* Activities — grouped by location */}
-      {!hideSelectionSections && itinerary.activities.length > 0 && (
-        <Section
-          title="Top Experiences"
-          icon={<Star size={16} />}
-          subtitle="Tap the bookmark to save a pick to your Wanderlog for later."
-        >
-          <GroupedCards
-            items={itinerary.activities}
-            renderCard={(a) => (
-              <ActivityCard
-                key={a.id}
-                activity={a}
-                saved={wanderlogLabels.has(a.name)}
-                onSave={() => handleSaveToWanderlog(a.name, "activity", a.location, a.description)}
-              />
-            )}
-            gridCols
-          />
-        </Section>
-      )}
-
       {/* Local discovery */}
       <LocalDiscovery preferences={preferences} itineraryId={itinerary.id} />
 
@@ -408,26 +306,6 @@ function DestinationSummary({ itinerary, preferences }: { itinerary: GeneratedIt
         ))}
       </div>
     </div>
-  );
-}
-
-// The hotel shown as "Staying at" on a day: the traveller's pick for that
-// day's city first, then any hotel in that city. Only a day with no city at
-// all falls back to the trip-wide pick or first hotel — on a multi-city trip
-// that fallback used to label every day with the first city's hotel.
-export function hotelForDay(
-  day: ItineraryDay,
-  itinerary: GeneratedItinerary,
-  preferences: TripPreferences,
-  cities: string[]
-): HotelOption | undefined {
-  const city = resolveCity(day.location, cities);
-  if (!city) return preferences.selectedHotel ?? itinerary.hotels[0];
-  const trip = preferences.selectedHotel;
-  return (
-    preferences.selectedHotelsByCity?.[city] ??
-    (trip && (cities.length === 1 || sameLocation(trip.city ?? trip.location, city)) ? trip : undefined) ??
-    itinerary.hotels.find((h) => resolveCity(h.city ?? h.location, cities) === city)
   );
 }
 

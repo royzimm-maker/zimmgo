@@ -11,7 +11,7 @@ import { fetchFlightSearch } from "@/lib/api/searchFlights";
 import { fetchGroundTransport } from "@/lib/api/searchGroundTransport";
 import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 import { cn, formatDate, scrollStepToTop } from "@/lib/utils";
-import { resolveCity } from "@/lib/location";
+import { itineraryCities, resolveCity } from "@/lib/location";
 import {
   Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard, TransportCard,
 } from "@/components/planning/ItineraryCards";
@@ -132,10 +132,13 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     preferences.lodging?.types?.length && preferences.lodging.types.every((t) => t === "airbnb")
   );
 
+  // The cities this itinerary was planned for — the keys picks are stored
+  // under, shared with the Refine step and auto-plan (lib/location.ts). A
+  // city the itinerary gave no days isn't reviewed.
   const cities = useMemo(() => {
-    const c = preferences.destination?.cities?.filter(Boolean) ?? [];
-    return c.length ? c : [preferences.destination?.displayName ?? "Your destination"];
-  }, [preferences.destination]);
+    const c = itineraryCities(itinerary, preferences.destination);
+    return c.length ? c : ["Your destination"];
+  }, [itinerary, preferences.destination]);
 
   const perCityStages = useMemo<Stage[]>(
     () => (airbnbOnlyLodging ? ["restaurants", "activities"] : ["hotels", "restaurants", "activities"]),
