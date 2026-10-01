@@ -27,7 +27,11 @@ function trip(id: string) {
 const blob = { schemaVersion: SCHEMA_VERSION, trip: trip("t1"), savedTrips: [], chatMessages: [], progress: 0 };
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.clearAllMocks();
+  // GET runs the device sweep on a random ~1% of reads; give it a real result
+  // so a test landing on that 1% behaves like one that doesn't.
+  mockDevice.deleteMany.mockResolvedValue({ count: 0 });
 });
 
 function putRequest(body: unknown) {
@@ -39,6 +43,20 @@ function putRequest(body: unknown) {
 }
 
 describe("GET /api/trip-sync", () => {
+  it("still answers when the device sweep it triggers fails", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0); // force the sweep
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockCookieStore.get.mockReturnValue(undefined);
+    mockDevice.findUnique.mockResolvedValue(null);
+    mockDevice.deleteMany.mockImplementation(() => { throw new Error("db down"); });
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    expect(mockDevice.deleteMany).toHaveBeenCalled();
+  });
+
+
   it("returns null data, version 0, and sets a fresh cookie when no device exists yet", async () => {
     mockCookieStore.get.mockReturnValue(undefined);
     mockDevice.findUnique.mockResolvedValue(null);

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverError } from "@/lib/http/errors";
 import { rateLimit } from "@/lib/rateLimit";
-import { ITINERARY_LIST_LIMITS, readJsonBody } from "@/lib/http/readJsonBody";
+import { readJsonBody } from "@/lib/http/readJsonBody";
+import { invalidExport } from "@/lib/docx/validateExportInput";
 import { assembleItineraryDocxModel } from "@/lib/docx/assembleItineraryDocxModel";
 import { renderItineraryDocx } from "@/lib/docx/renderItineraryDocx";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
@@ -11,27 +12,8 @@ import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 export const maxDuration = 30;
 
 // A real itinerary is tens of KB; this sits well above any trip the app
-// produces. The list ceilings are the shared ones.
+// produces. What's inside is checked by lib/docx/validateExportInput.ts.
 const MAX_BODY_BYTES = 600_000;
-const EXPORTED_LISTS = ["days", "flights", "hotels", "activities", "restaurants"] as const;
-
-const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
-
-// Why the body can't be exported, or null if it can.
-function invalidExport(itinerary: unknown, preferences: unknown): string | null {
-  if (!isObject(itinerary) || !isObject(preferences)) return "An itinerary and preferences are required";
-  // Stricter than checkListLimits: layout needs every list (restaurants
-  // aside) present and every entry an object.
-  for (const field of EXPORTED_LISTS) {
-    const list = itinerary[field];
-    const max = ITINERARY_LIST_LIMITS[field];
-    if (list === undefined && field === "restaurants") continue;
-    if (!Array.isArray(list)) return `itinerary.${field} must be a list`;
-    if (list.length > max) return `Too many ${field} (max ${max})`;
-    if (!list.every(isObject)) return `itinerary.${field} contains an invalid entry`;
-  }
-  return null;
-}
 
 export async function POST(request: NextRequest) {
   // Tighter than the searches: each export is a burst of CPU work.

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { inBackground } from "@/lib/background";
 import { logServerError, toPublicError } from "@/lib/http/errors";
 
 // Background jobs — itinerary generation and auto-plan today — kept in the
@@ -47,9 +48,7 @@ export async function findJobByKey(requestKey: string): Promise<JobView | null> 
 // the same key got there first. `created` tells the caller whether it owns
 // running the job.
 export async function createJob(requestKey: string): Promise<{ job: JobView; created: boolean }> {
-  prisma.backgroundJob
-    .deleteMany({ where: { createdAt: { lt: new Date(Date.now() - KEEP_JOBS_MS) } } })
-    .catch(() => {});
+  inBackground("jobs", () => prisma.backgroundJob.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - KEEP_JOBS_MS) } } }));
   try {
     const job = await prisma.backgroundJob.create({
       data: { requestKey, status: "running", stage: "Starting…" },

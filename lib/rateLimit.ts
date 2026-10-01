@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { inBackground } from "@/lib/background";
 
 // Per-IP fixed-window limiter, counted in Postgres so every serverless
 // instance shares one count — an in-memory Map gave each instance its own,
@@ -67,8 +68,7 @@ async function sharedCount(key: string, windowStart: Date): Promise<number> {
 function sweepOldWindows() {
   // Opportunistic cleanup instead of a cron job — ~1% of checks.
   if (Math.random() > 0.01) return;
-  prisma.$executeRaw`DELETE FROM "RateLimitWindow" WHERE "windowStart" < ${new Date(Date.now() - 86_400_000)}`
-    .catch(() => {});
+  inBackground("rateLimit", () => prisma.$executeRaw`DELETE FROM "RateLimitWindow" WHERE "windowStart" < ${new Date(Date.now() - 86_400_000)}`);
 }
 
 /**

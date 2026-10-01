@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { inBackground } from "@/lib/background";
 
 // How long a device's synced trips are kept after they last changed. The
 // device cookie lasts the same time and is renewed on every visit, so an
@@ -13,8 +14,5 @@ export const DEVICE_COOKIE_MAX_AGE_S = DEVICE_RETENTION_DAYS * 24 * 60 * 60;
 export function sweepInactiveDevices(sampleRate = 0.01): Promise<void> | undefined {
   if (Math.random() >= sampleRate) return undefined;
   const cutoff = new Date(Date.now() - DEVICE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-  return prisma.device
-    .deleteMany({ where: { updatedAt: { lt: cutoff } } })
-    .then(() => undefined)
-    .catch((error: unknown) => console.error("[retention] device sweep failed", error));
+  return inBackground("retention", () => prisma.device.deleteMany({ where: { updatedAt: { lt: cutoff } } }));
 }

@@ -90,6 +90,10 @@ describe("Word export", () => {
     expect((await exportDocx(post({ itinerary: { ...itinerary, days: "many" }, preferences: prefs }))).status).toBe(400);
     expect((await exportDocx(post({ itinerary: { ...itinerary, days: Array.from({ length: 61 }, () => ({})) }, preferences: prefs }))).status).toBe(400);
     expect((await exportDocx(post({ itinerary: { ...itinerary, aiSummary: "x".repeat(700_000) }, preferences: prefs }))).status).toBe(413);
+    // Wrong types inside an entry are a 400 too, not a crash (was "name.normalize is not a function").
+    const bad = await exportDocx(post({ itinerary: { ...itinerary, days: [{ dayNumber: "x", location: 5 }] }, preferences: prefs }));
+    expect(bad.status).toBe(400);
+    expect((await bad.json()).error).toContain("days[0]");
   });
 
   it("has its own, tighter rate limit", async () => {
