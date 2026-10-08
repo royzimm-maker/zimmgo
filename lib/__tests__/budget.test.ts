@@ -77,3 +77,16 @@ describe("estimateTripBudget — estimated fares", () => {
     expect(line(itinerary(), "flights").note).not.toContain("typical");
   });
 });
+
+describe("estimateTripBudget — lodging already arranged", () => {
+  it("doesn't price nights where the traveller has their own place", () => {
+    const twoCities = itinerary({ days: [day(1, "Lisbon"), day(2, "Porto"), day(3, "Porto")] } as never);
+    const withVilla = {
+      ...prefs,
+      stops: [{ city: "Lisbon", nights: 1 }, { city: "Porto", nights: 2, lodgingArranged: true }],
+    } as unknown as TripPreferences;
+    const hotels = estimateTripBudget(twoCities, withVilla).lines.find((l) => l.id === "hotels")!;
+    expect(hotels.amount).toBe(200);
+    expect(hotels.note).toContain("not counting your own lodging");
+  });
+});

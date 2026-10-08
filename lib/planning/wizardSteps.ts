@@ -24,10 +24,17 @@ export interface WizardStep {
   city: string | null;
 }
 
-export function buildWizardSteps(cities: string[], opts: { airbnbOnly: boolean; noFlights: boolean }): WizardStep[] {
+export function buildWizardSteps(
+  cities: string[],
+  opts: { airbnbOnly: boolean; noFlights: boolean; arrangedLodging?: string[] }
+): WizardStep[] {
   // Airbnb-only trips skip Hotels: generation still fills itinerary.hotels
-  // regardless of lodging type, but nobody asked to pick one.
-  const perCity: Stage[] = opts.airbnbOnly ? ["restaurants", "activities"] : ["hotels", "restaurants", "activities"];
+  // regardless of lodging type, but nobody asked to pick one. So do cities
+  // where the traveller's lodging is already arranged (lib/planning/route.ts).
+  const stagesFor = (city: string): Stage[] =>
+    opts.airbnbOnly || resolveCity(city, opts.arrangedLodging ?? []) !== undefined
+      ? ["restaurants", "activities"]
+      : ["hotels", "restaurants", "activities"];
   // Road trips / other no-flight itineraries have nothing to search or select.
   const steps: WizardStep[] = opts.noFlights ? [] : [{ stage: "flights", city: null }];
   cities.forEach((city, i) => {
@@ -36,7 +43,7 @@ export function buildWizardSteps(cities: string[], opts: { airbnbOnly: boolean; 
     // city, like selections.transportByLeg.
     const prev = i > 0 ? cities[i - 1] : null;
     if (prev && getGroundTransportProvider(`${prev} ${city}`)) steps.push({ stage: "transport", city });
-    for (const stage of perCity) steps.push({ stage, city });
+    for (const stage of stagesFor(city)) steps.push({ stage, city });
   });
   return steps;
 }

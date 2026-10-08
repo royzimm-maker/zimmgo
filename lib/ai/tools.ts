@@ -237,7 +237,7 @@ export const PARSE_FULL_TRIP_TOOL: Anthropic.Tool = {
       cities: {
         type: "array",
         items: { type: "string" },
-        description: "Real place names only, in a logical geographic visiting order. A single-city trip has exactly one entry.",
+        description: "Real place names only, in a logical geographic visiting order. A single-city trip has exactly one entry. Only places they actually plan to stay: never a place they said they've already visited (unless they also said they'll be there), and not mere ideas they're weighing — those go in candidatePlaces. When they're asking ZimmGo to choose (openToSuggestions), list just the places that are settled (arrival city, fixed stays).",
       },
       displayName: { type: "string", description: "A short, clean human-readable label for this trip, e.g. \"Rome, Italy\"." },
       likelyRoadTrip: { type: "boolean", description: "True ONLY if the traveller explicitly said they're driving/road-tripping. Default false when in doubt." },
@@ -246,6 +246,8 @@ export const PARSE_FULL_TRIP_TOOL: Anthropic.Tool = {
       seasonalWindowStartMonth: { type: "integer", minimum: 1, maximum: 12, description: "1-12, the month the seasonalNote window typically starts. Required together with seasonalNote — set both or neither." },
       seasonalWindowEndMonth: { type: "integer", minimum: 1, maximum: 12, description: "1-12, the month the seasonalNote window typically ends. Can be less than seasonalWindowStartMonth if it wraps the new year. Required together with seasonalNote — set both or neither." },
       departureAirport: { type: "string", description: "The traveller's departure city or airport, ONLY if explicitly stated (e.g. \"flying from Boston\", \"we're in JFK\"). Omit if not stated — do not guess a home airport." },
+      arrivalAirport: { type: "string", pattern: "^[A-Z]{3}$", description: "IATA code of the airport they said they're flying INTO (e.g. \"flying to Rome\" → FCO). Omit if they didn't say." },
+      returnAirport: { type: "string", pattern: "^[A-Z]{3}$", description: "IATA code of the airport they said they're flying home FROM, only if they stated it. Omit if not stated." },
       travelers: { type: "integer", minimum: 1, maximum: 50, description: "Number of people on the trip, only if stated (e.g. \"we're two people\", \"a family of four\")." },
       dates: {
         type: "object",
@@ -282,12 +284,84 @@ export const PARSE_FULL_TRIP_TOOL: Anthropic.Tool = {
         items: { type: "string" },
         description: "Activity categories or free-text interests actually stated or clearly implied (e.g. \"the main sights\" implies cultural). Omit if nothing specific was said.",
       },
+      fixedStays: {
+        type: "array",
+        maxItems: 5,
+        description: "Stretches of the trip the traveller said they MUST spend in a particular place on particular dates (e.g. \"June 8-13 I need to be in Tuscany where my brother rented a villa\"). Omit if none.",
+        items: {
+          type: "object",
+          properties: {
+            place: { type: "string", description: "The place as they named it, e.g. \"Tuscany\"." },
+            startDate: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "ISO date they arrive there." },
+            endDate: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "ISO date they leave (the nights run up to, not including, this date)." },
+            lodgingArranged: { type: "boolean", description: "True if they already have somewhere to stay there (a rented villa, staying with family)." },
+          },
+          required: ["place", "startDate", "endDate"],
+        },
+      },
+      visitedPlaces: { type: "array", items: { type: "string" }, description: "Places they said they've already been to and don't need to see again. Omit if none." },
+      candidatePlaces: { type: "array", items: { type: "string" }, description: "Places they mentioned as ideas or recommendations without committing to them (\"a friend recommended Puglia\", \"I've heard good things about Sicily\"). Omit if none." },
+      openToSuggestions: { type: "boolean", description: "True when the traveller is asking ZimmGo to decide where to go (\"what do you suggest?\", \"open to anything\") rather than naming a settled list of places." },
+      minNightsPerStop: { type: "integer", minimum: 1, maximum: 14, description: "The fewest nights they want in each place, only if stated (\"at least three nights in each location\")." },
+      maxNightsPerStop: { type: "integer", minimum: 1, maximum: 30, description: "The most nights they want in one place, only if stated." },
       summary: {
         type: "string",
         description: "A friendly 1-2 sentence recap of the whole trip as understood, written for the traveller to confirm at a glance, e.g. \"A 4-night trip to Rome for two, mid-budget, landing Tue Oct 13 at 14:30 — main sights without long queues, one day trip, and one vegetarian traveller.\"",
       },
     },
     required: ["cities", "displayName", "likelyRoadTrip", "flightsObviouslyRequired", "summary"],
+  },
+};
+
+// Route step — two or three ways to shape the trip. The code checks every
+// route against the traveller's dates (lib/planning/route.ts) before showing it.
+export const SUGGEST_ROUTES_TOOL: Anthropic.Tool = {
+  name: "suggest_routes",
+  description: "Suggest two or three genuinely different routes for the trip: the stops in visiting order with nights at each, why each stop, and which places were left out and why.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      routes: {
+        type: "array",
+        maxItems: 3,
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string", maxLength: 80, description: "A short name, e.g. \"Puglia, slow and coastal\"." },
+            summary: { type: "string", maxLength: 600, description: "2-3 sentences on the shape and rhythm of this route and who it suits." },
+            recommended: { type: "boolean", description: "True for exactly one route — the one you'd choose for this traveller." },
+            stops: {
+              type: "array",
+              maxItems: 12,
+              items: {
+                type: "object",
+                properties: {
+                  city: { type: "string", maxLength: 60, description: "The base: a real town or city that a hotel search can find, e.g. \"Ostuni\" — or, for a fixed stay, exactly the place string given." },
+                  area: { type: "string", maxLength: 60, description: "The wider area this is a base for, e.g. \"Valle d'Itria\". Omit when it adds nothing." },
+                  nights: { type: "integer", minimum: 1, maximum: 60 },
+                  why: { type: "string", maxLength: 300, description: "One or two sentences: why stay here, and the best day trips from it." },
+                },
+                required: ["city", "nights", "why"],
+              },
+            },
+            leftOut: {
+              type: "array",
+              maxItems: 8,
+              description: "Places the traveller mentioned that this route doesn't include, each with a short honest reason.",
+              items: {
+                type: "object",
+                properties: { place: { type: "string", maxLength: 60 }, reason: { type: "string", maxLength: 300 } },
+                required: ["place", "reason"],
+              },
+            },
+            gettingAround: { type: "string", maxLength: 500, description: "How the traveller gets between stops (train, car, short flight) and where a rental car makes sense." },
+          },
+          required: ["title", "summary", "recommended", "stops"],
+        },
+      },
+      note: { type: "string", maxLength: 400, description: "Optional: one question or caveat worth raising with the traveller (e.g. where exactly the villa is). Omit if none." },
+    },
+    required: ["routes"],
   },
 };
 

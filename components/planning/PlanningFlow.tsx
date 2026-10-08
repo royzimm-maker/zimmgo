@@ -9,6 +9,7 @@ import { DestinationStep }    from "@/components/planning/steps/DestinationStep"
 import { ActivitiesStep }     from "@/components/planning/steps/ActivitiesStep";
 import { VibeStep }           from "@/components/planning/steps/VibeStep";
 import { DatesStep }          from "@/components/planning/steps/DatesStep";
+import { RouteStep }          from "@/components/planning/steps/RouteStep";
 import { BudgetStep }         from "@/components/planning/steps/BudgetStep";
 import { PlanningModeStep }   from "@/components/planning/steps/PlanningModeStep";
 import { LodgingStep }        from "@/components/planning/steps/LodgingStep";
@@ -27,6 +28,7 @@ const STEP_COMPONENTS: Record<StepId, React.ComponentType> = {
   activities:     ActivitiesStep,
   vibe:           VibeStep,
   dates:          DatesStep,
+  route:          RouteStep,
   budget:         BudgetStep,
   planningMode:   PlanningModeStep,
   lodging:        LodgingStep,

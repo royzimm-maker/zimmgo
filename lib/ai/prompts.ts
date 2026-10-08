@@ -1,6 +1,8 @@
 import { planDays } from "@/lib/itinerary/dayPlan";
 import { describeVibes } from "@/lib/data/vibes";
-import type { TripPreferences, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
+import { arrangedLodgingCities, routeSegments, routeStops, stopDates } from "@/lib/planning/route";
+import { tripSpan } from "@/lib/itinerary/dayPlan";
+import type { FixedStay, TripPreferences, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 import { resolveBudget } from "@/types/trip";
 
 // Shared across every prompt that reasons about restaurants/activities, so a
@@ -39,9 +41,62 @@ export function buildDestinationParsePrompt(text: string): string {
     `For \`seasonalNote\`: only set it if they mentioned something with a real, well-known seasonal window (Northern Lights, cherry blossoms, monsoon season, ski season, etc.) — a short factual heads-up on timing, not a suggestion to change their plans. Omit entirely otherwise; don't invent a seasonal pattern for something that doesn't have one. When you do set \`seasonalNote\`, also set \`seasonalWindowStartMonth\` and \`seasonalWindowEndMonth\` (1-12) to match it exactly — the app uses those to default the date picker into the window and warn if the traveller picks dates outside it, so they need to agree with the note's own wording, not just be in the same ballpark.`;
 }
 
+// Route step — parsed with suggest_routes. `problems` carries what code
+// found wrong with a previous attempt (lib/planning/route.ts), for a retry.
+export function buildRouteSuggestionPrompt(input: {
+  preferences: Pick<TripPreferences, "destination" | "vibes" | "activities" | "travelers">;
+  startDate: string;
+  endDate: string;
+  numDays: number;
+  fixedStays: FixedStay[];
+  feedback?: string;
+  problems?: string[];
+}): string {
+  const { preferences, startDate, endDate, numDays, fixedStays, feedback, problems } = input;
+  const d = preferences.destination;
+  const lines: string[] = [];
+  if (d?.freeText) lines.push(`The traveller described the trip in their own words:\n\n"${d.freeText}"\n`);
+  lines.push(`Destination: ${d?.displayName ?? "not given"}.`);
+  if (d?.cities?.length) lines.push(`Places already settled: ${d.cities.join(", ")}.`);
+  if (d?.candidatePlaces?.length) lines.push(`Ideas they mentioned (not commitments): ${d.candidatePlaces.join(", ")}.`);
+  if (d?.visitedPlaces?.length) lines.push(`Already visited — don't suggest these as stops: ${d.visitedPlaces.join(", ")}. (An arrival or departure city can still be a short stop near the airport if that genuinely helps.)`);
+  lines.push(`The trip runs ${numDays} nights: the first night is ${startDate} and they leave on ${endDate}. Count from ${startDate} even if they land the next day — the app's dates start there. (Night 1 is ${startDate}, so a stop starting on date D comes after exactly the number of nights between ${startDate} and D.)`);
+  if (d?.arrivalAirport || d?.returnAirport) {
+    lines.push(`They fly into ${d.arrivalAirport ?? "an airport not yet known"} and home from ${d.returnAirport ?? d.arrivalAirport} — start near the arrival airport and finish within easy reach of the departure one on ${endDate}.`);
+  }
+  if (fixedStays.length) {
+    // The arithmetic is done here, not left to Claude: each stretch's nights are given.
+    const segments = routeSegments({ startDate, numDays, fixedStays });
+    lines.push(
+      `The trip is already divided by dates they're committed to. Every route must follow these stretches in order:\n` +
+      segments.map((seg, i) => seg.kind === "fixed"
+        ? `${i + 1}. FIXED: one stop whose city is exactly "${seg.stay.place}", ${seg.stay.startDate} to ${seg.stay.endDate}, ${seg.nights} nights${seg.stay.lodgingArranged ? " (their lodging there is already arranged)" : ""}.`
+        : `${i + 1}. ${seg.startDate} to ${seg.endDate}: ${seg.nights} nights for you to fill — the stops here must add up to exactly ${seg.nights}.`
+      ).join("\n")
+    );
+  }
+  if (d?.minNightsPerStop) lines.push(`At least ${d.minNightsPerStop} nights at each stop — only the final stop, near the departure airport, may be shorter.`);
+  if (d?.maxNightsPerStop) lines.push(`No more than ${d.maxNightsPerStop} nights at one stop.`);
+  if (preferences.vibes?.length) lines.push(`Trip vibe: ${describeVibes(preferences.vibes)}.`);
+  if (preferences.activities?.length) lines.push(`They enjoy: ${preferences.activities.join(", ")}.`);
+  if (preferences.travelers) lines.push(`Travellers: ${preferences.travelers}.`);
+  if (feedback?.trim()) lines.push(`What they've asked for since: "${feedback.trim()}".`);
+  lines.push(
+    `\nCall suggest_routes with two or three genuinely different routes, and mark exactly one as recommended — the one you'd choose for them. Each route's nights must add up to exactly ${numDays}. ` +
+    `Keep the logistics easy: a route moves steadily in one direction with no doubling back (don't go north, then south, then north again), and each move between stops should be a reasonable train ride, drive or short flight. ` +
+    `Prefer fewer, longer stops at good bases with day trips over many one- or two-night hops. Each stop's city must be a real town or city a hotel search can find; put the wider area in \`area\`. ` +
+    `For places they mentioned that a route leaves out, say why in leftOut — honestly, e.g. that it would mean backtracking. Don't invent hotel names or prices.`
+  );
+  if (problems?.length) {
+    lines.push(`\nYour previous routes broke these rules — fix them and call suggest_routes again with every route corrected:\n- ${problems.join("\n- ")}`);
+  }
+  return lines.join("\n");
+}
+
 // "Describe your whole trip" free-text intake — parsed with parse_full_trip
 export function buildFullTripParsePrompt(text: string, todayISO: string): string {
   return `Today's date is ${todayISO}. The traveller described their whole trip in one message:\n\n"${text}"\n\n` +
+    `A date given without a year means its next occurrence on or after today — never a date that has already passed. ` +
     `Call parse_full_trip and extract every field the text actually supports. This is NOT a guessing exercise — for every optional field, ` +
     `only fill it in if the traveller's own words clearly support it; leave it out entirely otherwise. The app shows the traveller exactly what you extracted and lets them fix anything wrong, but it also skips asking again about anything you DID fill in — so a wrong guess is worse than an honest gap, because it slips through unnoticed instead of being asked about directly.`;
 }
@@ -73,8 +128,18 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     // the itinerary step's leg editor) — this is an explicit override of
     // whatever split the AI would otherwise choose, so it must be followed
     // exactly rather than treated as a suggestion.
+    const { startDate, numDays } = tripSpan(preferences);
+    const stops = routeStops(preferences, numDays);
     const nights = preferences.cityNights;
-    if (nights && cityList.every((c) => typeof nights[c] === "number")) {
+    if (stops) {
+      // The route the traveller chose on the Route step — it can return to a
+      // city (e.g. Rome at both ends), which the per-city list above can't show.
+      parts.push(
+        `The traveller chose this route, and the day plan follows it exactly — describe the trip as these stops, in this order: ` +
+        stopDates(startDate, stops).map((s) => `${s.city}${s.area ? ` (${s.area})` : ""} ${s.startDate} to ${s.endDate}, ${s.nights} night${s.nights !== 1 ? "s" : ""}`).join(" → ") +
+        `. A city visited twice still gets one set of searches.`
+      );
+    } else if (nights && cityList.every((c) => typeof nights[c] === "number")) {
       parts.push(
         `The traveller has manually set exactly how many days to spend in each city — you MUST match this exactly, do not redistribute days differently even if you think another split serves the trip better: ` +
         cityList.map((c) => `${c} (${nights[c]} day${nights[c] !== 1 ? "s" : ""})`).join(", ") + "."
@@ -82,6 +147,14 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     }
   } else {
     parts.push(`Please create a comprehensive travel plan for **${destNames}**.`);
+  }
+
+  // Somewhere to stay is already sorted (e.g. a rented villa): nothing to find there.
+  const arrangedCities = arrangedLodgingCities(preferences);
+  if (arrangedCities.length) {
+    parts.push(
+      `The traveller's lodging is already arranged in ${arrangedCities.join(", ")} — do NOT call search_hotels for ${arrangedCities.length > 1 ? "those cities" : "it"}, don't recommend a hotel there, and don't count lodging there in the costs. Still search activities and restaurants there.`
+    );
   }
 
   if (preferences.dates) {

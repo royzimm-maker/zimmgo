@@ -12,6 +12,7 @@ import { VisaRequirements } from "@/components/planning/VisaRequirements";
 import { useTripStore } from "@/lib/store/tripStore";
 import { cn, formatDate, groupItineraryDaysByLocation, parseLocalDate } from "@/lib/utils";
 import { getVisaRequirementsForTrip } from "@/lib/data/visaRequirements";
+import { routeStops } from "@/lib/planning/route";
 import {
   startAutoPlan, waitForAutoPlan, loadPendingAutoPlan, clearPendingAutoPlan, type PendingAutoPlan,
 } from "@/lib/client/autoPlan";
@@ -37,7 +38,7 @@ function tripDateRangeLabel(days: GeneratedItinerary["days"]): string | null {
 
 export function ItineraryStep() {
   const {
-    trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep, markItineraryReviewed, setCityNights, setDates,
+    trip, isGenerating, setGenerating, addItinerary, completeStep, goToStep, markItineraryReviewed, setCityNights, setStops, setDates,
     setSelectedHotelForCity, setSelectedActivityIds, setSelectedRestaurantIds, saveFinalizedPlan, setAutoPlanEverything,
   } = useTripStore();
   const latest = trip.itineraries[trip.itineraries.length - 1] ?? null;
@@ -49,6 +50,12 @@ export function ItineraryStep() {
   // ended up with zero days is still editable, not silently missing.
   const cityList = trip.preferences.destination?.cities?.filter(Boolean) ?? [];
   const totalDays = latest?.days.length ?? 0;
+  // With a chosen route, the editor works on its stops — a city can appear
+  // twice (Rome at both ends) — rather than one count per city.
+  const stops = routeStops(trip.preferences, totalDays);
+  const splitRows = stops
+    ? stops.map((s, i) => ({ key: String(i), label: s.city }))
+    : cityList.map((city) => ({ key: city, label: city }));
   const visaRequired = getVisaRequirementsForTrip(trip.preferences.destination).some((e) => e.visa.required);
   const visaBlocked = visaRequired && !trip.preferences.visaAcknowledged;
 
@@ -116,7 +123,8 @@ export function ItineraryStep() {
   function openSplitEditor() {
     const counts: Record<string, number> = {};
     const evenShare = cityList.length ? Math.max(1, Math.round(totalDays / cityList.length)) : 0;
-    for (const city of cityList) {
+    if (stops) stops.forEach((s, i) => { counts[String(i)] = s.nights; });
+    else for (const city of cityList) {
       counts[city] = legs.find((l) => l.location === city)?.dayCount ?? evenShare;
     }
     setDraftCounts(counts);
@@ -155,7 +163,8 @@ export function ItineraryStep() {
 
   function saveSplitAndRebuild() {
     if (!draftValid) return;
-    setCityNights(draftCounts);
+    if (stops) setStops(stops.map((s, i) => ({ ...s, nights: draftCounts[String(i)] ?? s.nights })));
+    else setCityNights(draftCounts);
     setEditingSplit(false);
     generate();
   }
@@ -403,24 +412,24 @@ export function ItineraryStep() {
                 </button>
               </div>
               <div className="flex flex-col gap-2">
-                {cityList.map((city) => (
-                  <div key={city} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-slate-700 truncate">{city}</span>
+                {splitRows.map(({ key, label }) => (
+                  <div key={key} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-slate-700 truncate">{label}</span>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        onClick={() => adjustDraftCount(city, -1)}
+                        onClick={() => adjustDraftCount(key, -1)}
                         className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:opacity-30"
-                        disabled={(draftCounts[city] ?? 1) <= 1}
+                        disabled={(draftCounts[key] ?? 1) <= 1}
                       >
                         <Minus size={12} />
                       </button>
                       <span className="w-6 text-center text-sm font-semibold text-slate-800 tabular-nums">
-                        {draftCounts[city] ?? 1}
+                        {draftCounts[key] ?? 1}
                       </span>
                       <button
                         type="button"
-                        onClick={() => adjustDraftCount(city, 1)}
+                        onClick={() => adjustDraftCount(key, 1)}
                         className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600"
                       >
                         <Plus size={12} />

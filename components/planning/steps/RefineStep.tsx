@@ -21,6 +21,7 @@ import { selectionsOf } from "@/lib/planning/selections";
 import { formatDate, scrollStepToTop } from "@/lib/utils";
 import { itineraryCities, resolveCity } from "@/lib/location";
 import { useTripStore } from "@/lib/store/tripStore";
+import { hasArrangedLodging } from "@/lib/planning/route";
 import type { ActivityOption, RestaurantOption } from "@/types/trip";
 
 // Every card and day belongs to exactly one city tab — the same resolution
@@ -206,6 +207,7 @@ export function RefineStep() {
   async function pickHotelIfNeeded(city: string): Promise<void> {
     if (chosen.hotelsByCity?.[city]) return;
     if (isAirbnbOnly(trip.preferences.lodging?.types)) return;
+    if (hasArrangedLodging(city, trip.preferences)) return;
     const cityHotels = (itinerary?.hotels ?? []).filter((h) => resolveCity(h.city ?? h.location, cities) === city);
     const choice = await chooseHotel(fetchSmartPick, city, trip.preferences, cityHotels);
     if (choice) setSelectedHotelForCity(city, choice.hotel);
@@ -418,7 +420,7 @@ export function RefineStep() {
                 <p className="text-xs font-semibold text-slate-800 min-w-[80px]">{city}</p>
                 <span className="flex items-center gap-1 text-[11px] text-slate-500">
                   <Hotel size={11} className={hotelName ? "text-brand-400" : "text-amber-500"} />
-                  {hotelName ?? "No hotel picked yet"}
+                  {hotelName ?? (hasArrangedLodging(city, trip.preferences) ? "Your own lodging" : "No hotel picked yet")}
                 </span>
                 <span className="flex items-center gap-1 text-[11px] text-slate-500">
                   <UtensilsCrossed size={11} className="text-brand-400" />

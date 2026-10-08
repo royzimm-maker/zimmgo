@@ -17,6 +17,7 @@ import { useAsyncTask, useCityPick } from "@/lib/hooks/useAsyncTask";
 import {
   STAGE_LABELS, buildWizardSteps, cityOptions, cityRecap as recapFor, groupStepsByCity, nextStepLabel, stepIdxsForCity, type Stage,
 } from "@/lib/planning/wizardSteps";
+import { arrangedLodgingCities } from "@/lib/planning/route";
 import {
   Section, FlightPairList, HotelCard, RestaurantCard, ActivityCard, TransportCard,
 } from "@/components/planning/ItineraryCards";
@@ -125,8 +126,8 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
 
   const airbnbOnly = isAirbnbOnly(preferences.lodging?.types);
   const steps = useMemo(
-    () => buildWizardSteps(cities, { airbnbOnly, noFlights: !!preferences.noFlightsNeeded }),
-    [cities, airbnbOnly, preferences.noFlightsNeeded]
+    () => buildWizardSteps(cities, { airbnbOnly, noFlights: !!preferences.noFlightsNeeded, arrangedLodging: arrangedLodgingCities(preferences) }),
+    [cities, airbnbOnly, preferences]
   );
   const stepGroups = useMemo(() => groupStepsByCity(steps), [steps]);
 

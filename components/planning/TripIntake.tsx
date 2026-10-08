@@ -67,17 +67,28 @@ export function TripIntake({ onBack }: { onBack: () => void }) {
       displayName: parsed.displayName,
       freeText: text,
       departureAirport: parsed.departureAirport,
-      arrivalAirport: bestArrival,
-      routingNote: routeUsable
+      // What they said they're flying into beats a typical gateway for the region.
+      arrivalAirport: parsed.arrivalAirport ?? bestArrival,
+      returnAirport: parsed.returnAirport && parsed.returnAirport !== (parsed.arrivalAirport ?? bestArrival) ? parsed.returnAirport : undefined,
+      routingNote: routeUsable && !parsed.arrivalAirport
         ? `${routing.suggestedRoute}\n\nWhy this works: ${routing.routingWhy}`
         : undefined,
       flightsObviouslyRequired: parsed.flightsObviouslyRequired,
       seasonalNote: parsed.seasonalNote,
       seasonalWindowStartMonth: parsed.seasonalNote ? parsed.seasonalWindowStartMonth : undefined,
       seasonalWindowEndMonth: parsed.seasonalNote ? parsed.seasonalWindowEndMonth : undefined,
+      fixedStays: parsed.fixedStays?.filter((f) => f.startDate < f.endDate),
+      visitedPlaces: parsed.visitedPlaces,
+      candidatePlaces: parsed.candidatePlaces,
+      openToSuggestions: parsed.openToSuggestions,
+      minNightsPerStop: parsed.minNightsPerStop,
+      maxNightsPerStop: parsed.maxNightsPerStop,
     };
     store.setDestination(dest);
     store.completeStep("destination");
+    // Someone with a settled list of places doesn't need to be asked for a
+    // route; someone who asked ZimmGo where to go lands on it next.
+    if (!parsed.openToSuggestions && parsed.cities.length && !parsed.fixedStays?.length) store.completeStep("route");
     if (parsed.likelyRoadTrip) store.setNoFlightsNeeded(true);
 
     // ── Dates ──
@@ -160,6 +171,16 @@ export function TripIntake({ onBack }: { onBack: () => void }) {
   if (mode === "review" && parsed) {
     const rows: { label: string; value: string; step: StepId }[] = [];
     rows.push({ label: "Destination", value: parsed.displayName, step: "destination" });
+    for (const f of parsed.fixedStays ?? []) {
+      rows.push({
+        label: "Committed to",
+        value: `${f.place}, ${formatDate(f.startDate)} – ${formatDate(f.endDate)}${f.lodgingArranged ? " (lodging arranged)" : ""}`,
+        step: "route",
+      });
+    }
+    if (parsed.visitedPlaces?.length) rows.push({ label: "Already visited", value: parsed.visitedPlaces.join(", "), step: "route" });
+    if (parsed.candidatePlaces?.length) rows.push({ label: "Ideas", value: parsed.candidatePlaces.join(", "), step: "route" });
+    if (parsed.openToSuggestions) rows.push({ label: "Route", value: "ZimmGo will suggest where to go", step: "route" });
     if (parsed.departureAirport) rows.push({ label: "Departing from", value: parsed.departureAirport, step: "airlines" });
     if (parsed.likelyRoadTrip) rows.push({ label: "Trip type", value: "Road trip — no flights", step: "airlines" });
     if (parsed.dates?.type === "exact" && parsed.dates.startDate && parsed.dates.endDate) {

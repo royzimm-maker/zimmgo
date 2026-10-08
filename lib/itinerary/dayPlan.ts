@@ -3,6 +3,7 @@
 // tell Claude exactly which days to write and the assembly step
 // (lib/itinerary/runGeneration.ts) builds the same days.
 import { parseLocalDate } from "@/lib/utils";
+import { routeStops } from "@/lib/planning/route";
 import type { TripPreferences } from "@/types/trip";
 
 export interface PlannedDay {
@@ -31,10 +32,11 @@ export function tripSpan(preferences: TripPreferences): { startDate: string; num
 }
 
 /**
- * Every day of the trip with its date and city. The traveller's own per-city
- * split (the itinerary step's leg editor) is used when it accounts for every
- * city and every day; otherwise cities share the days evenly, in visiting
- * order. A single-city trip uses its city, or the destination name.
+ * Every day of the trip with its date and city. The chosen route's stops
+ * (the Route step) come first; then the traveller's own per-city split (the
+ * itinerary step's leg editor), when it accounts for every city and every
+ * day; otherwise cities share the days evenly, in visiting order. A
+ * single-city trip uses its city, or the destination name.
  */
 export function planDays(preferences: TripPreferences): PlannedDay[] {
   const { startDate, numDays } = tripSpan(preferences);
@@ -46,7 +48,10 @@ export function planDays(preferences: TripPreferences): PlannedDay[] {
     && cities.length > 0
     && cities.every((c) => Number.isInteger(nights[c]) && nights[c] > 0)
     && cities.reduce((sum, c) => sum + nights[c], 0) === numDays;
-  const dayCities: string[] | null = nightsValid ? cities.flatMap((c) => Array(nights![c]).fill(c)) : null;
+  const stops = routeStops(preferences, numDays);
+  const dayCities: string[] | null = stops
+    ? stops.flatMap((s) => Array(s.nights).fill(s.city))
+    : nightsValid ? cities.flatMap((c) => Array(nights![c]).fill(c)) : null;
 
   const start = parseLocalDate(startDate);
   return Array.from({ length: numDays }, (_, i) => {

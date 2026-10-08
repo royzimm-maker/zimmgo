@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 const STEPS = [
   { icon: "📍", label: "Destination" },
   { icon: "📅", label: "Dates" },
+  { icon: "🛤️", label: "Route" },
   { icon: "✈️", label: "Flights" },
   { icon: "💰", label: "Budget" },
   { icon: "✨", label: "Vibe" },

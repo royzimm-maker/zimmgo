@@ -8,6 +8,7 @@ import { safeLocalStorage } from "@/lib/store/safeStorage";
 import { carryOverSelections, cityForHotel } from "@/lib/planning/selections";
 import { applyPreferenceUpdate, type PreferenceUpdate } from "@/lib/planning/preferenceUpdates";
 import { itineraryCities } from "@/lib/location";
+import { stopCities } from "@/lib/planning/route";
 import type {
   Trip,
   StepId,
@@ -32,6 +33,8 @@ import type {
   SplurgePreference,
   WanderlogItem,
   SchedulePace,
+  RouteOption,
+  TripStop,
 } from "@/types/trip";
 
 // ─── State shape ───────────────────────────────────────────────────────────────
@@ -91,6 +94,9 @@ interface TripState {
   setAvoidLongQueues: (value: boolean) => void;
   setDayTripRequested: (value: boolean) => void;
   setCityNights: (nights: Record<string, number> | undefined) => void;
+  /** Sets the route's stops; the destination's cities follow them. */
+  setStops: (stops: TripStop[]) => void;
+  setRouteOptions: (options: RouteOption[] | undefined) => void;
   setVisaAcknowledged: (value: boolean) => void;
   setTransportation: (modes: TransportMode[]) => void;
 
@@ -490,6 +496,33 @@ export const useTripStore = create<TripState>()(
           trip: {
             ...s.trip,
             preferences: { ...s.trip.preferences, cityNights },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      // The stops replace any per-city split: they say the same thing, and more.
+      setStops: (stops) =>
+        set((s) => {
+          const destination = s.trip.preferences.destination;
+          return {
+            trip: {
+              ...s.trip,
+              preferences: {
+                ...s.trip.preferences,
+                stops,
+                cityNights: undefined,
+                destination: destination ? { ...destination, cities: stopCities(stops) } : destination,
+              },
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }),
+
+      setRouteOptions: (routeOptions) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, routeOptions },
             updatedAt: new Date().toISOString(),
           },
         })),

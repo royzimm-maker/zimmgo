@@ -12,6 +12,7 @@ import { parseToolInput } from "@/lib/ai/toolInput";
 import { buildItineraryPrompt } from "@/lib/ai/prompts";
 import { searchFlights } from "@/lib/search/flights";
 import { planDays, tripSpan } from "@/lib/itinerary/dayPlan";
+import { hasArrangedLodging } from "@/lib/planning/route";
 import { vibeLabel } from "@/lib/data/vibes";
 import { applyWrittenDays, type WrittenDay } from "@/lib/itinerary/writtenDays";
 import { searchHotels } from "@/lib/search/hotels";
@@ -231,7 +232,10 @@ export async function runGeneration(
         });
         continue;
       }
-      const result = await dispatchTool(block.name, input);
+      // No hotels where the traveller already has somewhere to stay.
+      const result = block.name === "search_hotels" && hasArrangedLodging(String(input.destination ?? ""), preferences)
+        ? []
+        : await dispatchTool(block.name, input);
 
       // Accumulate results — AI may call these tools multiple times (once per city)
       if (block.name === "search_flights")      flights      = [...flights,      ...(result as FlightOption[])];
@@ -298,7 +302,7 @@ export async function runGeneration(
   const supplementalResults = await Promise.all(
     destCities.flatMap((city) => {
       const lc = city.toLowerCase();
-      const needHotels = !hotels.some((h) => h.location?.toLowerCase().includes(lc));
+      const needHotels = !hasArrangedLodging(city, preferences) && !hotels.some((h) => h.location?.toLowerCase().includes(lc));
       const needActs   = !activities.some((a)  => a.location?.toLowerCase().includes(lc));
       const needRests  = !restaurants.some((r) => r.location?.toLowerCase().includes(lc));
       return [
@@ -433,6 +437,8 @@ async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary>
   if (lodgingPick) {
     hotels = [lodgingPick, ...hotels.filter((h) => h.id !== lodgingPick.id)];
   }
+  // None where the traveller's lodging is already arranged.
+  hotels = hotels.filter((h) => !hasArrangedLodging(h.city ?? h.location, preferences));
 
   const dest = preferences.destination?.displayName ?? "your destination";
   const acts = (preferences.activities ?? []).slice(0, 3).join(", ");

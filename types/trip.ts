@@ -4,6 +4,7 @@ export type StepId =
   | "activities"
   | "vibe"
   | "dates"
+  | "route"
   | "budget"
   | "planningMode"
   | "lodging"
@@ -91,6 +92,46 @@ export interface Destination {
   // the new year (e.g. startMonth 9, endMonth 4 for Sept through April).
   seasonalWindowStartMonth?: number;
   seasonalWindowEndMonth?: number;
+  // What shapes the route, when the traveller leaves (some of) the choosing
+  // to ZimmGo — read by the Route step (lib/planning/route.ts).
+  // Dates they must be somewhere, e.g. a rented villa June 8–13.
+  fixedStays?: FixedStay[];
+  visitedPlaces?: string[];   // been there already — not suggested again
+  candidatePlaces?: string[]; // ideas they mentioned, not commitments
+  // True when the traveller asked ZimmGo to decide where to go.
+  openToSuggestions?: boolean;
+  minNightsPerStop?: number;
+  maxNightsPerStop?: number;
+}
+
+// A stretch of the trip pinned to a place and dates. The nights run from
+// startDate up to (not including) endDate — the day they leave.
+export interface FixedStay {
+  place: string;
+  startDate: string; // ISO date
+  endDate: string;   // ISO date
+  lodgingArranged?: boolean; // they already have somewhere to stay
+}
+
+// One stop of the trip, in visiting order. A city can appear more than once
+// (e.g. Rome at the start and the end).
+export interface TripStop {
+  city: string;              // a searchable town or city, e.g. "Ostuni"
+  nights: number;
+  area?: string;             // the wider area it's a base for, e.g. "Valle d'Itria"
+  why?: string;
+  lodgingArranged?: boolean; // no hotel to find or budget for
+}
+
+// A route ZimmGo suggested on the Route step.
+export interface RouteOption {
+  id: string;
+  title: string;
+  summary: string;
+  recommended: boolean;
+  stops: TripStop[];
+  leftOut: { place: string; reason: string }[];
+  gettingAround?: string;
 }
 
 export interface DatePreference {
@@ -186,6 +227,12 @@ export interface TripPreferences {
   // must sum to the same total day count as the current itinerary; the
   // generator is instructed to match this split exactly.
   cityNights?: Record<string, number>;
+  // The chosen route's stops, in order — takes precedence over cityNights
+  // (it can visit a city twice, which a per-city count can't express).
+  // destination.cities holds the same cities, once each.
+  stops?: TripStop[];
+  // The routes ZimmGo last suggested, kept so the Route step can show them again.
+  routeOptions?: RouteOption[];
   // True once the traveller has checked the "I understand" box on the
   // itinerary step's visa requirements notice — only meaningful (and only
   // required to proceed) when getVisaRequirementsForTrip found at least one
@@ -462,6 +509,7 @@ export interface ApiResponse<T> {
 export const ORDERED_STEPS: StepId[] = [
   "destination",
   "dates",
+  "route",
   "airlines",
   "budget",
   "vibe",
@@ -478,6 +526,7 @@ export const STEP_META: Record<StepId, Omit<PlanningStep, "completed">> = {
   activities:     { id: "activities",     label: "Activities",     description: "What do you love to do?",        skippable: false },
   vibe:           { id: "vibe",           label: "Vibe",           description: "What's the mood?",               skippable: false },
   dates:          { id: "dates",          label: "Dates",          description: "When are you going?",            skippable: false },
+  route:          { id: "route",          label: "Route",          description: "Where should you stay, and for how long?", skippable: true },
   budget:         { id: "budget",         label: "Budget",         description: "What's your daily spend?",       skippable: false },
   planningMode:   { id: "planningMode",   label: "Planning Style", description: "Do it yourself or let ZimmGo handle it?", skippable: false },
   lodging:        { id: "lodging",        label: "Lodging",        description: "Hotels or Airbnb?",              skippable: false },

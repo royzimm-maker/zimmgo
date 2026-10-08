@@ -1,6 +1,7 @@
 import { formatCurrency, pairFlights } from "@/lib/utils";
 import { buildTripPlan, type TripPlan } from "@/lib/itinerary/tripPlan";
 import { selectionsOf } from "@/lib/planning/selections";
+import { hasArrangedLodging } from "@/lib/planning/route";
 import type { ActivityOption, BudgetRange, GeneratedItinerary, TripPreferences } from "@/types/trip";
 
 export type CabinClass = "economy" | "premium_economy" | "business" | "first";
@@ -105,13 +106,16 @@ export function estimateTripBudget(
   const cabinRatio = CABIN_CLASS_MULTIPLIERS[targetCabin] / CABIN_CLASS_MULTIPLIERS[baseCabin];
   const flightCost = pair ? (pair.outbound.price + (pair.ret?.price ?? 0)) * travelers * cabinRatio : 0;
 
-  // One night per day except the last, each at that day's city's stay.
+  // One night per day except the last, each at that day's city's stay —
+  // except where the traveller's lodging is already arranged (a villa).
   const offeredAvg = itinerary.hotels.length ? itinerary.hotels.reduce((s, h) => s + h.pricePerNight, 0) / itinerary.hotels.length : 0;
-  const nights = plan.days.slice(0, -1).map((d) => d.stay?.hotel.pricePerNight ?? offeredAvg);
-  if (!nights.length) nights.push(plan.days[0]?.stay?.hotel.pricePerNight ?? offeredAvg);
+  const nightDays = plan.days.length > 1 ? plan.days.slice(0, -1) : plan.days;
+  const paidDays = nightDays.filter((d) => !hasArrangedLodging(d.city, preferences));
+  const nights = paidDays.map((d) => d.stay?.hotel.pricePerNight ?? offeredAvg);
   const hotelNights = nights.length;
-  const avgNightly = overrides.lodgingTier ? LODGING_TIER_NIGHTLY[overrides.lodgingTier] : nights.reduce((s, n) => s + n, 0) / hotelNights;
+  const avgNightly = !hotelNights ? 0 : overrides.lodgingTier ? LODGING_TIER_NIGHTLY[overrides.lodgingTier] : nights.reduce((s, n) => s + n, 0) / hotelNights;
   const hotelCost = avgNightly * hotelNights * rooms;
+  const arrangedNote = paidDays.length < nightDays.length ? " · not counting your own lodging" : "";
 
   const activities = plannedActivities(itinerary, plan);
   const activityIntensity = overrides.activityIntensity ?? 1;
@@ -126,7 +130,7 @@ export function estimateTripBudget(
   const n = activities.list.length;
   const lines: BudgetLine[] = [
     { id: "flights",    label: "Flights",                    amount: flightCost,    note: `${travelers} traveler${travelers > 1 ? "s" : ""}, outbound + return · ${CABIN_CLASS_LABELS[targetCabin]}${pair?.outbound.priceIsEstimate ? " · typical fare" : ""}` },
-    { id: "hotels",     label: "Hotels",                     amount: hotelCost,     note: `${hotelNights} night${hotelNights > 1 ? "s" : ""}, avg ${formatCurrency(avgNightly, preferences.preferredCurrency)}/night${rooms > 1 ? ` × ${rooms} rooms` : ""}${!overrides.lodgingTier && plan.days.some((d) => d.stay?.hotel.priceIsEstimate) ? " · estimated rates" : ""}` },
+    { id: "hotels",     label: "Hotels",                     amount: hotelCost,     note: hotelNights ? `${hotelNights} night${hotelNights > 1 ? "s" : ""}, avg ${formatCurrency(avgNightly, preferences.preferredCurrency)}/night${rooms > 1 ? ` × ${rooms} rooms` : ""}${!overrides.lodgingTier && plan.days.some((d) => d.stay?.hotel.priceIsEstimate) ? " · estimated rates" : ""}${arrangedNote}` : "your own lodging" },
     { id: "activities", label: "Activities & Tours",         amount: activityCost,  note: `${n} ${activities.picked ? "" : "suggested "}experience${n !== 1 ? "s" : ""}${activityIntensity !== 1 ? ` · ${activityIntensity < 1 ? "lighter" : "packed"} pace` : ""}${activities.list.some((x) => x.priceIsEstimate) ? " · some entry fees estimated" : ""}` },
     { id: "food",       label: "Food & Dining",               amount: foodCost,      note: `~$${dailyFood}/person/day × ${numDays} days` },
     { id: "transport",  label: "Local Transportation",       amount: transportCost, note: "rideshare, transit, taxis" },

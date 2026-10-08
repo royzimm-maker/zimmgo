@@ -10,6 +10,7 @@
 // function is injected so it calls the AI directly there and stays testable.
 import { itineraryCities, resolveCity } from "@/lib/location";
 import { selectionsOf } from "@/lib/planning/selections";
+import { hasArrangedLodging } from "@/lib/planning/route";
 import type { GeneratedItinerary, TripPreferences, HotelOption } from "@/types/trip";
 import {
   arrangeDays, chooseActivities, chooseHotel, chooseRestaurants, isAirbnbOnly,
@@ -115,7 +116,7 @@ export async function autoPlanTrip(
     // The steps themselves are shared with the wizard and Refine step
     // (lib/planning/cityPicks.ts), so every screen checks ZimmGo's answers alike.
     const [hotelChoice, actChoice, restChoice] = await Promise.all([
-      !airbnbOnly && !existingHotels[city] ? chooseHotel(pick, city, preferences, cityHotels) : Promise.resolve(null),
+      !airbnbOnly && !existingHotels[city] && !hasArrangedLodging(city, preferences) ? chooseHotel(pick, city, preferences, cityHotels) : Promise.resolve(null),
       chooseActivities(pick, city, preferences, newActs),
       chooseRestaurants(pick, city, preferences, newRests),
     ]);

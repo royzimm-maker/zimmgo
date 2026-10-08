@@ -7,6 +7,7 @@ import { PARSE_FULL_TRIP_TOOL } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
 import { findToolInput } from "@/lib/ai/toolInput";
 import { readJsonBody, tooLong } from "@/lib/http/readJsonBody";
+import { rollPastDatesForward } from "@/lib/planning/parsedDates";
 
 export interface ParseFullTripResult {
   cities: string[];
@@ -17,6 +18,8 @@ export interface ParseFullTripResult {
   seasonalWindowStartMonth?: number;
   seasonalWindowEndMonth?: number;
   departureAirport?: string;
+  arrivalAirport?: string;
+  returnAirport?: string;
   travelers?: number;
   dates?: {
     type: "exact" | "flexible";
@@ -32,6 +35,12 @@ export interface ParseFullTripResult {
   dayTripRequested?: boolean;
   vibes?: string[];
   activities?: string[];
+  fixedStays?: { place: string; startDate: string; endDate: string; lodgingArranged?: boolean }[];
+  visitedPlaces?: string[];
+  candidatePlaces?: string[];
+  openToSuggestions?: boolean;
+  minNightsPerStop?: number;
+  maxNightsPerStop?: number;
   summary: string;
 }
 
@@ -66,7 +75,7 @@ export async function POST(request: NextRequest) {
     if (!result) {
       return NextResponse.json({ error: "Couldn't make sense of that — try describing it a little differently." }, { status: 502 });
     }
-    return NextResponse.json(result);
+    return NextResponse.json(rollPastDatesForward(result, todayISO));
   } catch (error: unknown) {
     return serverError("trip/parse-full", error);
   }
