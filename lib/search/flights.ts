@@ -1,9 +1,15 @@
-// Flights API module
-// Production: swap mock data for real Amadeus API calls
-// Amadeus docs: https://developers.amadeus.com/self-service/category/flights
+// Flights. No free, usable source of live fares exists for an app like this
+// (Amadeus closed its self-service API in July 2026; Kiwi is invite-only), and
+// made-up airlines, times and fares would be invented claims. So a flight
+// search returns one honest estimate per leg instead: the route and date, a
+// typical fare from the great-circle distance and cabin (priceIsEstimate),
+// a typical flying time, and a link that opens Google Flights for the real
+// options. No airline, flight number, departure time or stops are given.
 
 import type { FlightOption } from "@/types/trip";
-import { seededInt, seededRandom, stableId } from "@/lib/search/mockRandom";
+import { stableId } from "@/lib/search/mockRandom";
+import { lookupAirport, type LatLng } from "@/lib/data/coordinates";
+import { extractIataCode, googleFlightsUrl } from "@/lib/utils";
 
 interface FlightSearchParams {
   origin: string;
@@ -16,101 +22,54 @@ interface FlightSearchParams {
   lowest_fare_mode?: boolean;
 }
 
-// Realistic mock data keyed by destination region
-const AIRLINE_BOOKING_URLS: Record<string, string> = {
-  "DL": "https://www.delta.com/us/en/flight-search/book-a-flight",
-  "UA": "https://www.united.com/en/us/fsr/choose-flights",
-  "AA": "https://www.aa.com/booking/find-flights",
-  "SQ": "https://www.singaporeair.com/en_UK/ppsclub-krisflyer/flights/search-flights",
-  "EK": "https://www.emirates.com/us/english/book/flights",
-  "BA": "https://www.britishairways.com/travel/fx/public/en_gb",
-  "LH": "https://www.lufthansa.com/us/en/homepage",
-  "AF": "https://wwws.airfrance.us/",
-  "QR": "https://www.qatarairways.com/en-us/flights.html",
-  "CX": "https://www.cathaypacific.com/cx/en_US/book-a-trip/flights.html",
-  "ITA": "https://www.ita-airways.com/en_us",
-  "AZ": "https://www.ita-airways.com/en_us",
-  "AS": "https://www.alaskaair.com/booking/reservation-flights",
-};
+// Typical fare relative to economy.
+const CABIN_MULTIPLIER: Record<string, number> = { economy: 1, premium_economy: 2.2, business: 4.5, first: 8 };
+// When an airport's location isn't known: a typical long-haul economy fare, one way.
+const UNKNOWN_ROUTE_ONE_WAY_USD = 450;
 
-const MOCK_AIRLINES = [
-  { name: "Delta Air Lines",    code: "DL", alliance: "skyteam"       },
-  { name: "United Airlines",    code: "UA", alliance: "star_alliance"  },
-  { name: "American Airlines",  code: "AA", alliance: "oneworld"       },
-  { name: "Alaska Airlines",    code: "AS", alliance: "oneworld"       },
-  { name: "Singapore Airlines", code: "SQ", alliance: "star_alliance"  },
-  { name: "Emirates",           code: "EK", alliance: "none"           },
-  { name: "British Airways",    code: "BA", alliance: "oneworld"       },
-  { name: "Lufthansa",          code: "LH", alliance: "star_alliance"  },
-  { name: "Air France",         code: "AF", alliance: "skyteam"        },
-];
+/** Great-circle distance in miles. */
+export function distanceMiles(a: LatLng, b: LatLng): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;
+  return 3958.8 * 2 * Math.asin(Math.sqrt(h));
+}
 
-const CABIN_MULTIPLIER: Record<string, number> = {
-  economy: 1, premium_economy: 2.2, business: 4.5, first: 8,
-};
+/** A typical one-way economy fare for a distance: a base plus a per-mile rate, rounded to $10. */
+export function typicalOneWayFareUsd(miles: number): number {
+  return Math.round((75 + 0.085 * miles) / 10) * 10;
+}
 
-
-function pickAirlines(
-  preferred: string[] = [],
-  count = 3
-): typeof MOCK_AIRLINES[number][] {
-  const matched = MOCK_AIRLINES.filter((a) =>
-    preferred.some((p) => a.name.toLowerCase().includes(p.toLowerCase()))
-  );
-  const rest = MOCK_AIRLINES.filter((a) => !matched.includes(a));
-  const pool = [...matched, ...rest];
-  return pool.slice(0, count);
+/** Typical flying time for a distance, e.g. "~7h" (cruise plus taxi and climb; connections not included). */
+export function typicalFlightTime(miles: number): string {
+  return `~${Math.max(1, Math.round(miles / 500 + 0.5))}h`;
 }
 
 export async function searchFlights(params: FlightSearchParams): Promise<FlightOption[]> {
-  // --- PRODUCTION SWAP POINT ---
-  // const amadeusToken = await getAmadeusToken();
-  // const response = await fetch(`https://test.api.amadeus.com/v2/shopping/flight-offers?...`);
-  // return transformAmadeusResponse(response);
-
   // Guard against malformed tool calls from the AI (missing required params)
   if (!params.origin || !params.destination || !params.departure_date) return [];
 
-  // Lowest-fare mode: ignore airline prefs, use all carriers, economy default
-  const lowestFare = params.lowest_fare_mode ?? false;
-  const effectiveCabin = lowestFare ? "economy" : (params.cabin_class ?? "economy");
-  const effectiveMult  = CABIN_MULTIPLIER[effectiveCabin];
-  // Seeded from the query so the same search returns the same flights and IDs.
-  const rand = seededRandom(
-    "flights", params.origin, params.destination, params.departure_date, params.return_date,
-    effectiveCabin, lowestFare, params.nonstop_only, (params.preferred_airlines ?? []).join(","),
-  );
-  const randomInt = (min: number, max: number) => seededInt(rand, min, max);
-  const airlines = lowestFare
-    ? MOCK_AIRLINES.map((a) => ({ a, k: rand() })).sort((x, y) => x.k - y.k).map((x) => x.a).slice(0, 3)
-    : pickAirlines(params.preferred_airlines ?? [], 3);
+  const origin = extractIataCode(params.origin);
+  const destination = extractIataCode(params.destination);
+  const cabin = params.lowest_fare_mode ? "economy" : (params.cabin_class && params.cabin_class in CABIN_MULTIPLIER ? params.cabin_class : "economy");
+  const from = lookupAirport(origin);
+  const to = lookupAirport(destination);
+  const miles = from && to ? distanceMiles(from, to) : null;
+  const oneWayEconomy = miles !== null ? typicalOneWayFareUsd(miles) : UNKNOWN_ROUTE_ONE_WAY_USD;
 
-  const basePrice = lowestFare ? randomInt(300, 900) : randomInt(600, 2400);
-
-  const results = airlines.map((airline, idx) => {
-    const departureHM = { h: randomInt(6, 14), m: [0, 15, 30, 45][idx % 4] };
-    const arrivalHM = { h: randomInt(14, 23), m: [0, 30][idx % 2] };
-    const flightNumber = `${airline.code}${randomInt(100, 999)}`;
-
-    return {
-    id: stableId("flight", flightNumber, params.origin, params.destination, params.departure_date, effectiveCabin),
-    airline: airline.name,
-    flightNumber,
-    origin: params.origin,
-    destination: params.destination,
-    departureTime: `${params.departure_date}T${departureHM.h.toString().padStart(2, "0")}:${departureHM.m.toString().padStart(2, "0")}:00`,
-    arrivalTime: `${params.departure_date}T${arrivalHM.h.toString().padStart(2, "0")}:${arrivalHM.m.toString().padStart(2, "0")}:00`,
-    duration: `${randomInt(9, 17)}h ${randomInt(0, 59)}m`,
-    // Nonstop preference applies regardless of lowest-fare mode — the two
-    // are independent filters, not mutually exclusive.
-    stops: params.nonstop_only ? 0 : (idx === 0 ? 0 : randomInt(0, 1)),
-    price: Math.round((basePrice + idx * randomInt(80, 250)) * effectiveMult),
+  return [{
+    id: stableId("flight-estimate", origin, destination, params.departure_date, cabin),
+    airline: "Any airline",
+    flightNumber: "",
+    origin,
+    destination,
+    departureTime: params.departure_date,
+    arrivalTime: "",
+    duration: miles !== null ? typicalFlightTime(miles) : "",
+    price: Math.round((oneWayEconomy * CABIN_MULTIPLIER[cabin]) / 10) * 10,
     currency: "USD",
-    cabinClass: effectiveCabin,
-    bookingUrl: AIRLINE_BOOKING_URLS[airline.code] ?? `https://www.google.com/travel/flights`,
-    };
-  });
-
-  // In lowest-fare mode, sort cheapest first
-  return lowestFare ? results.sort((a, b) => a.price - b.price) : results;
+    cabinClass: cabin,
+    priceIsEstimate: true,
+    // One search is one leg; the link covers the whole trip when the return date is known.
+    bookingUrl: googleFlightsUrl(origin, destination, params.departure_date, params.return_date, cabin, params.nonstop_only),
+  }];
 }

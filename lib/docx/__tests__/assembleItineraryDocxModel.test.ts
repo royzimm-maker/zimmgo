@@ -207,6 +207,13 @@ describe("assembleItineraryDocxModel — getting there", () => {
     expect(model.sections[0].gettingThere).toEqual(["✈ Delta — JFK → BCN"]);
   });
 
+  it("calls an estimated flight what it is, with no airline", () => {
+    const base = makeItinerary();
+    const estimate = { ...base.flights[0], airline: "Any airline", priceIsEstimate: true };
+    const model = assembleItineraryDocxModel({ ...base, flights: [estimate] }, makePreferences());
+    expect(model.sections[0].gettingThere).toEqual(["✈ Fly JFK → BCN — search Google Flights for fares"]);
+  });
+
   it("describes the ground-transport pick for a later section when one exists", () => {
     const model = assembleItineraryDocxModel(
       makeItinerary({ selections: { transportByLeg: { Andalusia: transportPick } } }),

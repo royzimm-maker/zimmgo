@@ -59,6 +59,20 @@ export function extractIataCode(airport: string): string {
   return airport.match(/\(([A-Z]{3})\)/)?.[1] ?? airport.trim().toUpperCase().slice(-3);
 }
 
+const CABIN_WORDS: Record<string, string> = { premium_economy: "premium economy", business: "business class", first: "first class" };
+
+/** Google Flights for a route and dates (round trip when there's a return date), in the given cabin. */
+export function googleFlightsUrl(origin: string, destination: string, departureDate: string, returnDate?: string, cabin = "economy", nonstop = false): string {
+  const when = returnDate ? `on ${departureDate} through ${returnDate}` : `on ${departureDate} one way`;
+  const extras = [CABIN_WORDS[cabin], nonstop ? "nonstop" : ""].filter(Boolean).join(" ");
+  return `https://www.google.com/travel/flights?q=${encodeURIComponent(`Flights to ${destination} from ${origin} ${when}${extras ? ` ${extras}` : ""}`)}`;
+}
+
+/** Google Flights for an outbound flight and its return, as one round trip. */
+export function googleFlightsUrlForPair(outbound: FlightOption, ret: FlightOption | null): string {
+  return googleFlightsUrl(outbound.origin, outbound.destination, outbound.departureTime.slice(0, 10), ret?.departureTime.slice(0, 10), outbound.cabinClass);
+}
+
 /** Integer in [min, max] inclusive. */
 export function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;

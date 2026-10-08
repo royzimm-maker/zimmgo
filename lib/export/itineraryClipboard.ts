@@ -9,7 +9,7 @@
 // day's contents — the traveller's arrangement once they've made one.
 import { formatCurrency, formatDate, formatNightlyRate } from "@/lib/utils";
 import { buildTripPlan, dayLines, type DayPlan, type TripPlan } from "@/lib/itinerary/tripPlan";
-import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
+import type { FlightOption, GeneratedItinerary, TripPreferences } from "@/types/trip";
 
 export function itineraryClipboardTitle(preferences: TripPreferences): string {
   return `ZimmGo Trip — ${preferences.destination?.displayName ?? "Your Trip"}`;
@@ -21,6 +21,13 @@ function stayLine(stay: TripPlan["stays"][number], preferences: TripPreferences)
   const { hotel, byTraveller } = stay.choice;
   const price = formatNightlyRate(hotel, preferences.preferredCurrency);
   return `${hotel.name} — ${stay.city} — ${price}${byTraveller ? "" : " (ZiGy's recommendation)"}`;
+}
+
+// A flight as one line of text: an estimate is called one and has no airline.
+function flightLine(f: FlightOption, price: string): string {
+  return f.priceIsEstimate
+    ? `${f.origin} → ${f.destination} — about ${price}/pp (typical fare; search Google Flights for real fares)`
+    : `${f.airline} — ${f.origin} → ${f.destination} — ${price}/pp`;
 }
 
 function dayHeading(dayPlan: DayPlan): string {
@@ -42,7 +49,7 @@ export function buildItineraryClipboardText(
     "",
     itinerary.aiSummary,
     ...(itinerary.flights.length
-      ? ["", "FLIGHTS", "-------", ...itinerary.flights.map((f) => `• ${f.airline} — ${f.origin} → ${f.destination} — ${formatCurrency(f.price, preferences.preferredCurrency)}/pp`)]
+      ? ["", "FLIGHTS", "-------", ...itinerary.flights.map((f) => `• ${flightLine(f, formatCurrency(f.price, preferences.preferredCurrency))}`)]
       : []),
     ...(plan.stays.length
       ? ["", "WHERE YOU'RE STAYING", "--------------------", ...plan.stays.map((s) => `• ${stayLine(s, preferences)}`)]
@@ -99,7 +106,7 @@ export function buildItineraryClipboardHtml(
     ? heading("Flights") +
       list(
         itinerary.flights.map(
-          (f) => `<strong>${escapeHtml(f.airline)}</strong> — ${escapeHtml(f.origin)} → ${escapeHtml(f.destination)} — ${escapeHtml(formatCurrency(f.price, preferences.preferredCurrency))}/pp`
+          (f) => escapeHtml(flightLine(f, formatCurrency(f.price, preferences.preferredCurrency)))
         )
       )
     : "";

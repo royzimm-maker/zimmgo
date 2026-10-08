@@ -195,7 +195,8 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     ? "Do NOT call search_flights — these travel dates are further out than airlines typically open bookings for, so there are no real fares to search yet. Skip flights entirely and build the rest of the plan (hotels, activities, restaurants, day-by-day schedule) as normal; briefly note in your summary that flights should be booked once they're bookable closer to the trip."
     : "For flights: call search_flights TWICE — once for the outbound leg (departureAirport → arrivalAirport, using the start date). " +
       returnLegInstruction + " " +
-      "All flight prices are per person, one-way.";
+      "All flight prices are per person, one-way. Flight results are estimates — a typical fare for the route and cabin, with no airline, flight number or times. " +
+      "Never name an airline, flight number or departure time; call the fare an estimate and suggest comparing real flights on Google Flights.";
 
   parts.push(
     "\nPlease use the available tools to search for flights, hotels, and activities, then synthesise everything into a final day-by-day itinerary. " +

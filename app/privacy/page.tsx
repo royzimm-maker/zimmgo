@@ -100,7 +100,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-sm font-semibold text-slate-900 mb-1.5">No real booking or payment data</h2>
             <p>
-              ZimmGo doesn&apos;t process payments or make real bookings — flight, hotel, and activity data shown in this beta is illustrative, not live inventory. &quot;Book&quot; links simply open the airline or provider&apos;s own site in a new tab. ZimmGo never collects payment card details, passwords, or government ID information, and you should never enter that kind of information into this app.
+              ZimmGo doesn&apos;t process payments or make real bookings, and has no live fares or availability — flight fares, hotel rates and entry prices are typical estimates. &quot;Search flights&quot;, &quot;Check prices&quot; and booking links simply open Google Flights, Booking.com or the provider&apos;s own site in a new tab. ZimmGo never collects payment card details, passwords, or government ID information, and you should never enter that kind of information into this app.
             </p>
           </section>
 

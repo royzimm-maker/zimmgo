@@ -155,7 +155,9 @@ function gettingThereFor(
 ): string[] {
   if (legIndex === 0) {
     const flight = selectionsOf(itinerary).flight ?? itinerary.flights[0];
-    return flight ? [`✈ ${flight.airline} — ${flight.origin} → ${flight.destination}`] : [];
+    if (!flight) return [];
+    // An estimate has no airline — say what it is rather than "Any airline".
+    return [flight.priceIsEstimate ? `✈ Fly ${flight.origin} → ${flight.destination} — search Google Flights for fares` : `✈ ${flight.airline} — ${flight.origin} → ${flight.destination}`];
   }
   const transportPick = selectionsOf(itinerary).transportByLeg?.[location];
   if (transportPick) {

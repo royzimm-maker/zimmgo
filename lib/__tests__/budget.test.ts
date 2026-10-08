@@ -69,3 +69,11 @@ describe("estimateTripBudget — estimated hotel rates", () => {
     expect(line(itinerary(), "hotels").note).not.toContain("estimated");
   });
 });
+
+describe("estimateTripBudget — estimated fares", () => {
+  it("calls an estimated fare a typical fare in the flights line", () => {
+    const estimated = itinerary({ flights: [{ ...flight("out-cheap", "JFK", "LIS", 400), priceIsEstimate: true }, flight("ret-cheap", "OPO", "JFK", 300)] } as never);
+    expect(line(estimated, "flights").note).toContain("typical fare");
+    expect(line(itinerary(), "flights").note).not.toContain("typical");
+  });
+});

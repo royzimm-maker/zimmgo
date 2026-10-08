@@ -1,7 +1,7 @@
 "use client";
 
 import { Plane, Hotel, Users, Calendar, MapPin, Check, Ship } from "lucide-react";
-import { formatDate, formatCurrency, formatNightlyRate, pairFlights } from "@/lib/utils";
+import { formatDate, formatCurrency, formatNightlyRate, googleFlightsUrlForPair, pairFlights } from "@/lib/utils";
 import { itineraryCities } from "@/lib/location";
 import { chosenHotelForCity, type HotelChoice } from "@/lib/planning/hotelChoice";
 import { selectionsOf } from "@/lib/planning/selections";
@@ -78,6 +78,30 @@ export function TripGlance({ itinerary, preferences }: Props) {
             {pairs.map(({ outbound, ret }) => {
               const roundtripPp = outbound.price + (ret?.price ?? 0);
               const isSelected = selectedFlightId === outbound.id;
+              if (outbound.priceIsEstimate) {
+                return (
+                  <div key={outbound.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-800">{outbound.origin} → {outbound.destination}{ret ? ` → ${ret.destination}` : ""}</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">Typical fare — ZimmGo doesn&apos;t have live fares</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-slate-900">~{formatCurrency(roundtripPp, preferences.preferredCurrency)}</p>
+                        <p className="text-[10px] text-slate-400">{ret ? "roundtrip" : "one way"}/pp est.</p>
+                      </div>
+                    </div>
+                    <a
+                      href={googleFlightsUrlForPair(outbound, ret)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-block text-[11px] font-semibold text-brand-600 hover:underline"
+                    >
+                      Search flights on Google Flights →
+                    </a>
+                  </div>
+                );
+              }
               return (
                 <div
                   key={outbound.id}

@@ -282,7 +282,9 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
 
   const sectionTitle = stage === "flights" ? "Flights" : `${STAGE_LABELS[stage]} — ${currentCity}`;
   const sectionSubtitle = stage === "flights"
-    ? "Select your preferred option — prices are roundtrip per person, estimated."
+    ? itinerary.flights.some((f) => f.priceIsEstimate)
+      ? "A typical fare for your route — search Google Flights for real flights, times and prices."
+      : "Select your preferred option — prices are roundtrip per person, estimated."
     : stage === "transport"
     ? `Select an option for ${transportFromCity ? `${transportFromCity} → ${currentCity}` : "this leg"}, or skip and arrange it yourself.`
     : stage === "hotels"

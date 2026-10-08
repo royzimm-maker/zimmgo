@@ -5,7 +5,7 @@
 import { Star, MapPin, ExternalLink, Check, Heart, Ship, TrainFront } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { formatCurrency, pairFlights, groupByLocation } from "@/lib/utils";
+import { formatCurrency, formatDate, googleFlightsUrlForPair, pairFlights, groupByLocation } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import type { FlightOption, HotelOption, ActivityOption, RestaurantOption, TransportOption } from "@/types/trip";
 
@@ -85,6 +85,39 @@ export function FlightPairList({
       {pairs.map(({ outbound: o, ret }) => {
         const roundtripPp = o.price + (ret?.price ?? 0);
         const isSelected = selectedFlightId === o.id;
+        if (o.priceIsEstimate) {
+          return (
+            <Card key={o.id} padding="sm">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-slate-800 text-sm">{o.origin} → {o.destination}{ret ? ` → ${ret.destination}` : ""}</span>
+                    <Badge variant="info">{o.cabinClass.replace("_", " ")}</Badge>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500 flex flex-col gap-0.5">
+                    <span>Out {formatDate(o.departureTime)}{ret ? ` · back ${formatDate(ret.departureTime)}` : ""}</span>
+                    {o.duration && <span>Typically {o.duration.replace("~", "about ")} flying each way, nonstop</span>}
+                  </div>
+                </div>
+                <div className="text-right shrink-0" title="A typical fare for this distance and cabin — real fares vary">
+                  <p className="font-bold text-slate-900 text-sm">~{formatCurrency(roundtripPp, currency)}</p>
+                  <p className="text-[10px] text-slate-400">{ret ? "round trip" : "one way"}/pp est.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-slate-100">
+                <p className="text-[11px] text-slate-500 flex-1">ZimmGo doesn&apos;t have live fares — compare real flights and prices on Google Flights.</p>
+                <a
+                  href={googleFlightsUrlForPair(o, ret)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 rounded-md bg-brand-600 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-700 shrink-0"
+                >
+                  Search flights <ExternalLink size={10} />
+                </a>
+              </div>
+            </Card>
+          );
+        }
         return (
           <Card
             key={o.id}
@@ -138,9 +171,12 @@ export function FlightPairList({
           </Card>
         );
       })}
-      <p className="text-[10px] text-slate-400 text-center">
-        Estimates only — prices change. Booking opens the airline&apos;s site in a new tab.
-      </p>
+      {/* Sample airline options in older saved trips only; an estimate card explains itself. */}
+      {pairs.some((p) => !p.outbound.priceIsEstimate) && (
+        <p className="text-[10px] text-slate-400 text-center">
+          Estimates only — prices change. Booking opens the airline&apos;s site in a new tab.
+        </p>
+      )}
     </div>
   );
 }

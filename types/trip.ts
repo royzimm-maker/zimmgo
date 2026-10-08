@@ -247,11 +247,15 @@ export interface FlightOption {
   departureTime: string;
   arrivalTime: string;
   duration: string;
-  stops: number;
+  stops?: number;          // unknown for an estimate
   price: number;
   currency: string;
   cabinClass: string;
   bookingUrl?: string;
+  // ZimmGo has no live fares: a flight is an estimate for its route (lib/search/flights.ts) —
+  // no airline or times, a typical fare from the distance and cabin, and a link to
+  // search real flights. Older saved trips may still hold sample airline options.
+  priceIsEstimate?: boolean;
 }
 
 // Inter-city ground/ferry transport for regions with a real regional
