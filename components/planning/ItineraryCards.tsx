@@ -398,7 +398,15 @@ export function RestaurantCard({
                   </button>
                 )}
               </div>
-              <p className="text-xs font-medium text-sage-700">{r.rating}/10</p>
+              {r.google ? (
+                // Google's own figure (stored ×2 on the app's 10-point scale), credited to Google Maps.
+                <a href={r.google.mapsUri} target="_blank" rel="noreferrer" title="Rating from Google Maps" className="text-right hover:underline">
+                  <p className="text-xs font-medium text-sage-700">{(r.rating / 2).toFixed(1)}★</p>
+                  <p className="text-[9px] text-slate-400">{r.reviewCount.toLocaleString()} on Google Maps</p>
+                </a>
+              ) : (
+                <p className="text-xs font-medium text-sage-700">{r.rating}/10</p>
+              )}
             </div>
           </div>
 
@@ -417,15 +425,21 @@ export function RestaurantCard({
             {r.menuUrl && (
               <a href={r.menuUrl} target="_blank" rel="noreferrer"
                 className="flex items-center gap-0.5 text-[11px] text-slate-500 hover:text-slate-700 hover:underline">
-                Menu <ExternalLink size={9} />
+                {r.google ? "Website" : "Menu"} <ExternalLink size={9} />
               </a>
             )}
             <a
-              href={`https://www.google.com/maps/search/${encodeURIComponent(r.name + " " + r.location)}`}
+              href={r.google?.mapsUri ?? `https://www.google.com/maps/search/${encodeURIComponent(r.name + " " + r.location)}`}
               target="_blank" rel="noreferrer"
               className="flex items-center gap-0.5 text-[11px] text-slate-500 hover:text-slate-700 hover:underline">
-              Map <ExternalLink size={9} />
+              {r.google ? "Google Maps" : "Map"} <ExternalLink size={9} />
             </a>
+            {r.google?.photoAttribution && r.imageUrl && (
+              <a href={r.google.photoAttribution.uri} target="_blank" rel="noreferrer"
+                className="text-[10px] text-slate-400 hover:underline truncate max-w-[9rem]" title="Photo credit">
+                Photo: {r.google.photoAttribution.name}
+              </a>
+            )}
             {r.bookingUrl && (
               <a href={r.bookingUrl} target="_blank" rel="noreferrer"
                 className="flex items-center gap-0.5 text-[11px] text-brand-500 font-medium hover:underline ml-auto">

@@ -38,6 +38,9 @@ export function applyBeliPreference<T extends RestaurantOption>(
   const withCity = restaurants.map((r) => ({ r, city: cityFor(r.location ?? "", cities) }));
   const bestByCity = new Map<string, T>();
   for (const { r, city } of withCity) {
+    // Mock picks only go on sample restaurants: on a real place, "matches
+    // your Beli list" would be an invented claim about a real business.
+    if (r.google) continue;
     const currentBest = bestByCity.get(city);
     if (!currentBest || r.rating > currentBest.rating) {
       bestByCity.set(city, r);

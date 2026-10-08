@@ -20,6 +20,7 @@ import type {
   DatePreference,
   HotelOption,
   FlightOption,
+  RestaurantOption,
   TransportOption,
   LodgingPreference,
   AirlinePreference,
@@ -99,6 +100,8 @@ interface TripState {
   // Itinerary
   addItinerary: (itinerary: GeneratedItinerary) => void;
   setItineraryFlights: (itineraryId: string, flights: FlightOption[]) => void;
+  /** Swaps in updated copies of restaurants, matched by id (e.g. refreshed Google places). */
+  replaceRestaurants: (itineraryId: string, updated: RestaurantOption[]) => void;
   updateItineraryRefinements: (itineraryId: string, refinements: ItineraryRefinements) => void;
   saveFinalizedPlan: (itineraryId: string, plan: FinalizedPlan) => void;
   markItineraryReviewed: (itineraryId: string) => void;
@@ -541,6 +544,22 @@ export const useTripStore = create<TripState>()(
             updatedAt: new Date().toISOString(),
           },
         })),
+
+      replaceRestaurants: (itineraryId, updated) =>
+        set((s) => {
+          const byId = new Map(updated.map((r) => [r.id, r]));
+          return {
+            trip: {
+              ...s.trip,
+              itineraries: s.trip.itineraries.map((it) =>
+                it.id === itineraryId && it.restaurants
+                  ? { ...it, restaurants: it.restaurants.map((r) => byId.get(r.id) ?? r) }
+                  : it
+              ),
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }),
 
       updateItineraryRefinements: (itineraryId, refinements) =>
         set((s) => ({

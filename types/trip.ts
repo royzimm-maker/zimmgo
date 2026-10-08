@@ -330,6 +330,19 @@ export interface RestaurantOption {
   // description (e.g. "One Michelin star", "Bib Gourmand") — surfaced as
   // its own badge instead of leaving it buried in prose.
   michelinDistinction?: string;
+  // Present when this is a real place from Google Places (lib/search/googlePlaces.ts)
+  // rather than sample data. Its rating is Google's 1–5 stars × 2, so it sorts
+  // with the app's 10-point ratings; show Google's own figure (rating / 2).
+  google?: GooglePlaceRef;
+}
+
+// Google's terms let its content be kept for 30 days (the place ID forever),
+// so `fetchedAt` decides when a saved place must be refreshed.
+export interface GooglePlaceRef {
+  placeId: string;
+  mapsUri: string;
+  fetchedAt: string;
+  photoAttribution?: { name: string; uri?: string };
 }
 
 export interface ItineraryDay {

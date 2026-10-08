@@ -1,11 +1,13 @@
-// Restaurants API module
-// Production: integrate with OpenTable, TheFork, or Google Places API
+// Restaurants: real places from Google Places when it's available
+// (googleRestaurants.ts), otherwise the curated sample data below.
 
 import { stableId } from "@/lib/search/mockRandom";
 import type { RestaurantOption, RestaurantTier } from "@/types/trip";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
 import { sameLocation } from "@/lib/location";
 import { resolvePool } from "@/lib/search/poolLookup";
+import { PLAYFUL_LABELS } from "@/lib/search/restaurantTiers";
+import { searchGoogleRestaurants } from "@/lib/search/googleRestaurants";
 
 interface RestaurantSearchParams {
   destination: string;
@@ -13,15 +15,6 @@ interface RestaurantSearchParams {
   budget_level?: "low" | "mid" | "high";
   meal_types?: string[];
 }
-
-const PLAYFUL_LABELS: Record<RestaurantTier, string> = {
-  fine_dining: "Michelin or bust",
-  upscale:     "Great food without the theatre",
-  midrange:    "Great food at prices that won't blow your budget",
-  casual:      "Super casual — show up hungry",
-  street_food: "Street food that'll leave you wanting more",
-  brunch:      "Coffee and a reason to linger",
-};
 
 const PRICE_RANGES: Record<RestaurantTier, "$" | "$$" | "$$$" | "$$$$"> = {
   fine_dining: "$$$$",
@@ -622,6 +615,14 @@ function detectMichelinDistinction(description: string): string | undefined {
 }
 
 export async function searchRestaurants(params: RestaurantSearchParams): Promise<RestaurantOption[]> {
+  const real = await searchGoogleRestaurants(params);
+  if (real) return real;
+  return sampleRestaurants(params);
+}
+
+// The curated sample data — used when Google Places isn't configured, its
+// daily allowance is used up, or it fails.
+export function sampleRestaurants(params: RestaurantSearchParams): RestaurantOption[] {
   const base = findRestaurantBase(params.destination);
 
   let filtered = base;

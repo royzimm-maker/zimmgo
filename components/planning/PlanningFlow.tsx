@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTripStore } from "@/lib/store/tripStore";
+import { useFreshGooglePlaces } from "@/lib/hooks/useFreshGooglePlaces";
 import { ProgressBar } from "@/components/planning/ProgressBar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DestinationStep }    from "@/components/planning/steps/DestinationStep";
@@ -44,6 +45,8 @@ export function PlanningFlow() {
   const { trip, sidebarOpen, setSidebarOpen } = useTripStore();
   const StepComponent = STEP_COMPONENTS[trip.currentStep];
   const latestItinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
+  // Google place data older than its terms allow is refreshed when the trip is open.
+  useFreshGooglePlaces(latestItinerary);
 
   // Lets the user drag the divider between the chat and Wanderlog panels —
   // the fixed h-72 Wanderlog panel was squeezing the chat window with no

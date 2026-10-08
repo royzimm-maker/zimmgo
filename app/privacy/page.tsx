@@ -49,6 +49,13 @@ export default function PrivacyPage() {
           </section>
 
           <section>
+            <h2 className="text-sm font-semibold text-slate-900 mb-1.5">Real places from Google Maps</h2>
+            <p>
+              Restaurant suggestions come from Google Maps. To find them, ZimmGo&apos;s server sends Google a short search — the city, and any cuisine or meal type you asked for (for example &quot;seafood restaurants in Lisbon&quot;). Nothing that identifies you is sent. Ratings, photos and links shown for those places are Google&apos;s, and are refreshed if you reopen a trip more than a few weeks later. When Google can&apos;t be reached, ZimmGo shows its own sample suggestions instead.
+            </p>
+          </section>
+
+          <section>
             <h2 className="text-sm font-semibold text-slate-900 mb-1.5">Error reports</h2>
             <p>
               When something breaks, ZimmGo sends an error report to Sentry, an error-monitoring service, so it can be fixed. A report contains the error itself, where in the app it happened, and your browser type — not your trip content, cookies, IP address, or anything you typed.

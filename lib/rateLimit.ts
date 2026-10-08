@@ -98,3 +98,19 @@ export async function rateLimit(
     return memoryLimit(key, limit, windowMs, now);
   }
 }
+
+/**
+ * Takes one unit of a shared daily allowance (UTC day) and says whether it
+ * was within `limit` — for paid third-party APIs whose free tier must not be
+ * exceeded (lib/search/googlePlaces.ts). Counted in the same table as the
+ * rate limits, keyed per allowance rather than per IP. Fails closed: if the
+ * count can't be read, the call is treated as over the allowance.
+ */
+export async function claimDailyQuota(name: string, limit: number): Promise<boolean> {
+  const dayStart = new Date(Math.floor(Date.now() / 86_400_000) * 86_400_000);
+  try {
+    return (await sharedCount(`quota:${name}`, dayStart)) <= limit;
+  } catch {
+    return false;
+  }
+}
