@@ -127,7 +127,7 @@ export function estimateTripBudget(
   const lines: BudgetLine[] = [
     { id: "flights",    label: "Flights",                    amount: flightCost,    note: `${travelers} traveler${travelers > 1 ? "s" : ""}, outbound + return · ${CABIN_CLASS_LABELS[targetCabin]}` },
     { id: "hotels",     label: "Hotels",                     amount: hotelCost,     note: `${hotelNights} night${hotelNights > 1 ? "s" : ""}, avg ${formatCurrency(avgNightly, preferences.preferredCurrency)}/night${rooms > 1 ? ` × ${rooms} rooms` : ""}` },
-    { id: "activities", label: "Activities & Tours",         amount: activityCost,  note: `${n} ${activities.picked ? "" : "suggested "}experience${n !== 1 ? "s" : ""}${activityIntensity !== 1 ? ` · ${activityIntensity < 1 ? "lighter" : "packed"} pace` : ""}` },
+    { id: "activities", label: "Activities & Tours",         amount: activityCost,  note: `${n} ${activities.picked ? "" : "suggested "}experience${n !== 1 ? "s" : ""}${activityIntensity !== 1 ? ` · ${activityIntensity < 1 ? "lighter" : "packed"} pace` : ""}${activities.list.some((x) => x.priceIsEstimate) ? " · some entry fees estimated" : ""}` },
     { id: "food",       label: "Food & Dining",               amount: foodCost,      note: `~$${dailyFood}/person/day × ${numDays} days` },
     { id: "transport",  label: "Local Transportation",       amount: transportCost, note: "rideshare, transit, taxis" },
     { id: "misc",       label: "Miscellaneous (10% buffer)", amount: misc,          note: "tips, souvenirs, incidentals" },

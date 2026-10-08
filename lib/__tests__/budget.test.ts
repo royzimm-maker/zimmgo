@@ -53,3 +53,11 @@ describe("estimateTripBudget — prices the traveller's picks", () => {
     expect(line(twoCities, "hotels").amount).toBe(200 + 100);
   });
 });
+
+describe("estimateTripBudget — estimated entry fees", () => {
+  it("says so in the activities line when any price is an estimate", () => {
+    const withEstimate = itinerary({ activities: [{ id: "a1", name: "Museum", location: "Lisbon", price: 20, priceIsEstimate: true }] } as never);
+    expect(line(withEstimate, "activities").note).toContain("some entry fees estimated");
+    expect(line(itinerary(), "activities").note).not.toContain("estimated");
+  });
+});

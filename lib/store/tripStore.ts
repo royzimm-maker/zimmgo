@@ -21,6 +21,7 @@ import type {
   HotelOption,
   FlightOption,
   RestaurantOption,
+  ActivityOption,
   TransportOption,
   LodgingPreference,
   AirlinePreference,
@@ -100,8 +101,9 @@ interface TripState {
   // Itinerary
   addItinerary: (itinerary: GeneratedItinerary) => void;
   setItineraryFlights: (itineraryId: string, flights: FlightOption[]) => void;
-  /** Swaps in updated copies of restaurants, matched by id (e.g. refreshed Google places). */
+  /** Swaps in updated copies of restaurants or activities, matched by id (e.g. refreshed Google places). */
   replaceRestaurants: (itineraryId: string, updated: RestaurantOption[]) => void;
+  replaceActivities: (itineraryId: string, updated: ActivityOption[]) => void;
   updateItineraryRefinements: (itineraryId: string, refinements: ItineraryRefinements) => void;
   saveFinalizedPlan: (itineraryId: string, plan: FinalizedPlan) => void;
   markItineraryReviewed: (itineraryId: string) => void;
@@ -164,6 +166,23 @@ export function hasRealProgress(trip: Trip): boolean {
 // The traveller's choices belong to the itinerary they're about
 // (GeneratedItinerary.selections). The selection setters act on the latest
 // itinerary — the one being reviewed and shown; with none, they do nothing.
+// The list with any item that has an updated copy swapped for it, in place.
+function replacedById<T extends { id: string }>(items: T[], updated: T[]): T[] {
+  const byId = new Map(updated.map((x) => [x.id, x]));
+  return items.map((x) => byId.get(x.id) ?? x);
+}
+
+// Applies `change` to one itinerary of the current trip.
+function withItinerary(s: TripState, itineraryId: string, change: (it: GeneratedItinerary) => GeneratedItinerary): Partial<TripState> {
+  return {
+    trip: {
+      ...s.trip,
+      itineraries: s.trip.itineraries.map((it) => (it.id === itineraryId ? change(it) : it)),
+      updatedAt: new Date().toISOString(),
+    },
+  };
+}
+
 function withLatestSelections(
   s: Pick<TripState, "trip">,
   change: (selections: ItinerarySelections) => ItinerarySelections
@@ -546,20 +565,10 @@ export const useTripStore = create<TripState>()(
         })),
 
       replaceRestaurants: (itineraryId, updated) =>
-        set((s) => {
-          const byId = new Map(updated.map((r) => [r.id, r]));
-          return {
-            trip: {
-              ...s.trip,
-              itineraries: s.trip.itineraries.map((it) =>
-                it.id === itineraryId && it.restaurants
-                  ? { ...it, restaurants: it.restaurants.map((r) => byId.get(r.id) ?? r) }
-                  : it
-              ),
-              updatedAt: new Date().toISOString(),
-            },
-          };
-        }),
+        set((s) => withItinerary(s, itineraryId, (it) => (it.restaurants ? { ...it, restaurants: replacedById(it.restaurants, updated) } : it))),
+
+      replaceActivities: (itineraryId, updated) =>
+        set((s) => withItinerary(s, itineraryId, (it) => ({ ...it, activities: replacedById(it.activities, updated) }))),
 
       updateItineraryRefinements: (itineraryId, refinements) =>
         set((s) => ({

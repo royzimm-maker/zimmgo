@@ -1,11 +1,11 @@
-// Activities API module
-// Production: integrate with GetYourGuide API or Viator API
-// GetYourGuide docs: https://api.getyourguide.com
+// Activities: real attractions from Google Places when it's available
+// (googleActivities.ts), otherwise the curated sample data below.
 
 import { stableId } from "@/lib/search/mockRandom";
 import { DESTINATION_ALIASES } from "@/lib/data/destinationAliases";
 import { resolvePool } from "@/lib/search/poolLookup";
 import { getActivitiesForDestination, type DestinationActivity } from "@/lib/data/destinationActivities";
+import { searchGoogleActivities } from "@/lib/search/googleActivities";
 import type { ActivityOption } from "@/types/trip";
 
 interface ActivitySearchParams {
@@ -277,12 +277,14 @@ function findActivityBase(destination: string): Partial<ActivityOption>[] {
 }
 
 export async function searchActivities(params: ActivitySearchParams): Promise<ActivityOption[]> {
-  // --- PRODUCTION SWAP POINT ---
-  // const response = await fetch("https://api.getyourguide.com/1/activities?q=...", {
-  //   headers: { "X-ACCESS-TOKEN": process.env.GYG_API_KEY! },
-  // });
-  // return transformGYGResponse(response);
+  const real = await searchGoogleActivities(params);
+  if (real) return real;
+  return sampleActivities(params);
+}
 
+// The curated sample data — used when Google Places isn't configured, its
+// daily allowance is used up, or it fails.
+export function sampleActivities(params: ActivitySearchParams): ActivityOption[] {
   const base = findActivityBase(params.destination);
   const maxPrice = params.max_price_per_person ?? 500;
 

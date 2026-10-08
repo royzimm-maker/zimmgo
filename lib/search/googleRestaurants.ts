@@ -1,10 +1,15 @@
 // Real restaurants from Google Places, in the app's RestaurantOption shape.
 // searchRestaurants (restaurants.ts) uses these when Google is available and
 // falls back to its sample data otherwise.
-import { neighbourhoodOf, placeDetails, placePhoto, searchPlaces, type GooglePlace } from "@/lib/search/googlePlaces";
+import { neighbourhoodOf, placeDetails, placePhoto, searchPlaces, withCity, type GooglePlace } from "@/lib/search/googlePlaces";
 import type { RestaurantOption, RestaurantTier } from "@/types/trip";
 
 const RESULTS_PER_SEARCH = 6;
+const RESTAURANT_FIELDS = [
+  "id", "displayName", "primaryTypeDisplayName", "types", "priceLevel", "rating", "userRatingCount",
+  "googleMapsUri", "websiteUri", "editorialSummary", "businessStatus", "servesBrunch", "servesBreakfast",
+  "addressComponents", "photos",
+];
 const MIN_REVIEWS = 20; // a rating from a handful of reviews says little
 
 const PRICE: Record<string, RestaurantOption["priceRange"]> = {
@@ -87,7 +92,7 @@ export function toRestaurant(place: GooglePlace, destination: string, fetchedAt:
     description: summary ?? plainDescription(tier, cuisine, area),
     menuUrl: place.websiteUri,
     bookingUrl: tier === "fine_dining" || tier === "upscale"
-      ? `https://www.opentable.com/s/?term=${encodeURIComponent(`${name} ${destination}`)}`
+      ? `https://www.opentable.com/s/?term=${encodeURIComponent(withCity(name, destination))}`
       : undefined,
     michelinDistinction: summary ? michelinIn(summary) : undefined,
     google: { placeId: place.id, mapsUri, fetchedAt },
@@ -119,7 +124,7 @@ export async function searchGoogleRestaurants(params: {
   budget_level?: "low" | "mid" | "high";
   meal_types?: string[];
 }): Promise<RestaurantOption[] | null> {
-  const places = await searchPlaces(restaurantQuery(params.destination, params.cuisine_preferences, params.meal_types), {
+  const places = await searchPlaces(restaurantQuery(params.destination, params.cuisine_preferences, params.meal_types), RESTAURANT_FIELDS, {
     pageSize: 12,
     minRating: 4,
     priceLevels: params.budget_level ? BUDGET_PRICE_LEVELS[params.budget_level] : undefined,
@@ -138,7 +143,7 @@ export async function searchGoogleRestaurants(params: {
  */
 export async function refreshRestaurant(saved: RestaurantOption): Promise<RestaurantOption | null> {
   if (!saved.google) return null;
-  const place = await placeDetails(saved.google.placeId);
+  const place = await placeDetails(saved.google.placeId, RESTAURANT_FIELDS);
   if (!place) return null;
   const city = saved.location.split(",").pop()!.trim();
   const [fresh] = await withPhotos([toRestaurant(place, city, new Date().toISOString())], [place]);

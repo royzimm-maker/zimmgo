@@ -478,8 +478,29 @@ export function ActivityCard({
           <p className="text-xs text-slate-500 mt-1">{activity.description}</p>
           <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
             <span>⏱ {activity.duration}</span>
-            <span>⭐ {activity.rating}{activity.ratingSource ? ` (${activity.ratingSource})` : ""}</span>
+            {activity.google ? (
+              // Google's own figure (stored ×2 on the app's 10-point scale), credited to Google Maps.
+              <a href={activity.google.mapsUri} target="_blank" rel="noreferrer" title="Rating from Google Maps" className="hover:underline">
+                ⭐ {(activity.rating / 2).toFixed(1)} · {activity.reviewCount.toLocaleString()} on Google Maps
+              </a>
+            ) : (
+              <span>⭐ {activity.rating}{activity.ratingSource ? ` (${activity.ratingSource})` : ""}</span>
+            )}
           </div>
+          {activity.google && (
+            <div className="flex items-center gap-3 mt-1.5 text-[11px]">
+              <a href={activity.google.mapsUri} target="_blank" rel="noreferrer"
+                className="flex items-center gap-0.5 text-slate-500 hover:text-slate-700 hover:underline">
+                Google Maps <ExternalLink size={9} />
+              </a>
+              {activity.google.websiteUri && (
+                <a href={activity.google.websiteUri} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-0.5 text-slate-500 hover:text-slate-700 hover:underline">
+                  Website <ExternalLink size={9} />
+                </a>
+              )}
+            </div>
+          )}
         </div>
         <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
           <div className="flex flex-col items-end gap-1">
@@ -512,11 +533,21 @@ export function ActivityCard({
             )}
           </div>
           <div>
-            <p className="font-bold text-slate-900 text-sm">{formatCurrency(activity.price, trip.preferences.preferredCurrency)}</p>
+            {activity.priceIsEstimate ? (
+              // Google rarely has entry prices; this is a typical fee for the kind of place.
+              <div title="Estimated — a typical entry fee for this kind of place">
+                <p className="font-bold text-slate-900 text-sm">
+                  {activity.price === 0 ? "Usually free" : `~${formatCurrency(activity.price, trip.preferences.preferredCurrency)}`}
+                </p>
+                {activity.price > 0 && <p className="text-[10px] text-slate-400">est. entry</p>}
+              </div>
+            ) : (
+              <p className="font-bold text-slate-900 text-sm">{formatCurrency(activity.price, trip.preferences.preferredCurrency)}</p>
+            )}
             {activity.bookingUrl && (
               <a href={activity.bookingUrl} target="_blank" rel="noreferrer"
                 className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 justify-end mt-0.5">
-                Book <ExternalLink size={10} />
+                {activity.google ? "Tickets & tours" : "Book"} <ExternalLink size={10} />
               </a>
             )}
           </div>

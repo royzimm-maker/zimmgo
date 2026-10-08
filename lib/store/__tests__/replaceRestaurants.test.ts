@@ -26,3 +26,16 @@ describe("replaceRestaurants", () => {
     expect(useTripStore.getState().trip.itineraries[0].restaurants?.map((r) => r.id)).toEqual(["a", "b"]);
   });
 });
+
+describe("replaceActivities", () => {
+  it("swaps in updated activity copies by id, keeping the traveller's picks", () => {
+    const act = (id: string, rating: number) => ({ id, name: id, rating, location: "Lisbon" });
+    useTripStore.getState().replaceActivities("i1", []);
+    useTripStore.setState((s) => ({ trip: { ...s.trip, itineraries: [{ ...s.trip.itineraries[0], activities: [act("m", 9), act("n", 8)] } as GeneratedItinerary] } }));
+    useTripStore.getState().setSelectedActivityIds(["n"]);
+    useTripStore.getState().replaceActivities("i1", [act("n", 9.2) as never]);
+    const latest = useTripStore.getState().trip.itineraries[0];
+    expect(latest.activities.map((a) => [a.id, a.rating])).toEqual([["m", 9], ["n", 9.2]]);
+    expect(latest.selections?.activityIds).toEqual(["n"]);
+  });
+});

@@ -303,6 +303,12 @@ export interface ActivityOption {
   description: string;
   location?: string;
   bookingUrl?: string;
+  // A real place from Google Places (see RestaurantOption.google). Google
+  // rarely gives entry prices or visit lengths, so for these `price` is
+  // usually a typical fee for the kind of place (priceIsEstimate) and
+  // `duration` a typical visit ("~2h").
+  google?: GooglePlaceRef & { websiteUri?: string };
+  priceIsEstimate?: boolean;
 }
 
 export type RestaurantTier = "fine_dining" | "upscale" | "midrange" | "casual" | "street_food" | "brunch";
