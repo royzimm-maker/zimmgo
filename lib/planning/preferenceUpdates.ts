@@ -1,4 +1,4 @@
-// A preference change ZiGy applies from chat (the update_*_preferences
+// A preference change ZimmGo applies from chat (the update_*_preferences
 // tools), and the rules for folding it into the saved preferences. Shared by
 // the chat route, which produces updates, and the store, which applies them —
 // so the chat panel only has to show what changed.

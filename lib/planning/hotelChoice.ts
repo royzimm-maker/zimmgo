@@ -8,7 +8,7 @@ import type { GeneratedItinerary, HotelOption } from "@/types/trip";
 // There's one place a traveller's choice is stored: the itinerary's
 // selections.hotelsByCity, keyed by its cities (lib/location.ts
 // itineraryCities). The review wizard, the Refine step and auto-plan write
-// there, and the Lodging step's pick seeds it (lib/planning/selections.ts). Without a choice, the city's first hotel in the itinerary is ZiGy's
+// there, and the Lodging step's pick seeds it (lib/planning/selections.ts). Without a choice, the city's first hotel in the itinerary is ZimmGo's
 // recommendation — generation puts the hotel its summary describes first.
 
 export interface HotelChoice {

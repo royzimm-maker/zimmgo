@@ -8,7 +8,7 @@ import { runSmartPick } from "@/lib/ai/smartPick";
 import { autoPlanTrip } from "@/lib/planning/autoPlanTrip";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 
-// "Let ZiGy plan my whole trip" runs as a background job, like generation:
+// "Let ZimmGo plan my whole trip" runs as a background job, like generation:
 // several smart-picks per city (cities in parallel) are too long and too
 // costly to hold in one request or to lose to a refresh. POST starts it and
 // returns at once; the client polls GET.

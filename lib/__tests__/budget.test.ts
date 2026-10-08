@@ -15,7 +15,7 @@ function itinerary(over: Partial<GeneratedItinerary> = {}): GeneratedItinerary {
       flight("out-cheap", "JFK", "LIS", 400), flight("out-pricey", "JFK", "LIS", 900),
       flight("ret-cheap", "OPO", "JFK", 300),
     ],
-    // ZiGy's recommendation is listed first for each city.
+    // ZimmGo's recommendation is listed first for each city.
     hotels: [hotel("lis-zigy", "Lisbon", 200), hotel("lis-lux", "Lisbon", 800), hotel("opo-zigy", "Porto", 100)],
     activities: [{ id: "a1", name: "Tram", location: "Lisbon", price: 30 }, { id: "a2", name: "Cruise", location: "Porto", price: 70 }],
     ...over,
@@ -25,7 +25,7 @@ const prefs = { destination: { cities: ["Lisbon", "Porto"], displayName: "Portug
 const line = (it: GeneratedItinerary, id: string) => estimateTripBudget(it, prefs).lines.find((l) => l.id === id)!;
 
 describe("estimateTripBudget — prices the traveller's picks", () => {
-  it("before any choices: ZiGy's first flight pair and hotels, and every suggested activity", () => {
+  it("before any choices: ZimmGo's first flight pair and hotels, and every suggested activity", () => {
     const it0 = itinerary();
     expect(line(it0, "flights").amount).toBe(400 + 300);
     expect(line(it0, "hotels").amount).toBe(2 * 200);

@@ -94,7 +94,7 @@ function dayBullets(dayPlan: DayPlan | undefined): string[] {
   return lines.length || dayPlan.source !== "traveller" ? lines : ["Free day — nothing scheduled"];
 }
 
-// Only ever from an activity the traveller actually scheduled — ZiGy's
+// Only ever from an activity the traveller actually scheduled — ZimmGo's
 // suggestions have no structured link back to a specific activity, so an
 // unarranged day gets no highlight rather than a guessed one.
 function dayHighlight(dayPlan: DayPlan | undefined): { name: string; reason: string } | null {

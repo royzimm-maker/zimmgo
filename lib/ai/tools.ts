@@ -444,7 +444,7 @@ export const UPDATE_AIRLINE_PREFERENCES_TOOL: Anthropic.Tool = {
   },
 };
 
-// Forced-tool-call schema for "let ZiGy choose" — used both for picking a single
+// Forced-tool-call schema for "let ZimmGo choose" — used both for picking a single
 // hotel and for arranging a city's activities/restaurants across its days.
 export const SMART_PICK_TOOL: Anthropic.Tool = {
   name: "make_selection",

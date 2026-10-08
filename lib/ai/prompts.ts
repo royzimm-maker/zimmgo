@@ -4,7 +4,7 @@ import type { TripPreferences, HotelOption, ActivityOption, RestaurantOption, It
 import { resolveBudget } from "@/types/trip";
 
 // Shared across every prompt that reasons about restaurants/activities, so a
-// stated allergy or restriction is never silently dropped from ZiGy's picks.
+// stated allergy or restriction is never silently dropped from ZimmGo's picks.
 function buildDietaryLine(preferences: TripPreferences): string {
   const tags = preferences.dietaryRestrictions?.length ? preferences.dietaryRestrictions.join(", ") : "";
   const notes = preferences.dietaryNotes?.trim();
@@ -14,7 +14,7 @@ function buildDietaryLine(preferences: TripPreferences): string {
 }
 
 // Shared by every prompt that lays out a day-by-day schedule (initial
-// generation and the "Let ZiGy arrange" smart-pick), so the traveller's
+// generation and the "Let ZimmGo arrange" smart-pick), so the traveller's
 // stated pacing preference is applied consistently everywhere, not just
 // wherever the itinerary happened to be built.
 function buildSchedulePaceLine(pace: TripPreferences["schedulePace"]): string {
@@ -324,7 +324,7 @@ If the user asks you to save, remember, bookmark, or add something to their Wand
   }${lodgingEditNote}${activitiesEditNote}${vibeEditNote}${airlinesEditNote}`;
 }
 
-// "Let ZiGy choose" — pick the single best hotel for one city
+// "Let ZimmGo choose" — pick the single best hotel for one city
 export function buildHotelPickPrompt(
   city: string,
   preferences: TripPreferences,
@@ -340,7 +340,7 @@ export function buildHotelPickPrompt(
   return `Pick the single best hotel in ${city} for this traveller.${vibeStr}${budgetStr}\n\nOptions:\n${list}\n\nCall make_selection with exactly one pick — its id and a one-sentence reason it's the right fit for this trip.`;
 }
 
-// "Let ZiGy choose" — pick 3-5 real activities (from search results already
+// "Let ZimmGo choose" — pick 3-5 real activities (from search results already
 // shown for this city) on the traveller's behalf, distinct from
 // buildPreferencePickPrompt's "activities" kind, which picks category labels
 // before any real search has happened.
@@ -375,7 +375,7 @@ export function buildRestaurantsForCityPickPrompt(
     `Call make_selection with each pick's id and a one-sentence reason it's a good fit, plus a 1-2 sentence overall summary of your approach for this city.`;
 }
 
-// "Let ZiGy arrange" — assign a city's activities and restaurants across its days
+// "Let ZimmGo arrange" — assign a city's activities and restaurants across its days
 export function buildSchedulePickPrompt(
   city: string,
   preferences: TripPreferences,
@@ -402,7 +402,7 @@ export function buildSchedulePickPrompt(
     `Also include a 1-2 sentence "summary" explaining your overall approach for this city.`;
 }
 
-// "Let ZiGy choose" — pick activity categories, vibes, or lodging type/stars/amenities
+// "Let ZimmGo choose" — pick activity categories, vibes, or lodging type/stars/amenities
 // on the traveller's behalf, before they've told us anything about that category yet.
 export function buildPreferencePickPrompt(
   kind: "activities" | "vibes" | "lodging",

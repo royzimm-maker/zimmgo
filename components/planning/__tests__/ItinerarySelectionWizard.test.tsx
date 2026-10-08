@@ -52,7 +52,7 @@ function freshTrip(): Trip {
       // Skip the flights stage entirely — this test is only about the
       // per-city hotel auto-pick, not flight search.
       noFlightsNeeded: true,
-      // This is the signal set by LodgingStep's "Let ZiGy choose for me" —
+      // This is the signal set by LodgingStep's "Let ZimmGo choose for me" —
       // the wizard should honor it for every city, not just the one
       // LodgingStep itself searched.
       autoPickHotels: true,
@@ -118,7 +118,7 @@ describe("ItinerarySelectionWizard — cross-city hotel auto-pick", () => {
     // This is the actual bug reported this session: LodgingStep only ever
     // searches/picks for the trip's primary city, so a secondary city
     // landed on a blank hotel picker even when the traveller had asked
-    // ZiGy to choose lodging. The fix makes this wizard re-run the same
+    // ZimmGo to choose lodging. The fix makes this wizard re-run the same
     // auto-pick per city as the traveller reaches it.
     vi.stubGlobal("fetch", mockSmartPickFetch());
 

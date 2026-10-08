@@ -317,7 +317,6 @@ export function sampleHotels(params: HotelSearchParams): HotelOption[] {
         pricePerNight: Math.min(seededInt(seededRandom("hotel-price", h.name, params.destination), lo, hi), maxPrice),
         currency: "USD",
         rating: h.rating!,
-        ratingSource: h.ratingSource,
         reviewCount: h.reviewCount!,
         highlights: h.highlights!,
         imageUrl: `https://picsum.photos/seed/${encodeURIComponent(h.name!)}/800/400`,

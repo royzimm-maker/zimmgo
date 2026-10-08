@@ -17,8 +17,7 @@ import { cn, scrollStepToTop } from "@/lib/utils";
 import { itineraryCities } from "@/lib/location";
 import { useTripStore } from "@/lib/store/tripStore";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
-import { REVIEW_SOURCES, applyReviewSourcePref } from "@/lib/data/reviewSources";
-import type { HotelOption, LodgingStarRating, LodgingType, ReviewSource } from "@/types/trip";
+import type { HotelOption, LodgingStarRating, LodgingType } from "@/types/trip";
 
 const TYPES: { id: LodgingType; label: string; icon: string; sublabel: string }[] = [
   { id: "hotel",    label: "Hotel",        icon: "🏨", sublabel: "Traditional hotel, full service" },
@@ -35,12 +34,12 @@ const AMENITIES = [
 ];
 
 export function LodgingStep() {
-  const { trip, setLodging, setLodgingPick, setReviewSourcePref, setAutoPickHotels } = useTripStore();
+  const { trip, setLodging, setLodgingPick, setAutoPickHotels } = useTripStore();
   const existing = trip.preferences.lodging;
-  // "zigy_review" is a transient state shown right after picking "Let ZiGy
+  // "zigy_review" is a transient state shown right after picking "Let ZimmGo
   // choose for me" on the initial prompt — a focused summary of the pick
   // instead of dropping straight into the full editable form, which read as
-  // "the decision is still up to you" even though ZiGy had already decided.
+  // "the decision is still up to you" even though ZimmGo had already decided.
   const [mode, setMode] = useState<"prompt" | "manual" | "zigy_review">(() => (existing ? "manual" : "prompt"));
   const [showMoreHotels, setShowMoreHotels] = useState(false);
   const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
@@ -62,7 +61,7 @@ export function LodgingStep() {
   const [amenityOpen,    setAmenityOpen   ] = useState(false);
 
   // This step keeps its own draft state and only writes back to the store on
-  // Continue — so a chat-driven edit (ZiGy applying "find me resorts instead"
+  // Continue — so a chat-driven edit (ZimmGo applying "find me resorts instead"
   // while the user is sitting on this step) wouldn't otherwise be visible
   // until they navigated away and back. `existing` only changes here when
   // something outside this component calls setLodging, so re-sync the draft
@@ -74,9 +73,6 @@ export function LodgingStep() {
     setAmenities(existing.amenities);
   }, [existing]);
 
-  const existingReviewPref = trip.preferences.reviewSourcePref;
-  const [reviewMode,   setReviewMode  ] = useState<"single" | "cross_reference">(existingReviewPref?.mode ?? "cross_reference");
-  const [reviewSource, setReviewSource] = useState<ReviewSource | null>(existingReviewPref?.source ?? null);
 
   const [hotels,          setHotels         ] = useState<HotelOption[]>([]);
   const [hotelsLoading,   setHotelsLoading  ] = useState(false);
@@ -86,7 +82,7 @@ export function LodgingStep() {
   );
   // Separate from `picking`/`pickSummary` (which cover the type/stars/amenity
   // filters) — this covers the follow-up step of actually choosing one of the
-  // resulting hotels, so "let ZiGy pick" doesn't just narrow the filters and
+  // resulting hotels, so "let ZimmGo pick" doesn't just narrow the filters and
   // leave "Choose your stay" below sitting there unresolved.
   const [pickingHotel,   setPickingHotel  ] = useState(false);
   const [hotelPickReason, setHotelPickReason] = useState<string | null>(null);
@@ -123,8 +119,8 @@ export function LodgingStep() {
     // type/star change it's already fetching for. Since the mock search
     // hands out a fresh random id to every hotel on every call, whichever
     // fetch's response lands last "wins" and can silently orphan the hotel
-    // ZiGy just picked — pickingHotel skips the redundant duplicate here so
-    // there's only ever one fetch in flight for a ZiGy-driven change.
+    // ZimmGo just picked — pickingHotel skips the redundant duplicate here so
+    // there's only ever one fetch in flight for a ZimmGo-driven change.
     if (pickingHotel) return;
     const onlyAirbnb = isAirbnbOnly(effectiveTypes);
     if (effectiveTypes.length > 0 && !onlyAirbnb) fetchHotels(minStars);
@@ -216,7 +212,7 @@ export function LodgingStep() {
       } catch (e: unknown) {
         // Non-fatal — the type/stars/amenity filters above still applied
         // successfully, the traveller just needs to pick a hotel manually.
-        setHotelPickError(e instanceof Error ? e.message : "ZiGy couldn't pick a specific hotel — the filters above are still set, pick one below.");
+        setHotelPickError(e instanceof Error ? e.message : "ZimmGo couldn't pick a specific hotel — the filters above are still set, pick one below.");
       } finally {
         setPickingHotel(false);
       }
@@ -226,31 +222,12 @@ export function LodgingStep() {
   function handleContinue() {
     setLodging(assembleLodging(draft));
 
-    setReviewSourcePref(
-      reviewMode === "single" && reviewSource
-        ? { mode: "single", source: reviewSource }
-        : { mode: "cross_reference" }
-    );
-
     const picked = displayHotels.find((h) => h.id === selectedHotelId) ?? null;
     setLodgingPick(picked);
   }
 
-  // Live preview of the rating source the user is currently choosing, so the hotel
-  // cards below reflect it immediately instead of only after generation. Only
-  // the currently-visible slice is shaped — visibleHotelCount only ever grows
-  // (via "show more"), so a hotel visible now stays visible, and there's no
-  // point jittering ratings for hotels nobody's scrolled to yet.
-  const displayHotels = useMemo(
-    () =>
-      applyReviewSourcePref(
-        hotels.slice(0, visibleHotelCount),
-        reviewMode === "single" && reviewSource
-          ? { mode: "single", source: reviewSource }
-          : { mode: "cross_reference" }
-      ),
-    [hotels, visibleHotelCount, reviewMode, reviewSource]
-  );
+  // The hotels shown so far — visibleHotelCount only grows (via "show more").
+  const displayHotels = useMemo(() => hotels.slice(0, visibleHotelCount), [hotels, visibleHotelCount]);
 
   const hasType = effectiveTypes.length > 0;
   // Only show hotel picker if accommodation type includes bookable hotel options
@@ -275,9 +252,9 @@ export function LodgingStep() {
     );
   }
 
-  // "Let ZiGy plan my whole trip" (chosen on the Planning Mode step just
-  // before this one) means this step's own "I'll pick myself vs. let ZiGy
-  // choose" prompt would be redundant — auto-run the exact same ZiGy pick
+  // "Let ZimmGo plan my whole trip" (chosen on the Planning Mode step just
+  // before this one) means this step's own "I'll pick myself vs. let ZimmGo
+  // choose" prompt would be redundant — auto-run the exact same ZimmGo pick
   // path a manual click on that card would trigger, once, so the traveller
   // lands directly on the review screen instead of having to choose again.
   const autoPlanRef = useRef(false);
@@ -335,7 +312,7 @@ export function LodgingStep() {
         stepId="lodging"
         onContinue={handleContinue}
         continueDisabled={!hasType}
-        subtitle="Here's what ZiGy picked for your stay."
+        subtitle="Here's what ZimmGo picked for your stay."
         headerImage="/zigy-lodging.png"
       >
         <div className="flex flex-col gap-4">
@@ -363,7 +340,7 @@ export function LodgingStep() {
             <div className="max-w-xs">{renderHotelCard(pickedHotel)}</div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
-              <p className="text-sm text-slate-500">ZiGy couldn&apos;t lock in a specific hotel.</p>
+              <p className="text-sm text-slate-500">ZimmGo couldn&apos;t lock in a specific hotel.</p>
               <p className="text-xs text-slate-400 mt-1">The type, star, and amenity picks above still applied — choose a hotel below or adjust the filters yourself.</p>
             </div>
           )}
@@ -411,7 +388,7 @@ export function LodgingStep() {
           whether a pick has actually happened rather than only tracking
           modeChoice, which that path never sets. */}
       <ModeToggleBanner
-        label="Lodging preferences for you to choose from — or let ZiGy pick."
+        label="Lodging preferences for you to choose from — or let ZimmGo pick."
         onZigy={handleZigyPick}
         loading={picking || pickingHotel}
         error={pickSummary ? null : pickError}
@@ -556,61 +533,10 @@ export function LodgingStep() {
           </div>
         </div>
 
-        {/* Review source preference — applies to hotels, restaurants, and activities */}
+        {/* Where ratings come from — Google only (lib/search/googlePlaces.ts) */}
         <div className="border-t border-slate-100 pt-5">
           <p className="mb-1 text-sm font-medium text-slate-700">Ratings & reviews</p>
-          <p className="mb-2.5 text-xs text-slate-400">
-            How should we source ratings for hotels, restaurants, and activities?
-          </p>
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => setReviewMode("cross_reference")}
-              className={cn(
-                "rounded-lg border px-3 py-2 text-left text-sm font-medium transition-all",
-                reviewMode === "cross_reference"
-                  ? "border-brand-500 bg-brand-50 text-brand-700"
-                  : "border-slate-200 text-slate-600 hover:border-slate-300"
-              )}
-            >
-              Cross-reference multiple sources
-              <span className="block text-xs font-normal text-slate-400 mt-0.5">
-                Average across Google Reviews, TripAdvisor & Booking.com
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewMode("single")}
-              className={cn(
-                "rounded-lg border px-3 py-2 text-left text-sm font-medium transition-all",
-                reviewMode === "single"
-                  ? "border-brand-500 bg-brand-50 text-brand-700"
-                  : "border-slate-200 text-slate-600 hover:border-slate-300"
-              )}
-            >
-              Use a single source
-              <span className="block text-xs font-normal text-slate-400 mt-0.5">Pick the one you trust most</span>
-            </button>
-            {reviewMode === "single" && (
-              <div className="flex flex-wrap gap-2 pl-1 pt-1">
-                {REVIEW_SOURCES.map((src) => (
-                  <button
-                    key={src}
-                    type="button"
-                    onClick={() => setReviewSource(src)}
-                    className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-medium transition-all",
-                      reviewSource === src
-                        ? "border-brand-500 bg-brand-50 text-brand-600"
-                        : "border-slate-200 text-slate-600 hover:border-slate-300"
-                    )}
-                  >
-                    {src}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <p className="text-xs text-slate-500">ZimmGo uses Google Reviews to make recommendations.</p>
         </div>
 
         {/* AirBnB note — shown instead of hotel cards */}

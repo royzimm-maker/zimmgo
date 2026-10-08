@@ -23,7 +23,7 @@ describe("vibe names", () => {
     expect(prompt).not.toContain("great_food");
   });
 
-  it("keeps the ids in chat, where ZiGy's vibe tool takes them back", () => {
+  it("keeps the ids in chat, where ZimmGo's vibe tool takes them back", () => {
     expect(buildChatSystemPrompt(prefs)).toContain("Vibe: Food-Forward Travel (great_food), Architecture (architecture), Glamping");
   });
 });

@@ -10,29 +10,29 @@ interface Props {
   zigyLabel?: string;
   zigyLoadingLabel?: string;
   zigyDescription: string;
-  // Short note on what ZiGy bases the pick on, shown under zigyDescription —
+  // Short note on what ZimmGo bases the pick on, shown under zigyDescription —
   // defaults to the same phrasing used everywhere else this pattern appears.
   zigyReassurance?: string;
   // Which card is currently highlighted — selecting a card doesn't act on it
   // right away; the step's own Continue button (disabled until a choice is
-  // made) is what actually switches views or triggers the ZiGy pick, so a
+  // made) is what actually switches views or triggers the ZimmGo pick, so a
   // click here can't be mistaken for an accidental commit.
   selected: ModeChoice | null;
   onSelect: (choice: ModeChoice) => void;
   loading: boolean;
-  // Set when a previous ZiGy pick attempt failed — a real failure (bad API
-  // key, network blip) should never look identical to "ZiGy picked nothing."
+  // Set when a previous ZimmGo pick attempt failed — a real failure (bad API
+  // key, network blip) should never look identical to "ZimmGo picked nothing."
   error?: string | null;
 }
 
 const DEFAULT_REASSURANCE =
-  "ZiGy decides based on your inputs so far and everything we know about your destinations.";
+  "ZimmGo decides based on your inputs so far and everything we know about your destinations.";
 
 export function ChooseModePrompt({
   manualLabel,
   manualDescription,
-  zigyLabel = "Let ZiGy choose for me",
-  zigyLoadingLabel = "ZiGy is choosing…",
+  zigyLabel = "Let ZimmGo choose for me",
+  zigyLoadingLabel = "ZimmGo is choosing…",
   zigyDescription,
   zigyReassurance = DEFAULT_REASSURANCE,
   selected,

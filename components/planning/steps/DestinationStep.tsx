@@ -229,7 +229,7 @@ export function DestinationStep() {
         </button>
       )}
 
-      {/* ── ZiGy, dreaming up the trip — big enough to actually make out
+      {/* ── ZimmGo, dreaming up the trip — big enough to actually make out
           what's in the thought bubble, instead of a small inline icon.
           Sized to leave "Need inspiration?" below still reachable without
           scrolling on a typical viewport — see the trimmed spacing/rows

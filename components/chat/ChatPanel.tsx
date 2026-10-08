@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { Send, User, CheckCircle2 } from "lucide-react";
 import { useTripStore } from "@/lib/store/tripStore";
 import { cn } from "@/lib/utils";
@@ -63,7 +62,7 @@ function summarizeAirlineUpdate(u: AirlinesUpdate): string {
   return parts.length ? `Updated flights: ${parts.join(" · ")}` : "Updated flight preferences";
 }
 
-// The chip under ZiGy's reply naming what changed. `before` is the
+// The chip under ZimmGo's reply naming what changed. `before` is the
 // preferences as they were, so list changes show as added/removed.
 function summarizePreferenceUpdate(before: TripPreferences, u: PreferenceUpdate): string {
   switch (u.kind) {
@@ -72,18 +71,6 @@ function summarizePreferenceUpdate(before: TripPreferences, u: PreferenceUpdate)
     case "vibes": return summarizeVibeUpdate(before.vibes, u.vibes);
     case "airlines": return summarizeAirlineUpdate(u);
   }
-}
-
-export function ZigyAvatar({ size = 20 }: { size?: number }) {
-  return (
-    <Image
-      src="/zigy-avatar.png"
-      alt="ZiGy"
-      width={size}
-      height={size}
-      className="rounded-full object-cover"
-    />
-  );
 }
 
 const STARTER_PROMPTS = [
@@ -191,14 +178,9 @@ export function ChatPanel() {
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="shrink-0 border-b border-slate-200 px-4 py-3 hidden lg:block">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 overflow-hidden">
-            <ZigyAvatar size={32} />
-          </div>
-          <p className="text-sm font-semibold text-slate-800">
-            I&rsquo;m ZiGy, your personal AI travel advisor.
-          </p>
-        </div>
+        <p className="text-sm font-semibold text-slate-800">
+          Ask anything, or tell us more about your plans.
+        </p>
       </div>
 
       {/* Input — pinned just below the header */}
@@ -209,7 +191,7 @@ export function ChatPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask ZiGy anything you want about your trip."
+            placeholder="Ask ZimmGo anything you want about your trip."
             className="flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 max-h-32"
             style={{ minHeight: "38px" }}
           />
@@ -260,20 +242,12 @@ export function ChatPanel() {
               msg.role === "user" ? "flex-row-reverse" : "flex-row"
             )}
           >
-            {/* Avatar */}
-            <div
-              className={cn(
-                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full mt-0.5 overflow-hidden",
-                msg.role === "user"
-                  ? "bg-slate-200 text-slate-600"
-                  : "bg-brand-100 text-brand-600"
-              )}
-            >
-              {msg.role === "user"
-                ? <User size={11} />
-                : <ZigyAvatar size={24} />
-              }
-            </div>
+            {/* Avatar — the traveller's only; ZimmGo's replies need none */}
+            {msg.role === "user" && (
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full mt-0.5 overflow-hidden bg-slate-200 text-slate-600">
+                <User size={11} />
+              </div>
+            )}
 
             {/* Bubble */}
             <div className="flex max-w-[85%] flex-col gap-1.5">
@@ -303,9 +277,6 @@ export function ChatPanel() {
         {/* Typing indicator */}
         {loading && (
           <div className="flex gap-2 animate-fade-up">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600 mt-0.5 overflow-hidden">
-              <ZigyAvatar size={24} />
-            </div>
             <div className="flex items-center gap-1 rounded-xl rounded-tl-sm bg-slate-100 px-3 py-2.5">
               {[0, 1, 2].map((i) => (
                 <span

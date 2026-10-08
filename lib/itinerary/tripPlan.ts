@@ -3,14 +3,14 @@
 // about what a day holds or where the traveller is staying.
 //
 // An itinerary carries two schedules with different roles:
-//   • days[].morning/afternoon/evening — ZiGy's suggestions, filled in by
+//   • days[].morning/afternoon/evening — ZimmGo's suggestions, filled in by
 //     generation from the city's activities.
 //   • finalizedPlan.dayCards — the traveller's own arrangement, made in the
 //     Refine step (or by auto-plan on their behalf).
 // Once the traveller has arranged their days, that arrangement is the plan
 // and each day shows only what they put on it — a day they left empty is a
 // deliberately free day, not a gap to backfill. Before then, the plan is
-// ZiGy's suggestions.
+// ZimmGo's suggestions.
 import { itineraryCities, resolveCity } from "@/lib/location";
 import { chosenHotelForCity, type HotelChoice } from "@/lib/planning/hotelChoice";
 import { activityCardId, restaurantCardId } from "@/lib/planning/cityPicks";
@@ -24,7 +24,7 @@ export interface DayPlan {
   day: ItineraryDay;
   city: string;
   stay: HotelChoice | null;
-  /** Whose schedule the day shows: the traveller's arrangement, or ZiGy's suggestions. */
+  /** Whose schedule the day shows: the traveller's arrangement, or ZimmGo's suggestions. */
   source: "traveller" | "suggested";
   /** The traveller's items for the day, in order ("traveller" only; empty = a free day). */
   items: PlannedItem[];
@@ -32,7 +32,7 @@ export interface DayPlan {
 
 export interface TripPlan {
   cities: string[];
-  /** One stay per city: the traveller's choice, or ZiGy's recommendation. */
+  /** One stay per city: the traveller's choice, or ZimmGo's recommendation. */
   stays: { city: string; choice: HotelChoice }[];
   days: DayPlan[];
 }
@@ -70,7 +70,7 @@ export function itemLabel(item: PlannedItem): string {
 
 /**
  * A day's contents as text lines, the one way every text output lists them:
- * the traveller's items, or ZiGy's suggestions by time of day. An empty list
+ * the traveller's items, or ZimmGo's suggestions by time of day. An empty list
  * means a day the traveller deliberately left free.
  */
 export function dayLines(dayPlan: DayPlan): { label?: string; text: string }[] {

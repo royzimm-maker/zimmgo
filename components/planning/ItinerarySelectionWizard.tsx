@@ -204,7 +204,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
   }
   const displayedTransportOptions = options.transport.length ? options.transport : manualTransportResults;
 
-  // The traveller's (or ZiGy's) current pick for this city shown first —
+  // The traveller's (or ZimmGo's) current pick for this city shown first —
   // otherwise it can land anywhere in the raw search-result order.
   const pickedHotelId = chosen.hotelsByCity?.[currentCity]?.id;
   const displayHotels = useMemo(() => {
@@ -212,11 +212,11 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     return picked ? [picked, ...hotelsForCity.filter((h) => h.id !== pickedHotelId)] : hotelsForCity;
   }, [hotelsForCity, pickedHotelId]);
 
-  // ZiGy's picks for the current city. Only options offered for this city
+  // ZimmGo's picks for the current city. Only options offered for this city
   // can be picked (checked in lib/planning/cityPicks.ts).
-  const hotelPick = useCityPick("ZiGy couldn't pick a hotel right now");
-  const activityPick = useCityPick("ZiGy couldn't pick activities right now");
-  const restaurantPick = useCityPick("ZiGy couldn't pick restaurants right now");
+  const hotelPick = useCityPick("ZimmGo couldn't pick a hotel right now");
+  const activityPick = useCityPick("ZimmGo couldn't pick activities right now");
+  const restaurantPick = useCityPick("ZimmGo couldn't pick restaurants right now");
   const [pickingHotel, hotelPickReasons, hotelPickError] = [hotelPick.running, hotelPick.reasons, hotelPick.error];
   const [pickingActivities, activityPickReasons, activityPickError] = [activityPick.running, activityPick.reasons, activityPick.error];
   const [pickingRestaurants, restaurantPickReasons, restaurantPickError] = [restaurantPick.running, restaurantPick.reasons, restaurantPick.error];
@@ -249,7 +249,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
     });
   }
 
-  // The Lodging step's "Let ZiGy choose for me" only picks a hotel for the
+  // The Lodging step's "Let ZimmGo choose for me" only picks a hotel for the
   // trip's primary city. Honor that choice here for every city by
   // auto-running the same per-city pick the traveller could click. A city
   // with a hotel already chosen is left alone, and a failed attempt isn't
@@ -433,7 +433,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
               ) : (
                 <>
                   <p className="text-sm font-medium text-slate-700">
-                    ZiGy landed on {formatDate(itinerary.days[0]?.date)} – {formatDate(itinerary.days[itinerary.days.length - 1]?.date)}
+                    ZimmGo landed on {formatDate(itinerary.days[0]?.date)} – {formatDate(itinerary.days[itinerary.days.length - 1]?.date)}
                     {preferences.dates?.flexibleMonth ? ` for your flexible ${flexibleMonthLabel(preferences.dates.flexibleMonth)} window.` : "."}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
@@ -464,7 +464,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
               <p className="text-sm text-slate-500">
                 {searchingFlights ? "Searching for flights…" : "No specific flight options found yet."}
               </p>
-              <p className="text-xs text-slate-400 mt-1">Ask ZiGy in the chat panel for suggestions, or search again below.</p>
+              <p className="text-xs text-slate-400 mt-1">Ask ZimmGo in the chat panel for suggestions, or search again below.</p>
               <SearchFlightsButton onClick={handleSearchFlights} loading={searchingFlights} error={flightSearchError} />
             </div>
           ) : (
@@ -538,14 +538,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
               >
                 <Sparkles size={14} />
                 {pickingHotel
-                  ? "ZiGy is choosing…"
+                  ? "ZimmGo is choosing…"
                   : hotelPickReasons[currentCity]
-                  ? "Ask ZiGy to pick a different hotel"
-                  : `Let ZiGy choose the hotel for ${currentCity}`}
+                  ? "Ask ZimmGo to pick a different hotel"
+                  : `Let ZimmGo choose the hotel for ${currentCity}`}
               </button>
               {!pickingHotel && (
                 <p className="-mt-2 text-[11px] text-slate-400 text-center">
-                  Feel free to select a different hotel from the choices below — or ask ZiGy to make a different selection above.
+                  Feel free to select a different hotel from the choices below — or ask ZimmGo to make a different selection above.
                 </p>
               )}
               {hotelPickError && (
@@ -593,14 +593,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
               >
                 <Sparkles size={14} />
                 {pickingRestaurants
-                  ? "ZiGy is choosing…"
+                  ? "ZimmGo is choosing…"
                   : restaurantPickReasons[currentCity]
-                  ? "Ask ZiGy for more picks"
-                  : `Let ZiGy choose restaurants for ${currentCity}`}
+                  ? "Ask ZimmGo for more picks"
+                  : `Let ZimmGo choose restaurants for ${currentCity}`}
               </button>
               {restaurantPickReasons[currentCity] && !pickingRestaurants && (
                 <p className="-mt-2 text-[11px] text-slate-400 text-center">
-                  This adds more ZiGy picks on top of what&apos;s already selected below — it won&apos;t remove anything.
+                  This adds more ZimmGo picks on top of what&apos;s already selected below — it won&apos;t remove anything.
                 </p>
               )}
               {restaurantPickError && (
@@ -634,7 +634,7 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
                   className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
                 >
                   <Sparkles size={14} />
-                  Ask ZiGy for more restaurants in {currentCity}
+                  Ask ZimmGo for more restaurants in {currentCity}
                 </button>
               )}
             </div>
@@ -654,14 +654,14 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
               >
                 <Sparkles size={14} />
                 {pickingActivities
-                  ? "ZiGy is choosing…"
+                  ? "ZimmGo is choosing…"
                   : activityPickReasons[currentCity]
-                  ? "Ask ZiGy for more picks"
-                  : `Let ZiGy choose activities for ${currentCity}`}
+                  ? "Ask ZimmGo for more picks"
+                  : `Let ZimmGo choose activities for ${currentCity}`}
               </button>
               {activityPickReasons[currentCity] && !pickingActivities && (
                 <p className="-mt-2 text-[11px] text-slate-400 text-center">
-                  This adds more ZiGy picks on top of what&apos;s already selected below — it won&apos;t remove anything.
+                  This adds more ZimmGo picks on top of what&apos;s already selected below — it won&apos;t remove anything.
                 </p>
               )}
               {activityPickError && (
@@ -725,10 +725,10 @@ export function ItinerarySelectionWizard({ itinerary, onComplete, onRegenerate, 
       </div>
 
       {/* Reassurance: skipping this review doesn't hold back personalization —
-          it only leaves the flight/hotel shown in the summary as ZiGy's
+          it only leaves the flight/hotel shown in the summary as ZimmGo's
           default pick instead of one you chose. */}
       <p className="text-xs text-slate-400 -mt-2 text-center">
-        You can jump ahead any time — ZiGy can make these picks for you based on your trip
+        You can jump ahead any time — ZimmGo can make these picks for you based on your trip
         preferences and the best each destination has to offer, and you can always change them later.
       </p>
     </div>
@@ -739,7 +739,7 @@ function EmptyState({ label }: { label: string }) {
   return (
     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
       <p className="text-sm text-slate-500">No specific {label} found yet.</p>
-      <p className="text-xs text-slate-400 mt-1">Ask ZiGy in the chat panel for suggestions — you can move on for now.</p>
+      <p className="text-xs text-slate-400 mt-1">Ask ZimmGo in the chat panel for suggestions — you can move on for now.</p>
     </div>
   );
 }

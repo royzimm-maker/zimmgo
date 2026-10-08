@@ -1,5 +1,5 @@
 // The Lodging step's rules, apart from its UI: how the form's draft becomes a
-// saved LodgingPreference, and how "Let ZiGy choose" turns ZiGy's picks
+// saved LodgingPreference, and how "Let ZimmGo choose" turns ZimmGo's picks
 // into lodging types, a star minimum and amenities.
 import type { SmartPick } from "@/types/smartPick";
 import type { LodgingPreference, LodgingStarRating, LodgingType } from "@/types/trip";
@@ -26,7 +26,7 @@ export function assembleLodging(d: LodgingDraft): LodgingPreference {
 
 const STAR_OPTIONS: LodgingStarRating[] = [3, 4, 5];
 
-/** Everything ZiGy may choose from, as smart-pick candidates. */
+/** Everything ZimmGo may choose from, as smart-pick candidates. */
 export function lodgingPickCandidates(types: { id: LodgingType; label: string }[], amenities: string[]) {
   return [
     ...types.map((t) => ({ id: `type:${t.id}`, label: `Lodging type: ${t.label}` })),
@@ -36,9 +36,9 @@ export function lodgingPickCandidates(types: { id: LodgingType; label: string }[
 }
 
 /**
- * The lodging ZiGy's picks describe. Only known types and amenities count;
+ * The lodging ZimmGo's picks describe. Only known types and amenities count;
  * with no type or star pick, the current ones stay. Amenities are replaced
- * by ZiGy's (possibly empty) list.
+ * by ZimmGo's (possibly empty) list.
  */
 export function lodgingFromPicks(
   picks: SmartPick[],

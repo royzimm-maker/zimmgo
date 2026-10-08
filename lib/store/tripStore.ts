@@ -31,8 +31,6 @@ import type {
   BudgetRange,
   SplurgePreference,
   WanderlogItem,
-  ReviewSourcePreference,
-  BeliPreference,
   SchedulePace,
 } from "@/types/trip";
 
@@ -63,7 +61,7 @@ interface TripState {
   setDestination: (dest: Destination) => void;
   setActivities: (activities: (ActivityCategory | string)[]) => void;
   setVibes: (vibes: (VibeTag | string)[]) => void;
-  /** Apply a preference change ZiGy made from chat. */
+  /** Apply a preference change ZimmGo made from chat. */
   applyPreferenceUpdate: (update: PreferenceUpdate) => void;
   setSchedulePace: (pace: SchedulePace | undefined) => void;
   setAutoPlanEverything: (value: boolean) => void;
@@ -79,8 +77,6 @@ interface TripState {
     splurge?: SplurgePreference;
   }) => void;
   setLodging: (lodging: LodgingPreference) => void;
-  setReviewSourcePref: (pref: ReviewSourcePreference) => void;
-  setBeliPref: (pref: BeliPreference) => void;
   setSelectedHotelForCity: (city: string, hotel: HotelOption | null) => void;
   setLodgingPick: (hotel: HotelOption | null) => void;
   setSelectedTransportForLeg: (city: string, option: TransportOption | null) => void;
@@ -124,9 +120,6 @@ interface TripState {
   // User-level default (persists across trips, unlike trip.preferences)
   defaultDepartureAirport?: string;
   setDefaultDepartureAirport: (airport: string | undefined) => void;
-  // Same idea for Beli — connecting is a one-time account link, not a
-  // per-trip preference, so it shouldn't have to be redone every trip.
-  defaultBeliPref?: BeliPreference;
   // Same idea for currency — once a traveller picks a display currency it
   // should stick around for their next trip too.
   defaultCurrency?: string;
@@ -388,28 +381,6 @@ export const useTripStore = create<TripState>()(
           },
         })),
 
-      setReviewSourcePref: (reviewSourcePref) =>
-        set((s) => ({
-          trip: {
-            ...s.trip,
-            preferences: { ...s.trip.preferences, reviewSourcePref },
-            updatedAt: new Date().toISOString(),
-          },
-        })),
-
-      // Also updates the remembered default so the next trip starts already
-      // connected — a Beli account link isn't something worth re-entering
-      // per trip, unlike trip-scoped preferences.
-      setBeliPref: (beliPref) =>
-        set((s) => ({
-          trip: {
-            ...s.trip,
-            preferences: { ...s.trip.preferences, beliPref },
-            updatedAt: new Date().toISOString(),
-          },
-          defaultBeliPref: beliPref,
-        })),
-
       setSelectedHotelForCity: (city, hotel) =>
         set((s) => withLatestSelections(s, (sel) => ({ ...sel, hotelsByCity: withEntry(sel.hotelsByCity, city, hotel) }))),
 
@@ -466,8 +437,8 @@ export const useTripStore = create<TripState>()(
           },
         })),
 
-      // Also updates the remembered default, same pattern as setBeliPref —
-      // a currency choice should stick for the traveller's next trip too.
+      // Also updates the remembered default — a currency choice should
+      // stick for the traveller's next trip too.
       setPreferredCurrency: (preferredCurrency) =>
         set((s) => ({
           trip: {
@@ -678,7 +649,6 @@ export const useTripStore = create<TripState>()(
 
       defaultDepartureAirport: undefined,
       setDefaultDepartureAirport: (defaultDepartureAirport) => set({ defaultDepartureAirport }),
-      defaultBeliPref: undefined,
       defaultCurrency: undefined,
     }),
     {
@@ -701,7 +671,6 @@ export const useTripStore = create<TripState>()(
         // Deliberately survives resetTrip() — a new trip should still default
         // to the airport the user flies from most, unlike trip-scoped prefs.
         defaultDepartureAirport: state.defaultDepartureAirport,
-        defaultBeliPref: state.defaultBeliPref,
         defaultCurrency: state.defaultCurrency,
       }),
     }

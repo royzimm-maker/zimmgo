@@ -21,15 +21,15 @@ export function toPublicError(error: unknown): PublicError {
     return { status: 504, message: "That took longer than expected — please try again." };
   }
   if (error instanceof Anthropic.APIConnectionError) {
-    return { status: 503, message: "Couldn't reach ZiGy's AI service — please try again in a moment." };
+    return { status: 503, message: "Couldn't reach ZimmGo's AI service — please try again in a moment." };
   }
   if (error instanceof Anthropic.RateLimitError || (error instanceof Anthropic.APIError && error.status === 529)) {
-    return { status: 503, message: "ZiGy is very busy right now — please try again in a minute." };
+    return { status: 503, message: "ZimmGo is very busy right now — please try again in a minute." };
   }
   if (error instanceof Anthropic.APIError) {
     // Includes authentication/permission problems — an operator issue, logged
     // in full, not something the traveller can act on.
-    return { status: 502, message: "ZiGy's AI service had a problem — please try again." };
+    return { status: 502, message: "ZimmGo's AI service had a problem — please try again." };
   }
   return { status: 500, message: "Something went wrong on our side — please try again." };
 }

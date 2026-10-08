@@ -88,7 +88,7 @@ describe("assembleItineraryDocxModel — day resolution", () => {
     expect(day1.bullets).toEqual(["Gaudi Tour", "Dinner: Tapas Bar"]);
   });
 
-  it("shows ZiGy's suggestions by time of day when nothing was arranged day-by-day — as the other outputs do", () => {
+  it("shows ZimmGo's suggestions by time of day when nothing was arranged day-by-day — as the other outputs do", () => {
     const model = assembleItineraryDocxModel(makeItinerary(), makePreferences());
     const day1 = model.sections[0].days[0];
     expect(day1.bullets).toEqual(["Morning: Check in", "Afternoon: Walk the Gothic Quarter", "Evening: Dinner near the hotel"]);

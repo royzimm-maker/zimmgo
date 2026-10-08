@@ -16,7 +16,7 @@ import { AirlinesStep }       from "@/components/planning/steps/AirlinesStep";
 import { TransportationStep } from "@/components/planning/steps/TransportationStep";
 import { ItineraryStep }      from "@/components/planning/steps/ItineraryStep";
 import { RefineStep }         from "@/components/planning/steps/RefineStep";
-import { ChatPanel, ZigyAvatar } from "@/components/chat/ChatPanel";
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import { WanderlogPanel }     from "@/components/planning/WanderlogPanel";
 import { Button }             from "@/components/ui/Button";
 import { MessageSquare, X }   from "lucide-react";
@@ -54,7 +54,7 @@ export function PlanningFlow() {
   // one-time layout preference, not per-trip state.
   //
   // Starts collapsed to just its header: the moment generation finishes,
-  // Wanderlog is empty and ZiGy's chat is what the user actually wants
+  // Wanderlog is empty and ZimmGo's chat is what the user actually wants
   // room for. It expands on its own once something's actually saved there,
   // unless the user has already set their own height by dragging.
   const [wanderlogHeight, setWanderlogHeight] = useState(COLLAPSED_WANDERLOG_HEIGHT);
@@ -128,17 +128,11 @@ export function PlanningFlow() {
           ${sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
         `}
       >
-        {/* Mobile header — ChatPanel's own avatar+title header only renders
-            at lg+ (hidden lg:block), so this narrower-width header needs its
-            own avatar rather than just a close button, or the avatar never
-            appears at all until a message has actually been sent. */}
+        {/* Mobile header — ChatPanel's own header only renders at lg+
+            (hidden lg:block), so narrower screens get the same invitation
+            here, alongside the close button. */}
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 lg:hidden">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 overflow-hidden">
-              <ZigyAvatar size={28} />
-            </div>
-            <p className="font-semibold text-slate-700 text-sm">ZiGy</p>
-          </div>
+          <p className="font-semibold text-slate-700 text-sm">Ask anything, or tell us more about your plans.</p>
           <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
             <X size={16} />
           </Button>

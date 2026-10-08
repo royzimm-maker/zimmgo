@@ -20,7 +20,7 @@ const FREE_DAY = "Free day — nothing scheduled";
 function stayLine(stay: TripPlan["stays"][number], preferences: TripPreferences): string {
   const { hotel, byTraveller } = stay.choice;
   const price = formatNightlyRate(hotel, preferences.preferredCurrency);
-  return `${hotel.name} — ${stay.city} — ${price}${byTraveller ? "" : " (ZiGy's recommendation)"}`;
+  return `${hotel.name} — ${stay.city} — ${price}${byTraveller ? "" : " (ZimmGo's recommendation)"}`;
 }
 
 // A flight as one line of text: an estimate is called one and has no airline.
@@ -116,7 +116,7 @@ export function buildItineraryClipboardHtml(
       list(
         plan.stays.map(({ city, choice }) =>
           `<strong>${escapeHtml(choice.hotel.name)}</strong> — ${escapeHtml(city)} — ${escapeHtml(formatNightlyRate(choice.hotel, preferences.preferredCurrency))}` +
-          (choice.byTraveller ? "" : ` <em style="color:#64748b;">(ZiGy's recommendation)</em>`)
+          (choice.byTraveller ? "" : ` <em style="color:#64748b;">(ZimmGo's recommendation)</em>`)
         )
       )
     : "";

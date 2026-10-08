@@ -12,7 +12,7 @@ function itinerary(over: Partial<GeneratedItinerary> = {}): GeneratedItinerary {
   return {
     aiSummary: "A **great** week <in> Portugal.",
     flights: [],
-    // Generation lists ZiGy's recommendation first for each city.
+    // Generation lists ZimmGo's recommendation first for each city.
     hotels: [hotel("l1", "Hotel A&B", "Lisbon"), hotel("l2", "Lisbon Two", "Lisbon"), hotel("p1", "Porto Inn", "Porto")],
     activities: [{ id: "a1", name: "Tram 28 ride", location: "Lisbon" }],
     restaurants: [{ id: "r1", name: "Taberna", tier: "midrange", location: "Porto", cuisine: "Portuguese", priceRange: "$$" }],
@@ -26,11 +26,11 @@ describe("itinerary clipboard export", () => {
     const text = buildItineraryClipboardText(itinerary({ selections: { hotelsByCity: { Lisbon: hotel("l2", "Lisbon Two", "Lisbon") } } }), prefs(), "T");
     expect(text).toContain("WHERE YOU'RE STAYING");
     expect(text).toContain("• Lisbon Two — Lisbon — $120/night\n");
-    expect(text).toContain("• Porto Inn — Porto — $120/night (ZiGy's recommendation)");
+    expect(text).toContain("• Porto Inn — Porto — $120/night (ZimmGo's recommendation)");
     expect(text).not.toContain("Hotel A&B");
   });
 
-  it("shows ZiGy's suggestions by time of day before the traveller arranges anything", () => {
+  it("shows ZimmGo's suggestions by time of day before the traveller arranges anything", () => {
     const text = buildItineraryClipboardText(itinerary(), prefs(), itineraryClipboardTitle(prefs()));
     expect(text.startsWith("ZimmGo Trip — Lisbon & Porto")).toBe(true);
     expect(text).toContain("Day 1 — Day 1 theme (");

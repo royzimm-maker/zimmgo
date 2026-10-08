@@ -40,7 +40,7 @@ export function Wanderlog({ itinerary }: Props) {
         <div className="flex items-center gap-2 min-w-0">
           <Heart size={15} className="text-brand-500 shrink-0" />
           <div className="min-w-0">
-            <span className="text-sm font-semibold text-slate-800">ZiGy&apos;s Wanderlog</span>
+            <span className="text-sm font-semibold text-slate-800">ZimmGo&apos;s Wanderlog</span>
             {!open && (
               <p className="text-[11px] text-slate-400 truncate">
                 Your save-for-later list — heart any restaurant or activity to keep it without scheduling it.

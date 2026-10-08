@@ -13,7 +13,6 @@ function currentBlob(): SyncBlob {
     savedTrips: s.savedTrips,
     chatMessages: s.chatMessages,
     defaultDepartureAirport: s.defaultDepartureAirport,
-    defaultBeliPref: s.defaultBeliPref,
     defaultCurrency: s.defaultCurrency,
   };
 }
@@ -24,7 +23,6 @@ function applyBlob(b: SyncBlob) {
     savedTrips: b.savedTrips,
     chatMessages: b.chatMessages,
     defaultDepartureAirport: b.defaultDepartureAirport,
-    defaultBeliPref: b.defaultBeliPref,
     defaultCurrency: b.defaultCurrency,
   });
 }

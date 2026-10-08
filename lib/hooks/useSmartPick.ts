@@ -19,8 +19,8 @@ export function useSmartPick() {
     } catch (e: unknown) {
       // Callers fall through to manual selection with nothing picked — but
       // surface why, so a real failure (bad API key, network blip) doesn't
-      // look identical to "ZiGy just didn't select anything."
-      setError(e instanceof Error ? e.message : "ZiGy couldn't get picks right now");
+      // look identical to "ZimmGo just didn't select anything."
+      setError(e instanceof Error ? e.message : "ZimmGo couldn't get picks right now");
       return [];
     } finally {
       setPicking(false);

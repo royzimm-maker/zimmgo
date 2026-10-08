@@ -1,4 +1,4 @@
-import type { Trip, ChatMessage, BeliPreference } from "@/types/trip";
+import type { Trip, ChatMessage } from "@/types/trip";
 
 // The exact shape tripStore.ts's own `partialize` persists to localStorage —
 // the whole sync payload, in both directions.
@@ -10,7 +10,6 @@ export interface SyncBlob {
   savedTrips: Trip[];
   chatMessages: ChatMessage[];
   defaultDepartureAirport?: string;
-  defaultBeliPref?: BeliPreference;
   defaultCurrency?: string;
 }
 
@@ -86,7 +85,6 @@ export function mergeSyncBlobs(local: SyncBlob, server: SyncBlob): SyncBlob {
     savedTrips: savedIds.map((id) => byId.get(id)!),
     chatMessages: local.chatMessages,
     defaultDepartureAirport: local.defaultDepartureAirport ?? server.defaultDepartureAirport,
-    defaultBeliPref: local.defaultBeliPref ?? server.defaultBeliPref,
     defaultCurrency: local.defaultCurrency ?? server.defaultCurrency,
   };
 }

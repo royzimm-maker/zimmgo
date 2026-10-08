@@ -55,7 +55,7 @@ function mockFetchImplementation(hotelsByCall: () => HotelOption[]) {
       if (body.kind === "lodging") {
         return new Response(
           JSON.stringify({
-            summary: "ZiGy picked boutique 4-star stays for your trip.",
+            summary: "ZimmGo picked boutique 4-star stays for your trip.",
             picks: [
               { id: "type:boutique", reason: "Fits the romantic vibe." },
               { id: "stars:4", reason: "Great value at this tier." },
@@ -85,16 +85,16 @@ beforeEach(() => {
   useTripStore.setState({ trip: freshTrip() });
 });
 
-describe("LodgingStep — ZiGy hotel pick", () => {
-  it("does not let the auto-fetch effect clobber ZiGy's pick with a duplicate hotel search", async () => {
-    // Regression test for the race condition fixed this session: ZiGy's own
+describe("LodgingStep — ZimmGo hotel pick", () => {
+  it("does not let the auto-fetch effect clobber ZimmGo's pick with a duplicate hotel search", async () => {
+    // Regression test for the race condition fixed this session: ZimmGo's own
     // fetchHotels() call inside handleZigyPick used to race against a
     // separate useEffect that also called fetchHotels() whenever
     // effectiveTypes changed — which handleZigyPick's own setTypes() call
     // triggers in the same render. Since the mock search generates a fresh
     // random id per hotel per call, whichever fetch resolved last silently
-    // orphaned ZiGy's selection. The `pickingHotel` guard should mean there
-    // is exactly one hotel search in flight for a ZiGy-driven pick.
+    // orphaned ZimmGo's selection. The `pickingHotel` guard should mean there
+    // is exactly one hotel search in flight for a ZimmGo-driven pick.
     let callN = 0;
     const fetchMock = mockFetchImplementation(() => {
       callN++;
@@ -109,7 +109,7 @@ describe("LodgingStep — ZiGy hotel pick", () => {
     const user = userEvent.setup();
     render(<LodgingStep />);
 
-    await user.click(screen.getByText("Let ZiGy choose for me"));
+    await user.click(screen.getByText("Let ZimmGo choose for me"));
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() => {
@@ -139,7 +139,7 @@ describe("LodgingStep — ZiGy hotel pick", () => {
 
     expect(useTripStore.getState().trip.preferences.autoPickHotels).toBeUndefined();
 
-    await user.click(screen.getByText("Let ZiGy choose for me"));
+    await user.click(screen.getByText("Let ZimmGo choose for me"));
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() => {
@@ -156,11 +156,11 @@ describe("LodgingStep — ZiGy hotel pick", () => {
     const user = userEvent.setup();
     render(<LodgingStep />);
 
-    await user.click(screen.getByText("Let ZiGy choose for me"));
+    await user.click(screen.getByText("Let ZimmGo choose for me"));
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Here's what ZiGy picked for your stay.")).toBeInTheDocument();
+      expect(screen.getByText("Here's what ZimmGo picked for your stay.")).toBeInTheDocument();
     });
     expect(screen.getByText("Hotel Neri is the best fit.", { exact: false })).toBeInTheDocument();
   });

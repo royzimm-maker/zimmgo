@@ -10,7 +10,7 @@ const days = [{ dayNumber: 1 }, { dayNumber: 2 }] as ItineraryDay[];
 const answers = (picks: { id: string; dayNumber?: number }[], summary = "why"): PickFn =>
   vi.fn(async () => ({ picks: picks.map((p) => ({ reason: `because ${p.id}`, ...p })), summary }));
 
-describe("the shared 'let ZiGy choose' steps check answers the same way everywhere", () => {
+describe("the shared 'let ZimmGo choose' steps check answers the same way everywhere", () => {
   it("chooseHotel takes the first hotel that was actually offered", async () => {
     expect(await chooseHotel(answers([{ id: "made-up" }, { id: "h2" }]), "Rome", prefs, hotels))
       .toEqual({ hotel: { id: "h2" }, reason: "because h2" });

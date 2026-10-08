@@ -245,9 +245,9 @@ export function TripIntake({ onBack }: { onBack: () => void }) {
     <div className="flex flex-col gap-6 animate-fade-up">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-brand-500 mb-1">Describe your whole trip</p>
-        <h2 className="text-2xl font-bold text-slate-900">Tell ZiGy everything at once</h2>
+        <h2 className="text-2xl font-bold text-slate-900">Tell ZimmGo everything at once</h2>
         <p className="mt-1 text-slate-500 text-sm">
-          One paragraph, as much detail as you have — destination, dates, group size, budget, dietary needs, pace. ZiGy fills in as much of the plan as it can, then shows you exactly what it understood before anything is locked in.
+          One paragraph, as much detail as you have — destination, dates, group size, budget, dietary needs, pace. ZimmGo fills in as much of the plan as it can, then shows you exactly what it understood before anything is locked in.
         </p>
       </div>
 

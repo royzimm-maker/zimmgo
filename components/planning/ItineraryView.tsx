@@ -107,11 +107,11 @@ export function ItineraryView({ itinerary }: Props) {
         </div>
       )}
 
-      {/* ZiGy's Take */}
+      {/* ZimmGo's Take */}
       <div className="rounded-xl border border-sage-200 bg-white overflow-hidden">
         <div className="bg-gradient-to-r from-sage-600 to-brand-500 px-4 py-3 text-white">
           <p className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-0.5">AI Travel Advisor</p>
-          <h3 className="text-base font-bold">ZiGy&apos;s Take</h3>
+          <h3 className="text-base font-bold">ZimmGo&apos;s Take</h3>
         </div>
         <div className="px-4 py-4">
           <RichText text={itinerary.aiSummary} className="text-sm text-slate-700 leading-relaxed" />
@@ -190,7 +190,7 @@ export function ItineraryView({ itinerary }: Props) {
       {/* Local discovery */}
       <LocalDiscovery preferences={preferences} itineraryId={itinerary.id} />
 
-      {/* ZiGy's Wanderlog */}
+      {/* ZimmGo's Wanderlog */}
       <Wanderlog itinerary={itinerary} />
 
       {/* Budget breakdown */}
@@ -297,7 +297,7 @@ function DestinationSummary({ itinerary, preferences }: { itinerary: GeneratedIt
 
 // One day of the finished itinerary. What it holds follows the shared plan
 // (lib/itinerary/tripPlan.ts): the traveller's arrangement once they've made
-// one — a day they left empty is a free day — else ZiGy's suggestions.
+// one — a day they left empty is a free day — else ZimmGo's suggestions.
 function DayCard({
   dayPlan,
   expanded,

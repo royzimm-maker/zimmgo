@@ -104,7 +104,7 @@ export function RefineStep() {
   const [arrangeSummaries, setArrangeSummaries] = useState<Record<string, string>>({});
   const [arrangeError, setArrangeError] = useState<string | null>(null);
   const [autoPlanCities, setAutoPlanCities] = useState<Set<string>>(new Set());
-  // "Let ZiGy schedule every city" already covered every destination in one
+  // "Let ZimmGo schedule every city" already covered every destination in one
   // shot — once that's happened, the per-city "move on to {nextCity}" nudge
   // below is misleading (it implies a sequential walk-through the user never
   // asked for). Swaps that nudge for a single trip-wide message instead.
@@ -198,7 +198,7 @@ export function RefineStep() {
     setBank((prev) => prev.filter((id) => id !== cardId));
   }
 
-  // "Let ZiGy arrange {city}" only used to handle day-by-day scheduling of
+  // "Let ZimmGo arrange {city}" only used to handle day-by-day scheduling of
   // already-picked restaurants/activities — it left a hotel gap completely
   // untouched even though the same "Where things stand" panel right above it
   // calls that gap out ("No hotel picked yet"). Fill it in here too, the same
@@ -261,9 +261,9 @@ export function RefineStep() {
       await arrangeCity(effectiveCity);
     } catch (e: unknown) {
       // A real failure (bad API key, network blip) shouldn't look identical
-      // to "ZiGy just didn't place anything" — manual drag-and-drop is still
+      // to "ZimmGo just didn't place anything" — manual drag-and-drop is still
       // there as a fallback either way, but the user deserves to know why.
-      setArrangeError(e instanceof Error ? e.message : "ZiGy couldn't arrange this city right now");
+      setArrangeError(e instanceof Error ? e.message : "ZimmGo couldn't arrange this city right now");
     } finally {
       setArranging(false);
     }
@@ -289,7 +289,7 @@ export function RefineStep() {
       const failed = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
       if (failed.length) {
         const reason = failed[0].reason;
-        setArrangeError(reason instanceof Error ? reason.message : "ZiGy couldn't arrange some cities right now");
+        setArrangeError(reason instanceof Error ? reason.message : "ZimmGo couldn't arrange some cities right now");
       }
     } finally {
       setArranging(false);
@@ -363,7 +363,7 @@ export function RefineStep() {
   // few items are still sitting unplaced, since a user who's decided to skip
   // those souldn't be stuck with no nudge to move to the next city.
   // Suppressed once nothing's left unplaced anywhere in the trip (e.g. right
-  // after "Let ZiGy schedule every city") — there's nothing left to fine-tune,
+  // after "Let ZimmGo schedule every city") — there's nothing left to fine-tune,
   // so nudging through each city's tab just to look at it is pure friction;
   // "Done — view my plan" is the only action left worth surfacing.
   const activeCityStats = effectiveCity ? cityStats.find((s) => s.city === effectiveCity) : undefined;
@@ -400,7 +400,7 @@ export function RefineStep() {
                 ? autoPlanCities.size > 0
                   ? `Arranging ${Array.from(autoPlanCities).join(", ")}…`
                   : "Arranging…"
-                : "Let ZiGy schedule every city"}
+                : "Let ZimmGo schedule every city"}
             </button>
           )}
         </div>
@@ -437,7 +437,7 @@ export function RefineStep() {
           })}
         </div>
         <p className="px-4 py-2 text-[10px] text-slate-400 border-t border-slate-100">
-          An empty day just means nothing&apos;s scheduled for it yet — that&apos;s fine if you&apos;d rather keep things open. Drag items below to fill it in, or ask ZiGy.
+          An empty day just means nothing&apos;s scheduled for it yet — that&apos;s fine if you&apos;d rather keep things open. Drag items below to fill it in, or ask ZimmGo.
         </p>
       </div>
 
@@ -478,14 +478,14 @@ export function RefineStep() {
         </div>
       )}
 
-      {/* Once "Let ZiGy schedule every city" has run, every destination was
+      {/* Once "Let ZimmGo schedule every city" has run, every destination was
           already handled in one shot — a "move on to {nextCity}" nudge would
           misleadingly imply a sequential walk-through the user never asked
           for, so it's replaced with a single trip-wide message instead. */}
       {bulkArranged ? (
         <div className="mb-4 rounded-lg border border-sage-200 bg-sage-50 px-3 py-2.5">
           <p className="text-xs text-sage-700">
-            <span className="font-semibold">ZiGy has arranged every city.</span>{" "}
+            <span className="font-semibold">ZimmGo has arranged every city.</span>{" "}
             {bank.length > 0
               ? "A few items didn't fit and are still sitting unplaced below — drag them in if you'd like, or leave them and review your plan whenever you're ready."
               : "Review your plan below, then finalize whenever you're ready."}
@@ -515,7 +515,7 @@ export function RefineStep() {
         )
       )}
 
-      {/* Let ZiGy auto-arrange the active city's unplaced items across its days */}
+      {/* Let ZimmGo auto-arrange the active city's unplaced items across its days */}
       {effectiveCity && visibleBank.length > 0 && (
         <div className="mb-4">
           <button
@@ -526,17 +526,17 @@ export function RefineStep() {
           >
             <Sparkles size={14} />
             {arranging
-              ? "ZiGy is arranging…"
-              // Once a summary exists, ZiGy has already had a pass at this
-              // city — repeating the exact same "Let ZiGy arrange" prompt
+              ? "ZimmGo is arranging…"
+              // Once a summary exists, ZimmGo has already had a pass at this
+              // city — repeating the exact same "Let ZimmGo arrange" prompt
               // reads as if nothing happened, even though some items were
               // placed and only what's left is still sitting in the bank.
               : arrangeSummaries[effectiveCity]
-              ? `Ask ZiGy to arrange what's left in ${effectiveCity}`
-              : `Let ZiGy arrange ${effectiveCity}`}
+              ? `Ask ZimmGo to arrange what's left in ${effectiveCity}`
+              : `Let ZimmGo arrange ${effectiveCity}`}
           </button>
           <p className="text-[10px] text-slate-400 mt-1.5 text-center">
-            ZiGy decides based on your inputs so far and everything we know about your destinations.
+            ZimmGo decides based on your inputs so far and everything we know about your destinations.
           </p>
           {arrangeSummaries[effectiveCity] && (
             <p className="text-xs text-brand-600 bg-brand-50 rounded-lg px-3 py-2 mt-2">

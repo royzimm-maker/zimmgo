@@ -19,8 +19,8 @@ const SCHEDULE_PACES: { id: SchedulePace; label: string; sublabel: string }[] = 
 // The vibe list lives in lib/data/vibes.ts (prompts need the names too); re-exported for the screens that read it from here.
 export { VIBES };
 
-// No "let ZiGy pick" mode here, unlike Lodging/Activities — vibe is a direct
-// input into what ZiGy recommends elsewhere, so it has to come from the user.
+// No "let ZimmGo pick" mode here, unlike Lodging/Activities — vibe is a direct
+// input into what ZimmGo recommends elsewhere, so it has to come from the user.
 const isVibeTag = (v: string): v is VibeTag => VIBES.some((x) => x.id === v);
 
 export function VibeStep() {
@@ -118,7 +118,7 @@ export function VibeStep() {
 
       <div className="mt-6 border-t border-slate-100 pt-5">
         <p className="text-xs font-semibold text-slate-700 mb-1">How full should each day be?</p>
-        <p className="text-[11px] text-slate-400 mb-3">Optional — helps ZiGy decide how much to schedule per day.</p>
+        <p className="text-[11px] text-slate-400 mb-3">Optional — helps ZimmGo decide how much to schedule per day.</p>
         <div className="flex flex-col gap-2">
           {SCHEDULE_PACES.map((p) => (
             <button

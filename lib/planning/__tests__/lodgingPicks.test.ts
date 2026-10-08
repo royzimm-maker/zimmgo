@@ -16,13 +16,13 @@ describe("assembleLodging", () => {
 });
 
 describe("lodgingFromPicks", () => {
-  it("reads types, stars and amenities from ZiGy's picks, ignoring anything unknown", () => {
+  it("reads types, stars and amenities from ZimmGo's picks, ignoring anything unknown", () => {
     const picks = [pick("type:boutique"), pick("type:castle"), pick("stars:5"), pick("amenity:Spa"), pick("amenity:Moat")];
     expect(lodgingFromPicks(picks, { ...known, types: [...known.types] }, { types: ["hotel"], minStars: 3 }))
       .toEqual({ types: ["boutique"], minStars: 5, amenities: ["Spa"] });
   });
 
-  it("keeps the current type and stars when ZiGy picks none", () => {
+  it("keeps the current type and stars when ZimmGo picks none", () => {
     expect(lodgingFromPicks([pick("stars:9")], { ...known, types: [...known.types] }, { types: ["hotel"], minStars: 4 }))
       .toEqual({ types: ["hotel"], minStars: 4, amenities: [] });
   });

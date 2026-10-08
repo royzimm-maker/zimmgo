@@ -211,7 +211,7 @@ describe("RefineStep — card actions", () => {
   });
 });
 
-describe("RefineStep — ZiGy smart-arrange", () => {
+describe("RefineStep — ZimmGo smart-arrange", () => {
   function mockScheduleAndHotelFetch() {
     return vi.fn(async (url: string, init?: RequestInit) => {
       if (url !== "/api/itinerary/smart-pick") throw new Error(`Unexpected fetch to ${url}`);
@@ -245,7 +245,7 @@ describe("RefineStep — ZiGy smart-arrange", () => {
     const user = userEvent.setup();
     render(<RefineStep />);
 
-    await user.click(screen.getByText("Let ZiGy arrange Barcelona"));
+    await user.click(screen.getByText("Let ZimmGo arrange Barcelona"));
 
     await waitFor(() => {
       expect(screen.getByText("1 of 4 items placed")).toBeInTheDocument();
@@ -267,7 +267,7 @@ describe("RefineStep — ZiGy smart-arrange", () => {
 
     const user = userEvent.setup();
     render(<RefineStep />);
-    await user.click(screen.getByText("Let ZiGy arrange Barcelona"));
+    await user.click(screen.getByText("Let ZimmGo arrange Barcelona"));
 
     await waitFor(() => {
       expect(screen.getByText("1 of 4 items placed")).toBeInTheDocument();
@@ -290,9 +290,9 @@ describe("RefineStep — ZiGy smart-arrange", () => {
     const user = userEvent.setup();
     render(<RefineStep />);
 
-    await user.click(screen.getByText("Let ZiGy schedule every city"));
+    await user.click(screen.getByText("Let ZimmGo schedule every city"));
 
-    expect(await screen.findByText(/ZiGy has arranged every city\./)).toBeInTheDocument();
+    expect(await screen.findByText(/ZimmGo has arranged every city\./)).toBeInTheDocument();
     expect(screen.queryByText(/move on to Andalusia/)).not.toBeInTheDocument();
   });
 
@@ -303,7 +303,7 @@ describe("RefineStep — ZiGy smart-arrange", () => {
 
     const user = userEvent.setup();
     render(<RefineStep />);
-    await user.click(screen.getByText("Let ZiGy arrange Barcelona"));
+    await user.click(screen.getByText("Let ZimmGo arrange Barcelona"));
 
     expect(await screen.findByText("boom")).toBeInTheDocument();
     expect(screen.getByText("Gaudi Tour")).toBeInTheDocument(); // still sitting in the bank, untouched

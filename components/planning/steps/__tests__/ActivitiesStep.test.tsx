@@ -97,15 +97,15 @@ describe("ActivitiesStep — manual picking", () => {
   });
 });
 
-describe("ActivitiesStep — ZiGy pick", () => {
-  it("lets ZiGy pick activities and writes the picks to the store", async () => {
+describe("ActivitiesStep — ZimmGo pick", () => {
+  it("lets ZimmGo pick activities and writes the picks to the store", async () => {
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (url === "/api/itinerary/smart-pick") {
         const body = JSON.parse(String(init?.body ?? "{}"));
         expect(body.kind).toBe("activities");
         return new Response(
           JSON.stringify({
-            summary: "ZiGy picked cultural and food-forward activities.",
+            summary: "ZimmGo picked cultural and food-forward activities.",
             picks: [
               { id: "cultural", reason: "Fits the history-focused vibe." },
               { id: "food", reason: "Great local food scene." },
@@ -121,14 +121,14 @@ describe("ActivitiesStep — ZiGy pick", () => {
     const user = userEvent.setup();
     render(<ActivitiesStep />);
 
-    await user.click(screen.getByText("Let ZiGy pick for me"));
+    await user.click(screen.getByText("Let ZimmGo pick for me"));
 
     await waitFor(() => {
       expect(useTripStore.getState().trip.preferences.activities).toEqual(["cultural", "food"]);
     });
-    expect(await screen.findByText(/ZiGy picked cultural and food-forward activities\./)).toBeInTheDocument();
+    expect(await screen.findByText(/ZimmGo picked cultural and food-forward activities\./)).toBeInTheDocument();
     // The banner becomes a closed status once a pick has actually happened.
-    expect(screen.getByText("Here’s what ZiGy recommends")).toBeInTheDocument();
+    expect(screen.getByText("Here’s what ZimmGo recommends")).toBeInTheDocument();
   });
 
   it("ignores a picked id that isn't one of the offered categories", async () => {
@@ -145,7 +145,7 @@ describe("ActivitiesStep — ZiGy pick", () => {
 
     const user = userEvent.setup();
     render(<ActivitiesStep />);
-    await user.click(screen.getByText("Let ZiGy pick for me"));
+    await user.click(screen.getByText("Let ZimmGo pick for me"));
 
     await waitFor(() => {
       expect(useTripStore.getState().trip.preferences.activities).toEqual(["cultural"]);

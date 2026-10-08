@@ -112,24 +112,6 @@ export interface LodgingPreference {
   amenities: string[];
 }
 
-// How hotel/restaurant/activity ratings are sourced — mock data today, but
-// shaped so a production swap to real review APIs is a straightforward drop-in.
-export type ReviewSource = "Google Reviews" | "TripAdvisor" | "Booking.com" | "Expedia" | "Hotels.com";
-
-export interface ReviewSourcePreference {
-  mode: "single" | "cross_reference";
-  source?: ReviewSource; // set when mode === "single"
-}
-
-// Beli is a social restaurant-ranking app — connecting an account lets ZiGy
-// weight restaurant picks toward what the user has bookmarked/ranked highly
-// there. No public Beli API exists today, so this is mocked (see
-// lib/data/beli.ts), but shaped so a real OAuth connection is a drop-in swap.
-export interface BeliPreference {
-  connected: boolean;
-  username?: string;
-}
-
 // A handful of higher-end meals over the trip, budgeted separately from the
 // flat daily food budget (e.g. "$70/person/day normally, but 2 splurge dinners
 // at $200/person").
@@ -168,7 +150,7 @@ export interface TripPreferences {
   // here. Generation includes it among the hotels, and a new itinerary's
   // hotel choice for that city starts from it (see ItinerarySelections).
   lodgingPick?: HotelOption;
-  // Set when the traveller used "Let ZiGy choose for me" on the Lodging
+  // Set when the traveller used "Let ZimmGo choose for me" on the Lodging
   // step — that step only ever searches/picks a hotel for the trip's
   // primary city, so this tells the itinerary review wizard's per-city
   // Hotels stage to auto-run the same smart pick for every other city too,
@@ -180,18 +162,16 @@ export interface TripPreferences {
   // when the traveller says they're driving. Suppresses the departure-
   // airport requirement and skips flight search entirely.
   noFlightsNeeded?: boolean;
-  reviewSourcePref?: ReviewSourcePreference; // how hotel/restaurant/activity ratings are sourced
-  beliPref?: BeliPreference; // optional Beli account to weight restaurant picks toward
   transportation: TransportMode[];
   // ISO 4217 code, e.g. "EUR" — all displayed prices are converted to this
   // from their USD source value (see lib/currency.ts). Undefined = USD.
   preferredCurrency?: string;
   // Free-form dietary tags (e.g. "vegetarian", "gluten-free") plus optional
-  // free-text notes — passed to ZiGy's restaurant/activity reasoning and
+  // free-text notes — passed to ZimmGo's restaurant/activity reasoning and
   // itinerary prompts so meal suggestions actually account for them.
   dietaryRestrictions?: string[];
   dietaryNotes?: string;
-  // Sightseeing pace preference — when true, ZiGy favors skip-the-line/
+  // Sightseeing pace preference — when true, ZimmGo favors skip-the-line/
   // early-access/reserved-entry options over general-admission ones for the
   // main sights, instead of treating that as incidental copy in the listing.
   avoidLongQueues?: boolean;
@@ -211,12 +191,12 @@ export interface TripPreferences {
   // required to proceed) when getVisaRequirementsForTrip found at least one
   // country that needs a visa. See lib/data/visaRequirements.ts.
   visaAcknowledged?: boolean;
-  // How tightly the traveller wants each day scheduled — feeds ZiGy's
-  // day-by-day arranging (both initial generation and the "Let ZiGy
+  // How tightly the traveller wants each day scheduled — feeds ZimmGo's
+  // day-by-day arranging (both initial generation and the "Let ZimmGo
   // arrange" smart-pick) so a "wide open" traveller doesn't get a packed
   // itinerary and vice versa. Undefined = no stated preference.
   schedulePace?: SchedulePace;
-  // Set on the Planning Mode step when the traveller chooses "Let ZiGy plan
+  // Set on the Planning Mode step when the traveller chooses "Let ZimmGo plan
   // my whole trip" — tells the Itinerary step to run the full auto-plan
   // orchestration (hotel/activities/restaurants picks + day-by-day
   // scheduling, city by city) instead of showing the manual selection
@@ -284,8 +264,7 @@ export interface HotelOption {
   pricePerNight: number;
   currency: string;
   rating: number;
-  ratingSource?: string;  // e.g. "Google Reviews", "TripAdvisor"
-  sourceRatings?: { source: string; rating: number }[]; // set when cross-referencing multiple sources
+  ratingSource?: string;  // "Google Reviews" for real places; unset for sample data
   reviewCount: number;
   highlights: string[];
   imageUrl?: string;
@@ -307,7 +286,6 @@ export interface ActivityOption {
   currency: string;
   rating: number;
   ratingSource?: string;
-  sourceRatings?: { source: string; rating: number }[];
   reviewCount: number;
   isLocalFavorite: boolean;
   description: string;
@@ -332,7 +310,6 @@ export interface RestaurantOption {
   priceRange: "$" | "$$" | "$$$" | "$$$$";
   rating: number;
   ratingSource?: string;
-  sourceRatings?: { source: string; rating: number }[];
   reviewCount: number;
   location: string;
   description: string;
@@ -340,8 +317,6 @@ export interface RestaurantOption {
   imageUrl?: string;
   bookingUrl?: string;
   menuUrl?: string;
-  isBeliPick?: boolean;
-  beliNote?: string;
   // Detected from Michelin Guide recognition mentioned in the source
   // description (e.g. "One Michelin star", "Bib Gourmand") — surfaced as
   // its own badge instead of leaving it buried in prose.
@@ -436,7 +411,7 @@ export interface GeneratedItinerary {
 export interface ItinerarySelections {
   // The hotel chosen for each city, keyed by the itinerary's cities
   // (lib/location.ts itineraryCities). Read through
-  // lib/planning/hotelChoice.ts, which falls back to ZiGy's recommendation.
+  // lib/planning/hotelChoice.ts, which falls back to ZimmGo's recommendation.
   hotelsByCity?: Record<string, HotelOption>;
   // Activities / restaurants picked for the plan (vs. just Wanderlog-saved).
   activityIds?: string[];
@@ -481,7 +456,7 @@ export interface ApiResponse<T> {
 
 // ─── Progress calculation helper ───────────────────────────────────────────────
 // Vibe and Activities sit before Lodging (rather than right after Budget) so
-// ZiGy's smart-picks for Lodging — and Activities' own pick — can actually use
+// ZimmGo's smart-picks for Lodging — and Activities' own pick — can actually use
 // the traveller's vibe preference; each smart-pick prompt only reads whatever
 // preferences are already in the store, so ordering directly drives accuracy.
 export const ORDERED_STEPS: StepId[] = [
@@ -504,7 +479,7 @@ export const STEP_META: Record<StepId, Omit<PlanningStep, "completed">> = {
   vibe:           { id: "vibe",           label: "Vibe",           description: "What's the mood?",               skippable: false },
   dates:          { id: "dates",          label: "Dates",          description: "When are you going?",            skippable: false },
   budget:         { id: "budget",         label: "Budget",         description: "What's your daily spend?",       skippable: false },
-  planningMode:   { id: "planningMode",   label: "Planning Style", description: "Do it yourself or let ZiGy handle it?", skippable: false },
+  planningMode:   { id: "planningMode",   label: "Planning Style", description: "Do it yourself or let ZimmGo handle it?", skippable: false },
   lodging:        { id: "lodging",        label: "Lodging",        description: "Hotels or Airbnb?",              skippable: false },
   airlines:       { id: "airlines",       label: "Flights",        description: "Any airline preferences?",       skippable: true  },
   transportation: { id: "transportation", label: "Getting Around", description: "How will you move locally?",     skippable: false },

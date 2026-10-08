@@ -233,7 +233,7 @@ describe("DestinationStep — basic interactions", () => {
     await user.click(
       screen.getByText(/describe your whole trip in one go/)
     );
-    expect(screen.getByText("Tell ZiGy everything at once")).toBeInTheDocument();
+    expect(screen.getByText("Tell ZimmGo everything at once")).toBeInTheDocument();
   });
 
   it("doesn't offer the one-shot intake once the trip already has progress", () => {

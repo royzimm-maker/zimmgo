@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-// Running/error state for work a button kicks off (a search, a ZiGy pick).
+// Running/error state for work a button kicks off (a search, a ZimmGo pick).
 // A failure is shown rather than swallowed, so a real error (bad API key,
 // network blip) doesn't look the same as "nothing found".
 export function useAsyncTask(fallbackError: string) {
@@ -24,7 +24,7 @@ export function useAsyncTask(fallbackError: string) {
   return { running, error, run };
 }
 
-// A ZiGy pick made per city, remembering ZiGy's reason for each city.
+// A ZimmGo pick made per city, remembering ZimmGo's reason for each city.
 export function useCityPick(fallbackError: string) {
   const task = useAsyncTask(fallbackError);
   const [reasons, setReasons] = useState<Record<string, string>>({});

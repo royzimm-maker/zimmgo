@@ -81,8 +81,8 @@ export interface BudgetOverrides {
 
 // The trip's cost estimate, priced from what the traveller is actually
 // doing: the chosen flight pair, each night at that city's chosen stay, and
-// the activities they picked. Where they haven't chosen yet, ZiGy's
-// recommendation stands in (the first flight pair, ZiGy's hotel per city,
+// the activities they picked. Where they haven't chosen yet, ZimmGo's
+// recommendation stands in (the first flight pair, ZimmGo's hotel per city,
 // every suggested activity). Computed on demand — never stored — so it
 // follows the traveller's picks. Used by Trip-at-a-Glance's "Est. total" and
 // the Estimated Budget Breakdown, so the two can't disagree.
@@ -137,7 +137,7 @@ export function estimateTripBudget(
 }
 
 // The activities the traveller is doing: those on their arranged days, else
-// the ones they picked, else (nothing chosen yet) everything ZiGy suggested.
+// the ones they picked, else (nothing chosen yet) everything ZimmGo suggested.
 function plannedActivities(itinerary: GeneratedItinerary, plan: TripPlan): { list: ActivityOption[]; picked: boolean } {
   if (itinerary.finalizedPlan) {
     const list = plan.days.flatMap((d) => d.items.flatMap((i) => (i.kind === "activity" ? [i.activity] : [])));

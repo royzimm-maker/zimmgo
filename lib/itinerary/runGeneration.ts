@@ -20,8 +20,6 @@ import { searchRestaurants } from "@/lib/search/restaurants";
 import { searchGroundTransport } from "@/lib/search/groundTransport";
 import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
-import { applyReviewSourcePref } from "@/lib/data/reviewSources";
-import { applyBeliPreference } from "@/lib/data/beli";
 import { groupByLocation, extractIataCode } from "@/lib/utils";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay, TransportOption } from "@/types/trip";
@@ -472,15 +470,9 @@ async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary>
   }
   const topHotels = hotelsByCity.flatMap((g) => g.items.slice(0, 3));
 
-  // Shape ratings per the user's review-source preference (single source vs cross-referenced average)
-  const { reviewSourcePref, beliPref } = preferences;
-  const ratedHotels      = applyReviewSourcePref(topHotels, reviewSourcePref);
-  const ratedActivities  = applyReviewSourcePref(activities, reviewSourcePref);
-  const ratedRestaurants = applyBeliPreference(
-    applyReviewSourcePref(restaurants, reviewSourcePref),
-    beliPref,
-    preferences.destination?.cities
-  );
+  const ratedHotels = topHotels;
+  const ratedActivities = activities;
+  const ratedRestaurants = restaurants;
 
   return {
     id: uuid(),

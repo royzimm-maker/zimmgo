@@ -249,12 +249,6 @@ const HOTEL_TIER: Record<number, { label: string }> = {
 };
 
 export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelOption; selected?: boolean; onSelect?: () => void }) {
-  const sourceIcon: Record<string, string> = {
-    "Google Reviews": "🔵",
-    "TripAdvisor": "🟢",
-    "Booking.com": "🔷",
-  };
-  const icon = hotel.ratingSource ? (sourceIcon[hotel.ratingSource] ?? "⭐") : "⭐";
   const tierLabel = (HOTEL_TIER[hotel.stars] ?? HOTEL_TIER[4]).label;
   const { trip } = useTripStore();
 
@@ -340,14 +334,6 @@ export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelO
               {" · "}{hotel.reviewCount.toLocaleString()} reviews
             </p>
           )}
-          {hotel.ratingSource && !hotel.google && (
-            <p className="text-[10px] text-slate-400 mt-0.5">{icon} {hotel.ratingSource}</p>
-          )}
-          {hotel.sourceRatings && (
-            <p className="text-[9px] text-slate-400 mt-0.5">
-              {hotel.sourceRatings.map((s) => `${s.source} ${s.rating}`).join(" · ")}
-            </p>
-          )}
           <div className="flex items-center gap-2 justify-end mt-1.5">
             <a
               href={hotel.google?.mapsUri ?? `https://www.google.com/maps/search/${encodeURIComponent(hotel.name + " " + hotel.location)}`}
@@ -420,7 +406,6 @@ export function RestaurantCard({
                 <p className="font-semibold text-slate-800 text-sm truncate">{r.name}</p>
                 <span className={`text-xs font-bold shrink-0 ${priceColor}`}>{r.priceRange}</span>
                 {r.michelinDistinction && <Badge variant="warning">🎖️ {r.michelinDistinction}</Badge>}
-                {r.isBeliPick && <Badge variant="success">Beli pick</Badge>}
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">{emoji} {r.cuisine} · {r.location}</p>
               <p className="text-xs text-slate-600 mt-1 line-clamp-1">{r.description}</p>
@@ -470,11 +455,6 @@ export function RestaurantCard({
           {r.mustOrder && (
             <p className="mt-1.5 text-[11px] text-amber-700 bg-amber-50 rounded px-2 py-1 leading-snug truncate">
               🍴 {r.mustOrder}
-            </p>
-          )}
-          {r.beliNote && (
-            <p className="mt-1 text-[11px] text-brand-600 bg-brand-50 rounded px-2 py-1 leading-snug">
-              📍 {r.beliNote}
             </p>
           )}
 
@@ -541,7 +521,7 @@ export function ActivityCard({
                 ⭐ {(activity.rating / 2).toFixed(1)} · {activity.reviewCount.toLocaleString()} on Google Maps
               </a>
             ) : (
-              <span>⭐ {activity.rating}{activity.ratingSource ? ` (${activity.ratingSource})` : ""}</span>
+              <span>⭐ {activity.rating}</span>
             )}
           </div>
           {activity.google && (

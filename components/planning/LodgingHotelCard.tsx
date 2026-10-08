@@ -11,7 +11,7 @@ const HOTEL_TIER: Record<number, string> = {
 };
 
 // A hotel on the Lodging step — the same card in the manual grid and in the
-// "show me other options" list on the ZiGy-review screen. Clicking toggles it
+// "show me other options" list on the ZimmGo-review screen. Clicking toggles it
 // as the traveller's pick.
 export function LodgingHotelCard({
   hotel: h,
@@ -96,10 +96,7 @@ export function LodgingHotelCard({
                 <p className="text-[9px] text-slate-400">{h.reviewCount.toLocaleString()} on Google Maps</p>
               </a>
             ) : (
-              <>
-                <p className="text-xs text-sage-700 font-medium">{h.rating}/10</p>
-                {h.ratingSource && <p className="text-[9px] text-slate-400">{h.ratingSource}</p>}
-              </>
+              <p className="text-xs text-sage-700 font-medium">{h.rating}/10</p>
             )}
           </div>
           {selected ? (

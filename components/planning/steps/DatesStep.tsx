@@ -191,7 +191,7 @@ export function DatesStep() {
           <AlertCircle size={15} className="text-amber-600 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-xs text-amber-800 leading-relaxed">
-              These dates don&apos;t fall within the window ZiGy mentioned — {trip.preferences.destination?.seasonalNote}
+              These dates don&apos;t fall within the window ZimmGo mentioned — {trip.preferences.destination?.seasonalNote}
             </p>
             <div className="mt-2 flex gap-2">
               <button

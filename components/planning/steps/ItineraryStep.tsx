@@ -22,7 +22,7 @@ import type { GeneratedItinerary } from "@/types/trip";
 
 // Sourced from the generated days themselves, not the raw preferences — the
 // AI sometimes extends a too-short date range to actually cover every
-// destination (see buildItineraryPrompt), so `days` is what ZiGy actually
+// destination (see buildItineraryPrompt), so `days` is what ZimmGo actually
 // came up with, which may differ from what was originally typed in.
 function tripDateRangeLabel(days: GeneratedItinerary["days"]): string | null {
   if (!days.length) return null;
@@ -163,7 +163,7 @@ export function ItineraryStep() {
   const autoStartRef = useRef(false);
   const prevPersonalizedRef = useRef(isPersonalized);
 
-  // "Let ZiGy plan my whole trip" (chosen on the Planning Mode step) — once
+  // "Let ZimmGo plan my whole trip" (chosen on the Planning Mode step) — once
   // the itinerary lands, a server-side job runs the same hotel/activities/
   // restaurants smart-picks and day-by-day arranging the wizard and Refine
   // step would otherwise ask for one screen at a time, then review is marked
@@ -205,14 +205,14 @@ export function ItineraryStep() {
       markItineraryReviewed(target.id);
       if (result.failedCities.length) {
         setAutoPlanNotice(
-          `ZiGy couldn't finish planning ${result.failedCities.join(" and ")} — those activities and restaurants are waiting unscheduled. Place them with "Fine-tune my schedule" below.`
+          `ZimmGo couldn't finish planning ${result.failedCities.join(" and ")} — those activities and restaurants are waiting unscheduled. Place them with "Fine-tune my schedule" below.`
         );
       }
     } catch (e: unknown) {
       clearPendingAutoPlan();
       // Offer a retry or the manual wizard — a transient failure (network
       // blip, rate limit) shouldn't silently switch off the traveller's
-      // choice to have ZiGy plan everything.
+      // choice to have ZimmGo plan everything.
       const message = e instanceof Error ? e.message : "Something went wrong";
       setAutoPlanError(message === "Failed to fetch" ? "Lost connection while planning your trip." : message);
     } finally {
@@ -312,7 +312,7 @@ export function ItineraryStep() {
         </div>
       )}
 
-      {/* Dates & destinations ZiGy landed on — the first concrete facts a
+      {/* Dates & destinations ZimmGo landed on — the first concrete facts a
           user should see once the itinerary unlocks, before flights/hotels. */}
       {latest && !showPicksBanner && (dateRangeLabel || legs.length > 0) && (
         <div className="mb-5 rounded-xl border border-slate-200 bg-white px-4 py-3">
@@ -470,7 +470,7 @@ export function ItineraryStep() {
       {/* Auto-plan error — the traveller chooses: retry, or plan it by hand */}
       {autoPlanError && !autoPlanning && (
         <Card className="border-amber-200 bg-amber-50 mb-4">
-          <p className="text-sm font-medium text-amber-800">ZiGy couldn&apos;t finish planning your trip</p>
+          <p className="text-sm font-medium text-amber-800">ZimmGo couldn&apos;t finish planning your trip</p>
           <p className="text-xs text-amber-700 mt-1">{autoPlanError}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => runAutoPlan()}>
@@ -498,7 +498,7 @@ export function ItineraryStep() {
       {autoPlanning && (
         <div className="flex flex-col items-center gap-3 py-14 text-center">
           <div className="h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin" />
-          <p className="text-sm font-semibold text-slate-700">ZiGy is planning your whole trip…</p>
+          <p className="text-sm font-semibold text-slate-700">ZimmGo is planning your whole trip…</p>
           <p className="text-xs text-slate-400 max-w-xs">
             {autoPlanStage ?? "Lodging, activities, restaurants, and the day-by-day schedule for every city."}
           </p>
@@ -590,7 +590,7 @@ function GeneratingProgress({ stage }: { stage: string | null }) {
       </div>
       <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 max-w-xs text-center">
         <p className="text-xs font-semibold text-brand-700 mb-0.5">While you wait…</p>
-        <p className="text-xs text-slate-600">Feel free to chat with ZiGy about your trip — ask about visa requirements, what to pack, or the best time to visit.</p>
+        <p className="text-xs text-slate-600">Feel free to chat with ZimmGo about your trip — ask about visa requirements, what to pack, or the best time to visit.</p>
       </div>
     </div>
   );

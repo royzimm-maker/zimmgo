@@ -36,7 +36,7 @@ export function TripGlance({ itinerary, preferences }: Props) {
   const arrivalAirport = preferences.destination?.arrivalAirport ?? "";
   const pairs = pairFlights(flights, arrivalAirport);
 
-  // One stay per city — the traveller's choice, or ZiGy's recommendation
+  // One stay per city — the traveller's choice, or ZimmGo's recommendation
   // where they haven't chosen (lib/planning/hotelChoice.ts) — rather than the
   // whole fetched pool, which would make the choice they made invisible.
   const cities = itineraryCities(itinerary, preferences.destination);

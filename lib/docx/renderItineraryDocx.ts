@@ -279,7 +279,7 @@ export async function renderItineraryDocx(model: DocxModel): Promise<Buffer> {
     }
   }
 
-  bodyChildren.push(spacer(260), new Paragraph({ children: [body("Go get delightfully lost — ZiGy will be here for the next one.", { italics: true, size: 22 })], alignment: AlignmentType.CENTER }));
+  bodyChildren.push(spacer(260), new Paragraph({ children: [body("Go get delightfully lost — ZimmGo will be here for the next one.", { italics: true, size: 22 })], alignment: AlignmentType.CENTER }));
 
   const doc = new Document({
     numbering: {

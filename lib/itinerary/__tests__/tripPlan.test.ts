@@ -9,7 +9,7 @@ const day = (n: number, location: string, morning: string[] = [`${location} walk
 function itinerary(over: Partial<GeneratedItinerary> = {}): GeneratedItinerary {
   return {
     days: [day(1, "Rome"), day(2, "Rome"), day(3, "Florence")],
-    // Generation lists ZiGy's recommendation first for each city.
+    // Generation lists ZimmGo's recommendation first for each city.
     hotels: [hotel("rome-zigy", "Rome"), hotel("rome-2", "Rome"), hotel("flo-zigy", "Florence")],
     activities: [{ id: "a1", name: "Colosseum", location: "Rome", isLocalFavorite: true }],
     restaurants: [
@@ -23,7 +23,7 @@ const prefs = (over: Partial<TripPreferences> = {}) =>
   ({ destination: { cities: ["Rome", "Florence"], displayName: "Italy" }, ...over }) as TripPreferences;
 
 describe("buildTripPlan — stays", () => {
-  it("gives each day its own city's stay: the traveller's choice, else ZiGy's recommendation", () => {
+  it("gives each day its own city's stay: the traveller's choice, else ZimmGo's recommendation", () => {
     const plan = buildTripPlan(itinerary({ selections: { hotelsByCity: { Rome: hotel("rome-2", "Rome") } } }), prefs());
     expect(plan.days.map((d) => [d.day.dayNumber, d.stay?.hotel.id, d.stay?.byTraveller])).toEqual([
       [1, "rome-2", true], [2, "rome-2", true], [3, "flo-zigy", false],
@@ -33,7 +33,7 @@ describe("buildTripPlan — stays", () => {
 });
 
 describe("buildTripPlan — what each day holds", () => {
-  it("shows ZiGy's suggestions, by time of day, before the traveller arranges anything", () => {
+  it("shows ZimmGo's suggestions, by time of day, before the traveller arranges anything", () => {
     const [day1] = buildTripPlan(itinerary(), prefs()).days;
     expect(day1.source).toBe("suggested");
     expect(dayLines(day1)).toEqual([{ label: "Morning", text: "Rome walk" }, { label: "Evening", text: "Sunset" }]);

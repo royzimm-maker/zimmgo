@@ -6,7 +6,6 @@ import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
 import { OtherInput } from "@/components/ui/OtherInput";
 import { ModeToggleBanner } from "@/components/planning/ModeToggleBanner";
-import { BeliConnect } from "@/components/planning/BeliConnect";
 import { useSmartPick } from "@/lib/hooks/useSmartPick";
 import { useTripStore } from "@/lib/store/tripStore";
 import { getIrrelevantCategories } from "@/lib/data/activityRelevance";
@@ -63,7 +62,7 @@ export function ActivitiesStep() {
   const [otherValue, setOtherValue] = useState("");
 
   // This step keeps its own draft state and only writes back to the store on
-  // Continue — so a chat-driven edit (ZiGy applying "add hiking, drop
+  // Continue — so a chat-driven edit (ZimmGo applying "add hiking, drop
   // cultural" while the user is sitting on this step) wouldn't otherwise be
   // visible until they navigated away and back. Re-sync whenever the
   // underlying preference changes from outside this component.
@@ -141,13 +140,13 @@ export function ActivitiesStep() {
       headerImage="/zigy-activities.png"
       headerExtra={
         // No separate "how do you want to choose?" screen — this hand-off to
-        // ZiGy is the direct replacement for that, so it needs to read as
+        // ZimmGo is the direct replacement for that, so it needs to read as
         // the primary alternative to picking manually, not an easy-to-miss
         // aside. Living in the header's own column also reclaims the empty
         // space a tall header image leaves next to the short title/subtitle.
         <div className="max-w-xs flex flex-col gap-3">
           <ModeToggleBanner
-            label="Activities for you to choose from — or let ZiGy pick."
+            label="Activities for you to choose from — or let ZimmGo pick."
             onZigy={handleZigyPick}
             loading={picking}
             error={pickSummary ? null : pickError}
@@ -252,7 +251,6 @@ export function ActivitiesStep() {
         </p>
       )}
 
-      <BeliConnect />
     </StepShell>
   );
 }

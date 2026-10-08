@@ -1,10 +1,10 @@
-// End-to-end auto-plan orchestration for "Let ZiGy plan my whole trip"
+// End-to-end auto-plan orchestration for "Let ZimmGo plan my whole trip"
 // (see components/planning/steps/PlanningModeStep.tsx). Mirrors the same
 // per-city smart-pick patterns already used one screen at a time in
 // ItinerarySelectionWizard (hotel/activities/restaurants picks) and
 // RefineStep (schedule arranging) — this just runs all of them across every
 // city so the traveller lands straight on the finished plan instead of
-// clicking "let ZiGy pick" on each screen in turn.
+// clicking "let ZimmGo pick" on each screen in turn.
 //
 // Runs server-side as a background job (/api/itinerary/auto-plan); the pick
 // function is injected so it calls the AI directly there and stays testable.
@@ -113,7 +113,7 @@ export async function autoPlanTrip(
 
     // Hotel, activity and restaurant picks are independent — run them together.
     // The steps themselves are shared with the wizard and Refine step
-    // (lib/planning/cityPicks.ts), so every screen checks ZiGy's answers alike.
+    // (lib/planning/cityPicks.ts), so every screen checks ZimmGo's answers alike.
     const [hotelChoice, actChoice, restChoice] = await Promise.all([
       !airbnbOnly && !existingHotels[city] ? chooseHotel(pick, city, preferences, cityHotels) : Promise.resolve(null),
       chooseActivities(pick, city, preferences, newActs),
@@ -149,7 +149,7 @@ export async function autoPlanTrip(
   const failedCities = cities.filter((_, i) => settled[i].status === "rejected");
   if (cities.length && failedCities.length === cities.length) {
     const first = settled.find((s): s is PromiseRejectedResult => s.status === "rejected");
-    throw first?.reason instanceof Error ? first.reason : new Error("ZiGy couldn't plan your trip");
+    throw first?.reason instanceof Error ? first.reason : new Error("ZimmGo couldn't plan your trip");
   }
 
   const selectedHotelsByCity: Record<string, HotelOption> = { ...existingHotels };

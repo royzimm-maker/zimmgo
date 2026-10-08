@@ -23,7 +23,7 @@ interface StepShellProps {
   // itself "Personalize my plan", so a second "Skip" button next to it does
   // nothing Continue doesn't already do, it just adds a confusing duplicate.
   hideSkip?: boolean;
-  // Decorative ZiGy illustration shown in the top-right corner of the step
+  // Decorative ZimmGo illustration shown in the top-right corner of the step
   // header, next to the title — for steps with a themed avatar (Vibe,
   // Activities). Path to a static image under /public.
   headerImage?: string;

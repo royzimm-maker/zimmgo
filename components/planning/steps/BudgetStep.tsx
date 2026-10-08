@@ -391,7 +391,7 @@ export function BudgetStep() {
               Dietary restrictions <span className="font-normal text-slate-400">(optional)</span>
             </p>
             <p className="mb-2 text-xs text-slate-400">
-              ZiGy will factor these into every restaurant and activity recommendation.
+              ZimmGo will factor these into every restaurant and activity recommendation.
             </p>
             <div className="flex flex-wrap gap-1.5">
               {DIETARY_OPTIONS.map((opt) => (

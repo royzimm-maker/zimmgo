@@ -1,4 +1,4 @@
-// The steps of "let ZiGy choose" for one city, written once and used
+// The steps of "let ZimmGo choose" for one city, written once and used
 // everywhere: the server-side auto-plan job (lib/planning/autoPlanTrip.ts),
 // the review wizard, the Lodging step and the Refine step's arranging.
 //
@@ -17,7 +17,7 @@ export function isAirbnbOnly(types: (LodgingType | string)[] | undefined): boole
   return Boolean(types?.length && types.every((t) => t === "airbnb"));
 }
 
-/** ZiGy's hotel for a city, from the hotels offered — or null if it chose none of them. */
+/** ZimmGo's hotel for a city, from the hotels offered — or null if it chose none of them. */
 export async function chooseHotel(
   pick: PickFn,
   city: string,
@@ -33,7 +33,7 @@ export async function chooseHotel(
   return null;
 }
 
-// The ids ZiGy picked that were among the ones offered, once each, in its order.
+// The ids ZimmGo picked that were among the ones offered, once each, in its order.
 function offeredIds(data: SmartPickResponse, offered: { id: string }[]): string[] {
   const valid = new Set(offered.map((o) => o.id));
   const ids: string[] = [];
@@ -68,7 +68,7 @@ export const activityCardId = (a: { id: string }) => `act-${a.id}`;
 export const restaurantCardId = (r: { id: string }) => `rest-${r.id}`;
 
 /**
- * ZiGy's arrangement of a city's chosen activities and restaurants across
+ * ZimmGo's arrangement of a city's chosen activities and restaurants across
  * its days, as day number → card ids. Only the cards and days offered are
  * used, and no card is placed twice.
  */

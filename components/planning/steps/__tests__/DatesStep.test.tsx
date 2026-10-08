@@ -155,7 +155,7 @@ describe("DatesStep — seasonal window", () => {
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    expect(screen.getByText(/don't fall within the window ZiGy mentioned/)).toBeInTheDocument();
+    expect(screen.getByText(/don't fall within the window ZimmGo mentioned/)).toBeInTheDocument();
     // Nothing committed yet — still holding for an explicit answer.
     expect(useTripStore.getState().trip.currentStep).toBe("dates");
 
@@ -189,10 +189,10 @@ describe("DatesStep — seasonal window", () => {
     render(<DatesStep />);
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
-    expect(screen.getByText(/don't fall within the window ZiGy mentioned/)).toBeInTheDocument();
+    expect(screen.getByText(/don't fall within the window ZimmGo mentioned/)).toBeInTheDocument();
 
     await user.click(screen.getByText("Let me adjust the dates"));
-    expect(screen.queryByText(/don't fall within the window ZiGy mentioned/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/don't fall within the window ZimmGo mentioned/)).not.toBeInTheDocument();
     // Dismissing doesn't call setDates at all — the store is untouched.
     expect(useTripStore.getState().trip.preferences.dates?.startDate).toBe(ymd(start));
     expect(useTripStore.getState().trip.currentStep).toBe("dates");
