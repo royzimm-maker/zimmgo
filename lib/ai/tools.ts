@@ -140,6 +140,30 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
           },
           description: "Required for multi-destination trips: one entry per city-to-city transfer, in visiting order, describing how the traveller actually gets from the previous city to this one.",
         },
+        days: {
+          type: "array",
+          description:
+            "The day-by-day schedule: one entry for every day in the day plan given in the prompt, in order. Name only places that came back from your searches (exactly as named there); keep each item short.",
+          items: {
+            type: "object",
+            properties: {
+              day_number: { type: "integer", description: "The day's number from the day plan (1 = first day)." },
+              theme: { type: "string", description: "A short, specific title for the day, e.g. \"Alfama, Fado & the Castle\"." },
+              morning: { type: "array", items: { type: "string" }, description: "1–3 things to do, in order. Short — under 15 words each." },
+              afternoon: { type: "array", items: { type: "string" }, description: "1–3 things to do, in order." },
+              evening: { type: "array", items: { type: "string" }, description: "1–3 things to do, in order." },
+              breakfast: { type: "string", description: "Where to eat and why, in one short line — a restaurant from search_restaurants by its exact name, or a plain suggestion if none fits." },
+              lunch: { type: "string", description: "As for breakfast." },
+              dinner: { type: "string", description: "As for breakfast." },
+              note: { type: "string", description: "Optional: one practical tip for the day (bookings, timing, what to bring)." },
+            },
+            required: ["day_number", "theme", "morning", "afternoon", "evening"],
+          },
+        },
+        why_this_works: {
+          type: "string",
+          description: "2–4 short markdown bullet points on why this plan fits this traveller specifically — their interests, vibe, pace and budget.",
+        },
         gateway_advisory: {
           type: "string",
           description:

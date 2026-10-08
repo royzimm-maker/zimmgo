@@ -71,3 +71,63 @@ describe("toolResultForModel", () => {
     expect(JSON.parse(json)).toEqual([{ id: "h1", name: "Hotel", pricePerNight: 200 }]);
   });
 });
+
+describe("runGeneration — Claude writes the day-by-day schedule", () => {
+  it("uses the days and why-this-works from Claude's generate_itinerary call, keeping the app's dates and cities", async () => {
+    m.create
+      .mockResolvedValueOnce({
+        stop_reason: "tool_use", usage,
+        content: [{
+          type: "tool_use", id: "g1", name: "generate_itinerary",
+          input: {
+            destination: "Lisbon",
+            days: [{ day_number: 1, theme: "Alfama & the Castle", morning: ["Castelo de São Jorge"], afternoon: ["Alfama lanes"], evening: ["Fado"], dinner: "A tasca in Alfama" }],
+            why_this_works: "- Built around your love of history",
+          },
+        }],
+      })
+      .mockResolvedValueOnce({ stop_reason: "end_turn", usage, content: [{ type: "text", text: "A lovely trip.", citations: null }] });
+
+    const itinerary = await runGeneration("trip-1", prefs);
+
+    expect(itinerary.days).toHaveLength(2);
+    expect(itinerary.days[0]).toMatchObject({ dayNumber: 1, date: "2026-10-01", location: "Lisbon", theme: "Alfama & the Castle", morning: ["Castelo de São Jorge"] });
+    expect(itinerary.days[0].meals.find((x) => x.type === "dinner")?.suggestion).toBe("A tasca in Alfama");
+    expect(itinerary.days[1]).toMatchObject({ dayNumber: 2, date: "2026-10-02", location: "Lisbon" }); // not written: template
+    expect(itinerary.whyThisWorks).toBe("- Built around your love of history");
+  });
+
+  it("asks Claude for every day of the app's day plan", async () => {
+    m.create.mockResolvedValueOnce({ stop_reason: "end_turn", usage, content: [{ type: "text", text: "Trip.", citations: null }] });
+    await runGeneration("trip-1", prefs);
+    const content = (m.create.mock.calls[0][0] as Anthropic.MessageCreateParams).messages[0].content;
+    const prompt = typeof content === "string" ? content : content.map((b) => (b.type === "text" ? b.text : "")).join("");
+    expect(prompt).toContain("Day 1 (2026-10-01) in Lisbon; Day 2 (2026-10-02) in Lisbon.");
+  });
+});
+
+describe("runGeneration — running out of time after the searches", () => {
+  it("finishes with what it gathered (and the templates) instead of failing, and says it's writing", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { default: AnthropicSDK } = await import("@anthropic-ai/sdk");
+    m.create
+      .mockResolvedValueOnce({
+        stop_reason: "tool_use", usage,
+        content: [{ type: "tool_use", id: "t1", name: "search_restaurants", input: { destination: "Lisbon" } }],
+      })
+      .mockRejectedValueOnce(new AnthropicSDK.APIConnectionTimeoutError());
+    const stages: string[] = [];
+
+    const itinerary = await runGeneration("trip-1", prefs, async (s) => { stages.push(s); });
+
+    expect(itinerary.days).toHaveLength(2);
+    expect(itinerary.restaurants?.length).toBeGreaterThan(0);
+    expect(stages).toContain("Writing your day-by-day plan…");
+  });
+
+  it("still fails when the very first round times out — there's nothing to build on", async () => {
+    const { default: AnthropicSDK } = await import("@anthropic-ai/sdk");
+    m.create.mockRejectedValueOnce(new AnthropicSDK.APIConnectionTimeoutError());
+    await expect(runGeneration("trip-1", prefs)).rejects.toThrow();
+  });
+});

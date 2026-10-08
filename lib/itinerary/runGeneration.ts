@@ -2,14 +2,17 @@
 // the Anthropic API, then deterministic backfill and assembly. Runs inside a
 // background job (app/api/itinerary/generate/route.ts), reporting a
 // human-readable stage as it goes so the client can show real progress.
-import type Anthropic from "@anthropic-ai/sdk";
+import Anthropic from "@anthropic-ai/sdk";
 import { v4 as uuid } from "uuid";
-import { getAnthropicClient, withinDeadline, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
+import { AIDeadlineError, getAnthropicClient, withinDeadline, DEFAULT_MODEL, TRAVEL_ADVISOR_SYSTEM_PROMPT } from "@/lib/ai/client";
+import { logServerError } from "@/lib/http/errors";
 import { TRAVEL_TOOLS } from "@/lib/ai/tools";
 import { logApiUsage } from "@/lib/ai/usageLog";
 import { parseToolInput } from "@/lib/ai/toolInput";
 import { buildItineraryPrompt } from "@/lib/ai/prompts";
 import { searchFlights } from "@/lib/search/flights";
+import { planDays, tripSpan } from "@/lib/itinerary/dayPlan";
+import { applyWrittenDays, type WrittenDay } from "@/lib/itinerary/writtenDays";
 import { searchHotels } from "@/lib/search/hotels";
 import { searchActivities } from "@/lib/search/activities";
 import { searchRestaurants } from "@/lib/search/restaurants";
@@ -18,7 +21,7 @@ import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders"
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
 import { applyReviewSourcePref } from "@/lib/data/reviewSources";
 import { applyBeliPreference } from "@/lib/data/beli";
-import { groupByLocation, parseLocalDate, extractIataCode } from "@/lib/utils";
+import { groupByLocation, extractIataCode } from "@/lib/utils";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay, TransportOption } from "@/types/trip";
 
@@ -123,8 +126,10 @@ export function toolResultForModel(result: unknown): string {
   });
 }
 
-// Per-round cap on an AI call when running against a job deadline.
-const ROUND_TIMEOUT_MS = 75_000;
+// Per-round cap on an AI call when running against a job deadline. The
+// final round writes the summary and the whole day-by-day schedule, which
+// can take well over a minute; the job's own deadline still bounds it.
+const ROUND_TIMEOUT_MS = 110_000;
 
 export async function runGeneration(
   tripId: string,
@@ -154,6 +159,9 @@ export async function runGeneration(
   // first day of each new city leg.
   const travelNoteByCity: Record<string, string> = {};
   let gatewayAdvisory: string | undefined;
+  // Claude's own day-by-day schedule and "why this works", from the same call.
+  let writtenDays: WrittenDay[] | undefined;
+  let writtenWhy: string | undefined;
 
   // We allow up to 8 tool-call rounds to prevent infinite loops
   for (let round = 0; round < 8; round++) {
@@ -161,14 +169,26 @@ export async function runGeneration(
     // default (adaptive) thinking, which counts toward max_tokens, so the cap
     // leaves plenty of room — and gets more than the interactive 30s, but
     // never past the job's deadline.
-    const options = deadline === undefined ? undefined : withinDeadline(deadline, ROUND_TIMEOUT_MS);
-    const response = await client.messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 16000,
-      system: CACHED_SYSTEM,
-      tools: TRAVEL_TOOLS,
-      messages: withCacheBreakpoint(messages),
-    }, options);
+    let response: Anthropic.Message;
+    try {
+      const options = deadline === undefined ? undefined : withinDeadline(deadline, ROUND_TIMEOUT_MS);
+      response = await client.messages.create({
+        model: DEFAULT_MODEL,
+        max_tokens: 16000,
+        system: CACHED_SYSTEM,
+        tools: TRAVEL_TOOLS,
+        messages: withCacheBreakpoint(messages),
+      }, options);
+    } catch (error: unknown) {
+      // Out of time after the searches already ran: keep what was gathered
+      // and finish with the templates (reported, not silent) rather than
+      // failing the whole job. A first round that times out has nothing to
+      // build on, so that still fails.
+      const outOfTime = error instanceof AIDeadlineError || error instanceof Anthropic.APIConnectionTimeoutError;
+      if (round === 0 || !outOfTime) throw error;
+      logServerError("itinerary-generate", error);
+      break;
+    }
     logApiUsage("itinerary-generate", DEFAULT_MODEL, response.usage, response.stop_reason);
 
     // Collect tool uses from this response
@@ -224,7 +244,11 @@ export async function runGeneration(
           selected_hotels?: { city: string; hotel_id: string }[];
           inter_city_travel?: { to_city: string; note: string }[];
           gateway_advisory?: string;
+          days?: WrittenDay[];
+          why_this_works?: string;
         };
+        if (plan.days?.length) writtenDays = plan.days;
+        if (plan.why_this_works?.trim()) writtenWhy = plan.why_this_works.trim();
         for (const sel of plan.selected_hotels ?? []) {
           selectedHotelIdByCity[sel.city] = sel.hotel_id;
         }
@@ -242,6 +266,9 @@ export async function runGeneration(
     }
 
     messages.push({ role: "user", content: toolResults });
+    // The next round may only be Claude writing — say so rather than leaving
+    // the last search's label up for a minute or more.
+    await onStage("Writing your day-by-day plan…");
   }
 
   await onStage("Filling in the details…");
@@ -349,6 +376,8 @@ export async function runGeneration(
     selectedHotelIdByCity,
     travelNoteByCity,
     gatewayAdvisory,
+    writtenDays,
+    writtenWhy,
   });
 }
 
@@ -367,32 +396,23 @@ interface AssembleParams {
   // City name → how to get there from the previous leg, from the same call.
   travelNoteByCity: Record<string, string>;
   gatewayAdvisory?: string;
+  // Claude's day-by-day schedule and "why this works" — used in place of the
+  // templates wherever it wrote something (lib/itinerary/writtenDays.ts).
+  writtenDays?: WrittenDay[];
+  writtenWhy?: string;
 }
 
 async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary> {
-  const { preferences, flights, activities, restaurants, aiSummary, tripId, selectedHotelIdByCity, travelNoteByCity, gatewayAdvisory } = p;
+  const { preferences, flights, activities, restaurants, aiSummary, tripId, selectedHotelIdByCity, travelNoteByCity, gatewayAdvisory, writtenDays, writtenWhy } = p;
   let hotels = p.hotels;
 
-  let startDate: string;
-  let numDays: number;
-
-  if (preferences.dates?.type === "flexible") {
-    // Parse "YYYY-MM" and land on the 15th of that month as a placeholder start
-    const [yr, mo] = (preferences.dates.flexibleMonth ?? new Date().toISOString().slice(0, 7))
-      .split("-").map(Number);
-    const d = new Date(yr, mo - 1, 15);
-    startDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-15`;
-    numDays   = Math.max(1, preferences.dates.flexibleDuration ?? 10);
-  } else {
-    startDate = preferences.dates?.startDate ?? new Date().toISOString().slice(0, 10);
-    const endDate = preferences.dates?.endDate
-      ?? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
-    const start = parseLocalDate(startDate);
-    const end   = parseLocalDate(endDate);
-    numDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
-  }
-
-  const days: ItineraryDay[] = buildDays(parseLocalDate(startDate), numDays, activities, restaurants, preferences, travelNoteByCity);
+  const { numDays } = tripSpan(preferences);
+  // The template days are the fallback; Claude's written schedule replaces
+  // them day by day wherever it wrote one.
+  const days: ItineraryDay[] = applyWrittenDays(
+    buildDays(numDays, activities, restaurants, preferences, travelNoteByCity),
+    writtenDays
+  );
 
   // ── Ground/ferry transport for inter-city legs with a real regional
   // operator (see lib/data/groundTransportProviders.ts) — most legs match
@@ -474,7 +494,7 @@ async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary>
     restaurants: ratedRestaurants.length ? ratedRestaurants : undefined,
     currency: "USD",
     aiSummary: summaryFallback,
-    whyThisWorks: whyFallback,
+    whyThisWorks: writtenWhy ?? whyFallback,
     gatewayAdvisory,
     neighborhoods: neighborhoods.length ? neighborhoods : undefined,
   };
@@ -487,53 +507,23 @@ function scopeToLocation<T extends { location?: string }>(items: T[], location: 
 }
 
 function buildDays(
-  start: Date,
   numDays: number,
   activities: ActivityOption[],
   restaurants: RestaurantOption[],
   preferences: TripPreferences,
   travelNoteByCity: Record<string, string> = {}
 ): ItineraryDay[] {
-  const dest = preferences.destination?.displayName ?? "the destination";
-  const cities = preferences.destination?.cities?.filter(Boolean) ?? [];
   const themes = generateThemes(numDays, preferences);
-
-  // The traveller can manually rebalance how many days go to each city (the
-  // itinerary step's leg editor) — that override must actually change which
-  // city each day lands on, not just be described to the AI, since this
-  // function assigns `location` deterministically and ignores the AI's own
-  // day-by-day output entirely. Only trust it when it exactly accounts for
-  // every city and the full day count; otherwise fall back to even division.
-  const nights = preferences.cityNights;
-  const nightsValid = !!nights
-    && cities.length > 0
-    && cities.every((c) => Number.isInteger(nights[c]) && nights[c] > 0)
-    && cities.reduce((sum, c) => sum + nights[c], 0) === numDays;
-  const dayLocations: string[] | null = nightsValid
-    ? cities.flatMap((c) => Array(nights![c]).fill(c))
-    : null;
+  // Each day's date and city — the same skeleton the prompt gave Claude
+  // (lib/itinerary/dayPlan.ts), including the traveller's own per-city split.
+  const skeleton = planDays(preferences);
 
   // Days assigned to the same city so far, in order — used below to rotate
   // through that city's activities/restaurants instead of repeating day 1's
   // pick, without pulling in another city's content.
   const cityDayCounts = new Map<string, number>();
 
-  return Array.from({ length: numDays }, (_, i) => {
-    const date    = new Date(start);
-    date.setDate(date.getDate() + i);
-    // Format from local components, not .toISOString() — that converts to
-    // UTC first, which would shift the date again in positive-offset zones.
-    const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
-    // Use the traveller's manual day split when it's valid; otherwise
-    // distribute cities evenly across days. Falls back to full destination
-    // name for a single-city trip.
-    const location = dayLocations
-      ? dayLocations[i]
-      : cities.length > 1
-      ? cities[Math.floor((i / numDays) * cities.length)]
-      : (cities[0] ?? dest);
-
+  return skeleton.map(({ date: isoDate, city: location }, i) => {
     // Use the city name for in-day activity text, not the full destination string
     const cityLabel = location;
 
@@ -576,7 +566,8 @@ function buildDays(
 // longer than the pool's length got a day that re-announced "Arrival" deep
 // into the itinerary. They're reserved here and never handed out elsewhere.
 function generateThemes(numDays: number, preferences: TripPreferences): string[] {
-  const dest = preferences.destination?.displayName ?? "destination";
+  // The trip starts in its first city, not the whole multi-city label.
+  const dest = preferences.destination?.cities?.[0] ?? preferences.destination?.displayName ?? "destination";
   const arrival = `Arrival & First Impressions of ${dest}`;
   const farewell = "Relaxation, Shopping & Farewell Dinner";
   const middle = [
@@ -617,7 +608,7 @@ function buildTimeBlock(
       ["Scenic hike or guided activity", "Explore a design or arts district"],
     ],
     evening: [
-      ["Early dinner to adjust to the timezone", "Easy stroll and early night"],
+      ["Early dinner near your hotel", "Easy stroll and early night"],
       ["Pre-dinner aperitivo at a rooftop bar", "Dinner at a highly-rated local restaurant"],
       ["Night-time city walk or harbor cruise", "Late dinner followed by local bar scene"],
     ],
