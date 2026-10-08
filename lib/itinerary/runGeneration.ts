@@ -12,6 +12,7 @@ import { parseToolInput } from "@/lib/ai/toolInput";
 import { buildItineraryPrompt } from "@/lib/ai/prompts";
 import { searchFlights } from "@/lib/search/flights";
 import { planDays, tripSpan } from "@/lib/itinerary/dayPlan";
+import { vibeLabel } from "@/lib/data/vibes";
 import { applyWrittenDays, type WrittenDay } from "@/lib/itinerary/writtenDays";
 import { searchHotels } from "@/lib/search/hotels";
 import { searchActivities } from "@/lib/search/activities";
@@ -437,7 +438,7 @@ async function assembleItinerary(p: AssembleParams): Promise<GeneratedItinerary>
 
   const dest = preferences.destination?.displayName ?? "your destination";
   const acts = (preferences.activities ?? []).slice(0, 3).join(", ");
-  const vibeList = (preferences.vibes ?? []).slice(0, 2).join(" and ");
+  const vibeList = (preferences.vibes ?? []).slice(0, 2).map(vibeLabel).join(" and ");
 
   const summaryFallback = aiSummary ||
     `**${numDays}-day itinerary for ${dest}**\n\n` +

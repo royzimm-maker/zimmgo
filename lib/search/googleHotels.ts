@@ -95,11 +95,12 @@ async function withPhoto(hotel: HotelOption, place: GooglePlace): Promise<HotelO
 
 /** Real hotels for a search, or null to fall back to sample data. */
 export async function searchGoogleHotels(params: HotelSearch): Promise<HotelOption[] | null> {
-  const places = await searchPlaces(hotelQuery(params), HOTEL_FIELDS, { pageSize: 12, minRating: 3.5 });
-  if (!places) return null;
+  const found = await searchPlaces(hotelQuery(params), HOTEL_FIELDS, { pageSize: 12, minRating: 3.5 });
+  if (!found) return null;
+  // Places keep the date Google returned them, even when served from the cache.
+  const { places, fetchedAt } = found;
   const chosen = usablePlaces(places).slice(0, RESULTS_PER_SEARCH);
   if (!chosen.length) return null;
-  const fetchedAt = new Date().toISOString();
   return Promise.all(chosen.map((p) => withPhoto(toHotel(p, params, fetchedAt), p)));
 }
 

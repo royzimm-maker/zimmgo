@@ -1,4 +1,5 @@
 import { planDays } from "@/lib/itinerary/dayPlan";
+import { describeVibes } from "@/lib/data/vibes";
 import type { TripPreferences, HotelOption, ActivityOption, RestaurantOption, ItineraryDay } from "@/types/trip";
 import { resolveBudget } from "@/types/trip";
 
@@ -102,10 +103,10 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
   }
 
   if (preferences.vibes.length) {
-    parts.push(`Trip vibe: ${preferences.vibes.join(", ")}.`);
+    parts.push(`Trip vibe: ${describeVibes(preferences.vibes)}.`);
     if (preferences.vibes.includes("great_food")) {
       parts.push(
-        `Because "great_food" (Food-Forward Travel) is one of their vibes, make sure at least one guided food tour or hands-on food experience (market visit, tasting, cooking class) appears in the day-by-day plan for every city, alongside your usual restaurant picks — don't let this vibe show up only as good reservations.`
+        `Because Food-Forward Travel is one of their vibes, make sure at least one guided food tour or hands-on food experience (market visit, tasting, cooking class) appears in the day-by-day plan for every city, alongside your usual restaurant picks — don't let this vibe show up only as good reservations.`
       );
     }
   }
@@ -250,7 +251,7 @@ export function buildChatSystemPrompt(
     contextLines.push(`Activities: ${preferences.activities.join(", ")}`);
   }
   if (preferences.vibes.length) {
-    contextLines.push(`Vibe: ${preferences.vibes.join(", ")}`);
+    contextLines.push(`Vibe: ${describeVibes(preferences.vibes, true)}`);
   }
   if (preferences.travelers || preferences.rooms) {
     const t = preferences.travelers ?? 2;
@@ -329,7 +330,7 @@ export function buildHotelPickPrompt(
   preferences: TripPreferences,
   hotels: HotelOption[]
 ): string {
-  const vibeStr = preferences.vibes.length ? ` The trip's vibe: ${preferences.vibes.join(", ")}.` : "";
+  const vibeStr = preferences.vibes.length ? ` The trip's vibe: ${describeVibes(preferences.vibes)}.` : "";
   const hotelBudget = resolveBudget(preferences);
   const budgetStr = hotelBudget ? ` Lodging budget tier: ${hotelBudget.label}.` : "";
   const list = hotels.map((h) =>
@@ -348,7 +349,7 @@ export function buildActivitiesForCityPickPrompt(
   preferences: TripPreferences,
   activities: ActivityOption[]
 ): string {
-  const vibeStr = preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
+  const vibeStr = preferences.vibes.length ? ` Trip vibe: ${describeVibes(preferences.vibes)}.` : "";
   const activitiesDietaryLine = buildDietaryLine(preferences);
   const queueStr = preferences.avoidLongQueues ? " The traveller wants to avoid long waits — favor options with skip-the-line, early-access, or reserved-entry wording over general-admission equivalents." : "";
   const list = activities.map((a) =>
@@ -364,7 +365,7 @@ export function buildRestaurantsForCityPickPrompt(
   preferences: TripPreferences,
   restaurants: RestaurantOption[]
 ): string {
-  const vibeStr = preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
+  const vibeStr = preferences.vibes.length ? ` Trip vibe: ${describeVibes(preferences.vibes)}.` : "";
   const restaurantsDietaryLine = buildDietaryLine(preferences);
   const list = restaurants.map((r) =>
     `- id="${r.id}" ${r.name} | ${r.cuisine} | ${r.priceRange} | ${r.description}`
@@ -382,7 +383,7 @@ export function buildSchedulePickPrompt(
   activities: ActivityOption[],
   restaurants: RestaurantOption[]
 ): string {
-  const vibeStr = preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
+  const vibeStr = preferences.vibes.length ? ` Trip vibe: ${describeVibes(preferences.vibes)}.` : "";
   const scheduleDietaryLine = buildDietaryLine(preferences);
   const paceLine = buildSchedulePaceLine(preferences.schedulePace);
   const dayList = days.map((d) => `- day ${d.dayNumber}: "${d.theme}" (${d.date})`).join("\n");
@@ -412,7 +413,7 @@ export function buildPreferencePickPrompt(
   const list = candidates.map((c) => `- id="${c.id}" ${c.label}`).join("\n");
   const prefBudget = resolveBudget(preferences);
   const budgetStr = prefBudget ? ` Lodging budget tier: ${prefBudget.label}.` : "";
-  const vibeStr = kind !== "vibes" && preferences.vibes.length ? ` Trip vibe: ${preferences.vibes.join(", ")}.` : "";
+  const vibeStr = kind !== "vibes" && preferences.vibes.length ? ` Trip vibe: ${describeVibes(preferences.vibes)}.` : "";
 
   const instructions: Record<typeof kind, string> = {
     activities: `Pick 3-5 activity categories that best suit a trip to ${dest}.${vibeStr}${

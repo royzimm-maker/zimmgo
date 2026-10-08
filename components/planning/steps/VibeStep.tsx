@@ -1,5 +1,6 @@
 "use client";
 
+import { VIBES } from "@/lib/data/vibes";
 import { useEffect, useState } from "react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
@@ -15,17 +16,8 @@ const SCHEDULE_PACES: { id: SchedulePace; label: string; sublabel: string }[] = 
 
 // Exported so ChatPanel can turn a chat-driven update's raw vibe ids back
 // into friendly labels for its confirmation banner.
-export const VIBES: { id: VibeTag; label: string; icon: string; sublabel: string }[] = [
-  { id: "romantic",             label: "Romantic",            icon: "💑",  sublabel: "Couple-focused, slow-paced, indulgent" },
-  { id: "nightlife",            label: "Nightlife",           icon: "🎉",  sublabel: "Bars, clubs, late nights" },
-  { id: "great_food",           label: "Food-Forward Travel", icon: "🍽️",  sublabel: "Meals are a highlight — good reservations, local favorites" },
-  { id: "outdoor",              label: "Outdoors & Nature",   icon: "🏞️",  sublabel: "Hiking, scenic landscapes, time outside" },
-  { id: "beaches",              label: "Beaches",             icon: "🏖️",  sublabel: "Sun, sand, and sea" },
-  { id: "shopping",             label: "Shopping",            icon: "🛍️",  sublabel: "Local markets to luxury boutiques" },
-  { id: "architecture",         label: "Architecture",        icon: "🏰",  sublabel: "Iconic buildings and design" },
-  { id: "family_friendly",      label: "Family Friendly",    icon: "👨‍👩‍👧", sublabel: "Great for all ages" },
-  { id: "off_the_beaten_path",  label: "Off the Beaten Path", icon: "🗺️", sublabel: "Local gems, no tour groups" },
-];
+// The vibe list lives in lib/data/vibes.ts (prompts need the names too); re-exported for the screens that read it from here.
+export { VIBES };
 
 // No "let ZiGy pick" mode here, unlike Lodging/Activities — vibe is a direct
 // input into what ZiGy recommends elsewhere, so it has to come from the user.

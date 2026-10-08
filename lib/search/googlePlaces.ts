@@ -13,7 +13,16 @@
 // Google's terms: content may be kept 30 days (place IDs forever), must be
 // attributed to Google Maps (and photos to their authors), and AI output
 // built from it must link to Google Maps. See GooglePlaceRef in types/trip.ts.
+//
+// Caching: a search or photo is reused from the database for CACHE_DAYS, so
+// a second trip to the same city costs no Google call and no allowance.
+// Cached places keep the date Google returned them (fetchedAt), so the
+// app's refresh still runs inside the 30 days. The cache fails soft: if it
+// can't be read or written, the call simply goes to Google.
+import { createHash } from "node:crypto";
+import { prisma } from "@/lib/db";
 import { claimDailyQuota } from "@/lib/rateLimit";
+import { inBackground } from "@/lib/background";
 
 const API = "https://places.googleapis.com/v1";
 const TIMEOUT_MS = 8_000;
@@ -22,6 +31,19 @@ const TIMEOUT_MS = 8_000;
 const DAILY_SEARCH_ALLOWANCE = Number(process.env.GOOGLE_PLACES_DAILY_SEARCHES ?? 30);
 const DAILY_PHOTO_ALLOWANCE = Number(process.env.GOOGLE_PLACES_DAILY_PHOTOS ?? 30);
 const DAILY_DETAILS_ALLOWANCE = Number(process.env.GOOGLE_PLACES_DAILY_DETAILS ?? 30);
+
+export const CACHE_DAYS = 7;
+const CACHE_MS = CACHE_DAYS * 86_400_000;
+const cacheKey = (...parts: unknown[]) => createHash("sha256").update(JSON.stringify(parts)).digest("hex");
+const freshSince = () => new Date(Date.now() - CACHE_MS);
+
+// Occasionally delete expired entries, like the other cleanup sweeps.
+function sweepExpired() {
+  if (Math.random() >= 0.02) return;
+  const cutoff = freshSince();
+  inBackground("placesCache", () => prisma.placeSearchCache.deleteMany({ where: { fetchedAt: { lt: cutoff } } }));
+  inBackground("placesCache", () => prisma.placePhotoCache.deleteMany({ where: { fetchedAt: { lt: cutoff } } }));
+}
 
 export interface GooglePlace {
   id: string;
@@ -68,20 +90,42 @@ async function call<T>(url: string, init: RequestInit, fieldMask?: string): Prom
   }
 }
 
-/** Places matching a text query, or null if Google can't be used right now. */
+/**
+ * Places matching a text query, with when Google returned them (ISO date) —
+ * from the cache when the same search ran recently, else from Google. Null
+ * if Google can't be used right now.
+ */
 export async function searchPlaces(
   textQuery: string,
   fields: string[],
   opts: { pageSize?: number; minRating?: number; priceLevels?: string[] } = {}
-): Promise<GooglePlace[] | null> {
-  if (!apiKey() || !(await claimDailyQuota("google-places-search", DAILY_SEARCH_ALLOWANCE))) return null;
-  const body = { textQuery, languageCode: "en", pageSize: opts.pageSize ?? 10, minRating: opts.minRating, priceLevels: opts.priceLevels };
+): Promise<{ places: GooglePlace[]; fetchedAt: string } | null> {
+  if (!apiKey()) return null;
+  const body = { textQuery: textQuery.trim(), languageCode: "en", pageSize: opts.pageSize ?? 10, minRating: opts.minRating, priceLevels: opts.priceLevels };
+  const key = cacheKey("search", { ...body, textQuery: body.textQuery.toLowerCase() }, fields);
+
+  const cached = await prisma.placeSearchCache.findUnique({ where: { key } }).catch(() => null);
+  if (cached && cached.fetchedAt > freshSince()) {
+    return { places: cached.places as unknown as GooglePlace[], fetchedAt: cached.fetchedAt.toISOString() };
+  }
+
+  if (!(await claimDailyQuota("google-places-search", DAILY_SEARCH_ALLOWANCE))) return null;
   const data = await call<{ places?: GooglePlace[] }>(
     `${API}/places:searchText`,
     { method: "POST", body: JSON.stringify(body) },
     fields.map((f) => `places.${f}`).join(",")
   );
-  return data ? data.places ?? [] : null;
+  if (!data) return null;
+  const places = data.places ?? [];
+  const fetchedAt = new Date();
+  const json = places as unknown as object;
+  inBackground("placesCache", () => prisma.placeSearchCache.upsert({
+    where: { key },
+    create: { key, places: json, fetchedAt },
+    update: { places: json, fetchedAt },
+  }));
+  sweepExpired();
+  return { places, fetchedAt: fetchedAt.toISOString() };
 }
 
 /** One place's current details by ID — how saved places are refreshed. */
@@ -98,10 +142,20 @@ export async function placeDetails(placeId: string, fields: string[]): Promise<G
  */
 export async function placePhoto(place: GooglePlace, maxWidthPx = 400): Promise<{ url: string; attribution?: { name: string; uri?: string } } | null> {
   const photo = place.photos?.[0];
-  if (!photo || !apiKey() || !(await claimDailyQuota("google-places-photos", DAILY_PHOTO_ALLOWANCE))) return null;
+  if (!photo || !apiKey()) return null;
+  const key = cacheKey("photo", photo.name, maxWidthPx);
+
+  const cached = await prisma.placePhotoCache.findUnique({ where: { key } }).catch(() => null);
+  if (cached && cached.fetchedAt > freshSince()) {
+    return { url: cached.url, attribution: cached.authorName ? { name: cached.authorName, uri: cached.authorUri ?? undefined } : undefined };
+  }
+
+  if (!(await claimDailyQuota("google-places-photos", DAILY_PHOTO_ALLOWANCE))) return null;
   const data = await call<{ photoUri?: string }>(`${API}/${photo.name}/media?maxWidthPx=${maxWidthPx}&skipHttpRedirect=true`, { method: "GET" });
   if (!data?.photoUri) return null;
   const author = photo.authorAttributions?.[0];
+  const row = { url: data.photoUri, authorName: author?.displayName ?? null, authorUri: author?.uri ?? null, fetchedAt: new Date() };
+  inBackground("placesCache", () => prisma.placePhotoCache.upsert({ where: { key }, create: { key, ...row }, update: row }));
   return { url: data.photoUri, attribution: author ? { name: author.displayName, uri: author.uri } : undefined };
 }
 

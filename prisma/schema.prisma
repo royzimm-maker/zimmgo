@@ -73,3 +73,27 @@ model ApiUsageEvent {
   @@index([route])
   @@index([createdAt])
 }
+
+// Google Places results reused across trips (lib/search/googlePlaces.ts), so
+// a second trip to the same city doesn't spend the daily Google allowance
+// again. Google's terms allow keeping its content for up to 30 days; entries
+// are used for 7 and swept after, and a place's saved copies keep this
+// fetchedAt, so the app's 25-day refresh still runs on time.
+model PlaceSearchCache {
+  key       String   @id // hash of the query, fields and filters
+  places    Json
+  fetchedAt DateTime @default(now())
+
+  @@index([fetchedAt])
+}
+
+// A place photo's key-free image URL and credit, reused like the searches above.
+model PlacePhotoCache {
+  key        String   @id // photo resource name + width
+  url        String
+  authorName String?
+  authorUri  String?
+  fetchedAt  DateTime @default(now())
+
+  @@index([fetchedAt])
+}

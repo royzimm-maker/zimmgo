@@ -124,15 +124,16 @@ export async function searchGoogleRestaurants(params: {
   budget_level?: "low" | "mid" | "high";
   meal_types?: string[];
 }): Promise<RestaurantOption[] | null> {
-  const places = await searchPlaces(restaurantQuery(params.destination, params.cuisine_preferences, params.meal_types), RESTAURANT_FIELDS, {
+  const found = await searchPlaces(restaurantQuery(params.destination, params.cuisine_preferences, params.meal_types), RESTAURANT_FIELDS, {
     pageSize: 12,
     minRating: 4,
     priceLevels: params.budget_level ? BUDGET_PRICE_LEVELS[params.budget_level] : undefined,
   });
-  if (!places) return null;
+  if (!found) return null;
+  // Places keep the date Google returned them, even when served from the cache.
+  const { places, fetchedAt } = found;
   const chosen = usablePlaces(places).slice(0, RESULTS_PER_SEARCH);
   if (!chosen.length) return null;
-  const fetchedAt = new Date().toISOString();
   return withPhotos(chosen.map((p) => toRestaurant(p, params.destination, fetchedAt)), chosen);
 }
 

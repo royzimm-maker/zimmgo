@@ -98,11 +98,12 @@ function usablePlaces(places: GooglePlace[]): GooglePlace[] {
 
 /** Real activities for a search, or null to fall back to sample data. */
 export async function searchGoogleActivities(params: { destination: string; categories?: string[] }): Promise<ActivityOption[] | null> {
-  const places = await searchPlaces(activityQuery(params.destination, params.categories), ACTIVITY_FIELDS, { pageSize: 10, minRating: 4 });
-  if (!places) return null;
+  const found = await searchPlaces(activityQuery(params.destination, params.categories), ACTIVITY_FIELDS, { pageSize: 10, minRating: 4 });
+  if (!found) return null;
+  // Places keep the date Google returned them, even when served from the cache.
+  const { places, fetchedAt } = found;
   const chosen = usablePlaces(places).slice(0, RESULTS_PER_SEARCH);
   if (!chosen.length) return null;
-  const fetchedAt = new Date().toISOString();
   return chosen.map((p) => toActivity(p, params.destination, fetchedAt));
 }
 
