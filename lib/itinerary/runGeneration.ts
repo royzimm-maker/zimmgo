@@ -112,8 +112,15 @@ export function withCacheBreakpoint(messages: Anthropic.MessageParam[]): Anthrop
 // for the UI (the full results are kept for the itinerary) — dropping them
 // keeps every later round's re-sent context smaller.
 export function toolResultForModel(result: unknown): string {
-  // Real hotels have no known star class (stars: 0) — left out so it is never read as "0-star".
-  return JSON.stringify(result, (key, value) => (/(url|uri)$/i.test(key) || (key === "stars" && value === 0) ? undefined : value));
+  return JSON.stringify(result, function (this: Record<string, unknown>, key, value) {
+    if (/(url|uri)$/i.test(key)) return undefined;
+    // Real hotels have no known star class (stars: 0) — left out so it is never read as "0-star".
+    if (key === "stars" && value === 0) return undefined;
+    // A real place's rating in Google's own terms, so it's never quoted as the app's
+    // internal 10-point figure ("a 9.8 rating" for a 4.9-star place).
+    if (key === "rating" && this.google && typeof value === "number") return `${(value / 2).toFixed(1)} of 5 on Google`;
+    return value;
+  });
 }
 
 // Per-round cap on an AI call when running against a job deadline.
@@ -150,17 +157,19 @@ export async function runGeneration(
 
   // We allow up to 8 tool-call rounds to prevent infinite loops
   for (let round = 0; round < 8; round++) {
-    // A round can write a few thousand tokens, so it gets more than the
-    // interactive 30s — but never past the job's deadline.
+    // A round can write a few thousand tokens — more with the model's
+    // default (adaptive) thinking, which counts toward max_tokens, so the cap
+    // leaves plenty of room — and gets more than the interactive 30s, but
+    // never past the job's deadline.
     const options = deadline === undefined ? undefined : withinDeadline(deadline, ROUND_TIMEOUT_MS);
     const response = await client.messages.create({
       model: DEFAULT_MODEL,
-      max_tokens: 4096,
+      max_tokens: 16000,
       system: CACHED_SYSTEM,
       tools: TRAVEL_TOOLS,
       messages: withCacheBreakpoint(messages),
     }, options);
-    logApiUsage("itinerary-generate", DEFAULT_MODEL, response.usage);
+    logApiUsage("itinerary-generate", DEFAULT_MODEL, response.usage, response.stop_reason);
 
     // Collect tool uses from this response
     const toolUses = response.content.filter((b) => b.type === "tool_use");
@@ -170,7 +179,9 @@ export async function runGeneration(
       finalText = textBlocks.map((b) => (b as { type: "text"; text: string }).text).join("\n");
     }
 
-    // If Claude is done (no more tool calls), exit the loop
+    // If Claude is done (no more tool calls), exit the loop. A reply cut off
+    // at max_tokens with no tool call ends here too — logApiUsage reports it,
+    // and the itinerary is assembled from what was gathered so far.
     if (response.stop_reason === "end_turn" || toolUses.length === 0) break;
 
     const stage = toolUses

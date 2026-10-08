@@ -41,11 +41,11 @@ export async function POST(request: NextRequest) {
     const client = getAnthropicClient();
     const response = await client.messages.create({
       model: DEFAULT_MODEL,
-      max_tokens: 300,
+      max_tokens: 2048,
       system: systemPrompt,
       messages: [{ role: "user", content: question }],
     });
-    logApiUsage("itinerary-refine", DEFAULT_MODEL, response.usage);
+    logApiUsage("itinerary-refine", DEFAULT_MODEL, response.usage, response.stop_reason);
 
     const reply = response.content
       .filter((b) => b.type === "text")

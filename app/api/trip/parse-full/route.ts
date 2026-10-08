@@ -53,13 +53,13 @@ export async function POST(request: NextRequest) {
     const client = getAnthropicClient();
     const response = await client.messages.create({
       model: DEFAULT_MODEL,
-      max_tokens: 1024,
+      max_tokens: 4096,
       system: TRAVEL_ADVISOR_SYSTEM_PROMPT,
       tools: [PARSE_FULL_TRIP_TOOL],
       tool_choice: { type: "tool", name: "parse_full_trip" },
       messages: [{ role: "user", content: buildFullTripParsePrompt(text, todayISO) }],
     });
-    logApiUsage("trip-parse-full", DEFAULT_MODEL, response.usage);
+    logApiUsage("trip-parse-full", DEFAULT_MODEL, response.usage, response.stop_reason);
 
     // Conformed to the tool's schema — the client saves this into the trip.
     const result = findToolInput<ParseFullTripResult>(response.content, PARSE_FULL_TRIP_TOOL);

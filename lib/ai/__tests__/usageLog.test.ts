@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const { mockCreate, mockWaitUntil } = vi.hoisted(() => ({ mockCreate: vi.fn(), mockWaitUntil: vi.fn() }));
 vi.mock("@/lib/db", () => ({ prisma: { apiUsageEvent: { create: mockCreate } } }));
 vi.mock("@vercel/functions", () => ({ waitUntil: mockWaitUntil }));
+const { mockLogServerError } = vi.hoisted(() => ({ mockLogServerError: vi.fn() }));
+vi.mock("@/lib/http/errors", () => ({ logServerError: mockLogServerError }));
 
 import { estimateCostUsd, priceForModel, logApiUsage } from "@/lib/ai/usageLog";
 
@@ -88,5 +90,24 @@ describe("logApiUsage", () => {
     await expect(
       logApiUsage("chat", "claude-sonnet-5", { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 })
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("logApiUsage — cut-off replies", () => {
+  const usage = { input_tokens: 10, output_tokens: 16000, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+
+  it("reports a reply that hit max_tokens as an error, and still logs its usage", async () => {
+    mockCreate.mockResolvedValue({});
+    await logApiUsage("itinerary-generate", "claude-sonnet-5", usage, "max_tokens");
+    expect(mockLogServerError).toHaveBeenCalledWith("itinerary-generate", expect.objectContaining({ message: expect.stringContaining("hit max_tokens after 16000 output tokens") }));
+    expect(mockCreate).toHaveBeenCalled();
+  });
+
+  it("says nothing for replies that finished or stopped to call a tool", async () => {
+    mockCreate.mockResolvedValue({});
+    await logApiUsage("chat", "claude-sonnet-5", usage, "end_turn");
+    await logApiUsage("chat", "claude-sonnet-5", usage, "tool_use");
+    await logApiUsage("chat", "claude-sonnet-5", usage);
+    expect(mockLogServerError).not.toHaveBeenCalled();
   });
 });

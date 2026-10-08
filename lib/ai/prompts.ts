@@ -196,7 +196,8 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     : "For flights: call search_flights TWICE — once for the outbound leg (departureAirport → arrivalAirport, using the start date). " +
       returnLegInstruction + " " +
       "All flight prices are per person, one-way. Flight results are estimates — a typical fare for the route and cabin, with no airline, flight number or times. " +
-      "Never name an airline, flight number or departure time; call the fare an estimate and suggest comparing real flights on Google Flights.";
+      "Never name an airline, flight number or departure time; call the fare an estimate and suggest comparing real flights on Google Flights. " +
+      "ZimmGo doesn't book anything — never say you booked, reserved or confirmed a flight, hotel or table; say what you suggest or planned instead.";
 
   parts.push(
     "\nPlease use the available tools to search for flights, hotels, and activities, then synthesise everything into a final day-by-day itinerary. " +

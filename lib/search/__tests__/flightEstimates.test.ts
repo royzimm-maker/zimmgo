@@ -78,3 +78,12 @@ describe("estimates are called estimates in exports", () => {
     expect(text).not.toContain("Any airline");
   });
 });
+
+describe("airport locations for the estimate", () => {
+  it("prices a short hop to an airport without its own coordinates from its city's location", async () => {
+    const [hop] = await searchFlights({ origin: "LIS", destination: "OPO", departure_date: "2026-11-05" });
+    expect(hop.price).toBeLessThan(200); // ~170 miles, not the $450 long-haul fallback
+    const [named] = await searchFlights({ origin: "Lisbon (LIS)", destination: "Porto (OPO)", departure_date: "2026-11-05" });
+    expect(named.price).toBe(hop.price);
+  });
+});

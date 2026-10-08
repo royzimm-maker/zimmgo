@@ -130,3 +130,12 @@ describe("how an estimated rate is shown", () => {
     expect(forModel).not.toMatch(/Uri"|Url"/);
   });
 });
+
+describe("what Claude reads about a real place's rating", () => {
+  it("gives Google's rating in Google's terms, and leaves sample ratings alone", () => {
+    const real = toHotel(place({ rating: 4.9 }), { destination: "Lisbon" }, "");
+    const forModel = JSON.parse(toolResultForModel([real, { name: "Sample", rating: 9.1 }]));
+    expect(forModel[0].rating).toBe("4.9 of 5 on Google");
+    expect(forModel[1].rating).toBe(9.1);
+  });
+});

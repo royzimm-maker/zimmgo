@@ -8,7 +8,8 @@
 
 import type { FlightOption } from "@/types/trip";
 import { stableId } from "@/lib/search/mockRandom";
-import { lookupAirport, type LatLng } from "@/lib/data/coordinates";
+import { lookupAirport, lookupCity, type LatLng } from "@/lib/data/coordinates";
+import { DEPARTURE_AIRPORTS, ROUTING_DB } from "@/lib/data/airportRouting";
 import { extractIataCode, googleFlightsUrl } from "@/lib/utils";
 
 interface FlightSearchParams {
@@ -26,6 +27,26 @@ interface FlightSearchParams {
 const CABIN_MULTIPLIER: Record<string, number> = { economy: 1, premium_economy: 2.2, business: 4.5, first: 8 };
 // When an airport's location isn't known: a typical long-haul economy fare, one way.
 const UNKNOWN_ROUTE_ONE_WAY_USD = 450;
+
+/**
+ * Where an airport is: its own coordinates, else its city's — named in the
+ * request ("Porto (OPO)") or in the app's airport lists — so a short hop
+ * isn't priced as long-haul just because the airport isn't in the table.
+ */
+export function airportLocation(code: string, label = ""): LatLng | null {
+  const own = lookupAirport(code);
+  if (own) return own;
+  const named = label.replace(/\s*\(.*\)\s*$/, "").trim();
+  const listed = DEPARTURE_AIRPORTS.find((a) => a.code === code)?.city
+    ?? ROUTING_DB.flatMap((r) => r.arrivalAirports).find((a) => a.code === code)?.city;
+  for (const city of [named, listed]) {
+    if (city && city.toUpperCase() !== code) {
+      const at = lookupCity(city);
+      if (at) return at;
+    }
+  }
+  return null;
+}
 
 /** Great-circle distance in miles. */
 export function distanceMiles(a: LatLng, b: LatLng): number {
@@ -51,8 +72,8 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
   const origin = extractIataCode(params.origin);
   const destination = extractIataCode(params.destination);
   const cabin = params.lowest_fare_mode ? "economy" : (params.cabin_class && params.cabin_class in CABIN_MULTIPLIER ? params.cabin_class : "economy");
-  const from = lookupAirport(origin);
-  const to = lookupAirport(destination);
+  const from = airportLocation(origin, params.origin);
+  const to = airportLocation(destination, params.destination);
   const miles = from && to ? distanceMiles(from, to) : null;
   const oneWayEconomy = miles !== null ? typicalOneWayFareUsd(miles) : UNKNOWN_ROUTE_ONE_WAY_USD;
 

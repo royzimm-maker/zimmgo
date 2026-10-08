@@ -38,13 +38,13 @@ export async function runSmartPick(body: SmartPickRequestBody, deadline?: number
   const options = deadline === undefined ? undefined : withinDeadline(deadline, AI_TIMEOUT_MS);
   const response = await client.messages.create({
     model: DEFAULT_MODEL,
-    max_tokens: 1024,
+    max_tokens: 4096,
     system: TRAVEL_ADVISOR_SYSTEM_PROMPT,
     tools: [SMART_PICK_TOOL],
     tool_choice: { type: "tool", name: "make_selection" },
     messages: [{ role: "user", content: prompt }],
   }, options);
-  logApiUsage("smart-pick", DEFAULT_MODEL, response.usage);
+  logApiUsage("smart-pick", DEFAULT_MODEL, response.usage, response.stop_reason);
 
   const selection = findToolInput<SmartPickResponse>(response.content, SMART_PICK_TOOL);
   if (!selection) throw new SmartPickError("AI did not return a usable selection", 502);

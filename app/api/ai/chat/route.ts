@@ -106,12 +106,12 @@ export async function POST(request: NextRequest) {
 
     const response = await client.messages.create({
       model: DEFAULT_MODEL,
-      max_tokens: 1024,
+      max_tokens: 4096,
       system,
       tools,
       messages,
     });
-    logApiUsage("chat", DEFAULT_MODEL, response.usage);
+    logApiUsage("chat", DEFAULT_MODEL, response.usage, response.stop_reason);
 
     // Tool inputs are conformed to their schemas (lib/ai/toolInput.ts) before
     // they reach the client, which writes them straight into the saved trip.

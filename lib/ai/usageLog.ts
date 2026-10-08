@@ -1,6 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { waitUntil } from "@vercel/functions";
 import { prisma } from "@/lib/db";
+import { logServerError } from "@/lib/http/errors";
 
 // $/million tokens — https://platform.claude.com/docs/en/about-claude/pricing
 // Keyed by model so a future route on a different model (Opus/Haiku/Fable)
@@ -45,7 +46,14 @@ export type UsageCounts = Pick<Anthropic.Usage, "input_tokens" | "output_tokens"
 // background (kept alive past the response by waitUntil on Vercel) so it
 // never adds a database round trip to an AI request or a generation turn.
 // The returned promise never rejects; it's there for tests.
-export function logApiUsage(route: string, model: string, usage: UsageCounts): Promise<void> {
+//
+// Pass the response's stop_reason too: a reply that hit max_tokens was cut
+// off (the model thinks by default, and thinking counts toward the cap), and
+// is reported as an error rather than passing silently.
+export function logApiUsage(route: string, model: string, usage: UsageCounts, stopReason?: string | null): Promise<void> {
+  if (stopReason === "max_tokens") {
+    logServerError(route, new Error(`Claude's reply hit max_tokens after ${usage.output_tokens} output tokens and was cut off`));
+  }
   const write = writeUsage(route, model, usage);
   waitUntil(write);
   return write;
