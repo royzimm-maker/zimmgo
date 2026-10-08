@@ -31,6 +31,12 @@ export function formatCurrency(amount: number, currency = "USD"): string {
   }).format(converted);
 }
 
+/** A hotel nightly rate as shown everywhere: "$220/night", or "~$220/night (est.)" when it is an estimate (real Google hotels). */
+export function formatNightlyRate(hotel: { pricePerNight: number; priceIsEstimate?: boolean }, currency?: string): string {
+  const rate = `${formatCurrency(hotel.pricePerNight, currency)}/night`;
+  return hotel.priceIsEstimate ? `~${rate} (est.)` : rate;
+}
+
 // `new Date("2026-08-12")` parses as UTC midnight, but reading it back with
 // local-time methods (.getDate(), .toLocaleDateString(), .toISOString()) in
 // a timezone behind UTC silently shows the previous day. Parsing the

@@ -1,8 +1,9 @@
-import type { ActivityOption, RestaurantOption } from "@/types/trip";
+import type { ActivityOption, HotelOption, RestaurantOption } from "@/types/trip";
 
 export interface SavedGooglePlaces {
   restaurants: RestaurantOption[];
   activities: ActivityOption[];
+  hotels: HotelOption[];
 }
 
 /** Google's current details for saved Google places (app/api/places/refresh). Throws on failure. */
@@ -14,5 +15,5 @@ export async function fetchRefreshedPlaces(places: SavedGooglePlaces): Promise<S
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Couldn't refresh places");
   const data = await res.json();
-  return { restaurants: data.restaurants ?? [], activities: data.activities ?? [] };
+  return { restaurants: data.restaurants ?? [], activities: data.activities ?? [], hotels: data.hotels ?? [] };
 }

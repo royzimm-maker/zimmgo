@@ -286,6 +286,12 @@ export interface HotelOption {
   highlights: string[];
   imageUrl?: string;
   bookingUrl?: string;
+  description?: string;
+  // A real place from Google Places (see RestaurantOption.google). Google has
+  // no star class or nightly rates: `stars` is 0 (unknown, not shown) and
+  // `pricePerNight` a typical rate for the class searched (priceIsEstimate).
+  google?: GooglePlaceRef & { websiteUri?: string };
+  priceIsEstimate?: boolean;
 }
 
 export interface ActivityOption {

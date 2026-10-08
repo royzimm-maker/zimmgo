@@ -1,10 +1,10 @@
-// Hotels API module
-// Production: integrate with Booking.com Demand API or Airbnb API
-// Booking.com docs: https://developers.booking.com
+// Hotels: real hotels from Google Places when it is available
+// (googleHotels.ts), otherwise the sample data below.
 
 import type { HotelOption } from "@/types/trip";
 import { seededInt, seededRandom, stableId } from "@/lib/search/mockRandom";
 import { resolvePool } from "@/lib/search/poolLookup";
+import { searchGoogleHotels } from "@/lib/search/googleHotels";
 
 interface HotelSearchParams {
   destination: string;
@@ -231,12 +231,14 @@ function findHotelBase(destination: string): (Partial<HotelOption> & { hotelType
 
 
 export async function searchHotels(params: HotelSearchParams): Promise<HotelOption[]> {
-  // --- PRODUCTION SWAP POINT ---
-  // const response = await fetch("https://distribution-xml.booking.com/2.0/json/hotels?...", {
-  //   headers: { Authorization: `Basic ${process.env.BOOKING_API_KEY}` },
-  // });
-  // return transformBookingResponse(response);
+  const real = await searchGoogleHotels(params);
+  if (real) return real;
+  return sampleHotels(params);
+}
 
+// The sample data — used when Google Places is not configured, its daily
+// allowance is used up, or it fails.
+export function sampleHotels(params: HotelSearchParams): HotelOption[] {
   const base = findHotelBase(params.destination);
   const maxPrice = params.max_price_per_night ?? 300;  // conservative default — AI should pass explicit value
   const minStars = params.min_stars ?? 3;

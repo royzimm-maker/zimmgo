@@ -7,7 +7,7 @@
 // Both render from the same plan as the on-screen itinerary and the Word
 // export (lib/itinerary/tripPlan.ts): each city's chosen stay, and each
 // day's contents — the traveller's arrangement once they've made one.
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatNightlyRate } from "@/lib/utils";
 import { buildTripPlan, dayLines, type DayPlan, type TripPlan } from "@/lib/itinerary/tripPlan";
 import type { GeneratedItinerary, TripPreferences } from "@/types/trip";
 
@@ -19,8 +19,8 @@ const FREE_DAY = "Free day — nothing scheduled";
 
 function stayLine(stay: TripPlan["stays"][number], preferences: TripPreferences): string {
   const { hotel, byTraveller } = stay.choice;
-  const price = formatCurrency(hotel.pricePerNight, preferences.preferredCurrency);
-  return `${hotel.name} — ${stay.city} — ${price}/night${byTraveller ? "" : " (ZiGy's recommendation)"}`;
+  const price = formatNightlyRate(hotel, preferences.preferredCurrency);
+  return `${hotel.name} — ${stay.city} — ${price}${byTraveller ? "" : " (ZiGy's recommendation)"}`;
 }
 
 function dayHeading(dayPlan: DayPlan): string {
@@ -108,7 +108,7 @@ export function buildItineraryClipboardHtml(
     ? heading("Where You're Staying") +
       list(
         plan.stays.map(({ city, choice }) =>
-          `<strong>${escapeHtml(choice.hotel.name)}</strong> — ${escapeHtml(city)} — ${escapeHtml(formatCurrency(choice.hotel.pricePerNight, preferences.preferredCurrency))}/night` +
+          `<strong>${escapeHtml(choice.hotel.name)}</strong> — ${escapeHtml(city)} — ${escapeHtml(formatNightlyRate(choice.hotel, preferences.preferredCurrency))}` +
           (choice.byTraveller ? "" : ` <em style="color:#64748b;">(ZiGy's recommendation)</em>`)
         )
       )

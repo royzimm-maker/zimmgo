@@ -61,3 +61,11 @@ describe("estimateTripBudget — estimated entry fees", () => {
     expect(line(itinerary(), "activities").note).not.toContain("estimated");
   });
 });
+
+describe("estimateTripBudget — estimated hotel rates", () => {
+  it("says so in the hotels line when a stay's rate is an estimate", () => {
+    const estimated = itinerary({ hotels: [{ ...hotel("lis-zigy", "Lisbon", 220), priceIsEstimate: true }, hotel("opo-zigy", "Porto", 100)] } as never);
+    expect(line(estimated, "hotels").note).toContain("estimated rates");
+    expect(line(itinerary(), "hotels").note).not.toContain("estimated");
+  });
+});

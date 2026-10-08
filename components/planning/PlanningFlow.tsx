@@ -46,7 +46,7 @@ export function PlanningFlow() {
   const StepComponent = STEP_COMPONENTS[trip.currentStep];
   const latestItinerary = trip.itineraries[trip.itineraries.length - 1] ?? null;
   // Google place data older than its terms allow is refreshed when the trip is open.
-  useFreshGooglePlaces(latestItinerary);
+  useFreshGooglePlaces(latestItinerary, trip.preferences.lodgingPick);
 
   // Lets the user drag the divider between the chat and Wanderlog panels —
   // the fixed h-72 Wanderlog panel was squeezing the chat window with no

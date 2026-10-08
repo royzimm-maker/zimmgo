@@ -104,6 +104,8 @@ interface TripState {
   /** Swaps in updated copies of restaurants or activities, matched by id (e.g. refreshed Google places). */
   replaceRestaurants: (itineraryId: string, updated: RestaurantOption[]) => void;
   replaceActivities: (itineraryId: string, updated: ActivityOption[]) => void;
+  /** Hotels live in three places — the itinerary's list, each city's chosen hotel, and the Lodging pick; all are updated. */
+  replaceHotels: (itineraryId: string | null, updated: HotelOption[]) => void;
   updateItineraryRefinements: (itineraryId: string, refinements: ItineraryRefinements) => void;
   saveFinalizedPlan: (itineraryId: string, plan: FinalizedPlan) => void;
   markItineraryReviewed: (itineraryId: string) => void;
@@ -569,6 +571,22 @@ export const useTripStore = create<TripState>()(
 
       replaceActivities: (itineraryId, updated) =>
         set((s) => withItinerary(s, itineraryId, (it) => ({ ...it, activities: replacedById(it.activities, updated) }))),
+
+      replaceHotels: (itineraryId, updated) =>
+        set((s) => {
+          const byId = new Map(updated.map((h) => [h.id, h]));
+          const pick = s.trip.preferences.lodgingPick;
+          const withPick = { ...s, trip: { ...s.trip, preferences: { ...s.trip.preferences, lodgingPick: (pick && byId.get(pick.id)) ?? pick } } };
+          if (!itineraryId) return { trip: { ...withPick.trip, updatedAt: new Date().toISOString() } };
+          return withItinerary(withPick, itineraryId, (it) => {
+            const chosen = it.selections?.hotelsByCity;
+            return {
+              ...it,
+              hotels: replacedById(it.hotels, updated),
+              ...(chosen ? { selections: { ...it.selections, hotelsByCity: Object.fromEntries(Object.entries(chosen).map(([city, h]) => [city, byId.get(h.id) ?? h])) } } : {}),
+            };
+          });
+        }),
 
       updateItineraryRefinements: (itineraryId, refinements) =>
         set((s) => ({

@@ -245,17 +245,28 @@ export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelO
             alt={hotel.name}
             className="w-full h-full object-cover"
           />
-          <span className="absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide shadow-sm" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>
-            {tierLabel}
-          </span>
+          {!hotel.google && (
+            <span className="absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide shadow-sm" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>
+              {tierLabel}
+            </span>
+          )}
           {selected && (
             <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-brand-600 px-2.5 py-1 text-[10px] font-bold text-white shadow">
               ✓ Your pick
             </span>
           )}
-          <span className="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white/80 font-medium tracking-wide">
-            Illustrative
-          </span>
+          {hotel.google ? (
+            hotel.google.photoAttribution && (
+              <a href={hotel.google.photoAttribution.uri} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                className="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white/80 font-medium hover:underline">
+                Photo: {hotel.google.photoAttribution.name}
+              </a>
+            )
+          ) : (
+            <span className="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white/80 font-medium tracking-wide">
+              Illustrative
+            </span>
+          )}
         </div>
       )}
       <div className="flex items-start gap-3 p-3">
@@ -269,6 +280,7 @@ export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelO
             </div>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">{hotel.location}</p>
+          {hotel.description && <p className="text-xs text-slate-600 mt-1 line-clamp-2">{hotel.description}</p>}
           <div className="flex flex-wrap gap-1 mt-2">
             {hotel.highlights.slice(0, 3).map((h) => (
               <Badge key={h} variant="muted">{h}</Badge>
@@ -277,13 +289,22 @@ export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelO
         </div>
         <div className="text-right shrink-0">
           <p className="font-bold text-slate-900 text-sm">
-            {formatCurrency(hotel.pricePerNight, trip.preferences.preferredCurrency)}<span className="font-normal text-xs text-slate-400">/night</span>
+            {hotel.priceIsEstimate && "~"}{formatCurrency(hotel.pricePerNight, trip.preferences.preferredCurrency)}<span className="font-normal text-xs text-slate-400">/night</span>
           </p>
-          <p className="text-xs text-slate-500 mt-0.5">
-            <span className="font-medium text-sage-600">{hotel.rating}/10</span>
-            {" · "}{hotel.reviewCount.toLocaleString()} reviews
-          </p>
-          {hotel.ratingSource && (
+          {hotel.priceIsEstimate && <p className="text-[10px] text-slate-400" title="A typical rate for this kind of hotel — check real prices for your dates">est. rate</p>}
+          {hotel.google ? (
+            // Google's own figure (stored ×2 on the app's 10-point scale), credited to Google Maps.
+            <a href={hotel.google.mapsUri} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="block text-xs text-slate-500 mt-0.5 hover:underline">
+              <span className="font-medium text-sage-600">{(hotel.rating / 2).toFixed(1)}★</span>
+              {" · "}{hotel.reviewCount.toLocaleString()} on Google Maps
+            </a>
+          ) : (
+            <p className="text-xs text-slate-500 mt-0.5">
+              <span className="font-medium text-sage-600">{hotel.rating}/10</span>
+              {" · "}{hotel.reviewCount.toLocaleString()} reviews
+            </p>
+          )}
+          {hotel.ratingSource && !hotel.google && (
             <p className="text-[10px] text-slate-400 mt-0.5">{icon} {hotel.ratingSource}</p>
           )}
           {hotel.sourceRatings && (
@@ -293,7 +314,7 @@ export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelO
           )}
           <div className="flex items-center gap-2 justify-end mt-1.5">
             <a
-              href={`https://www.google.com/maps/search/${encodeURIComponent(hotel.name + " " + hotel.location)}`}
+              href={hotel.google?.mapsUri ?? `https://www.google.com/maps/search/${encodeURIComponent(hotel.name + " " + hotel.location)}`}
               target="_blank" rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="text-xs text-slate-400 hover:text-slate-600 hover:underline flex items-center gap-0.5"
@@ -305,7 +326,7 @@ export function HotelCard({ hotel, selected = false, onSelect }: { hotel: HotelO
               <a href={hotel.bookingUrl} target="_blank" rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
                 className="text-xs text-brand-500 hover:underline flex items-center gap-0.5 font-medium">
-                Book <ExternalLink size={9} />
+                {hotel.google ? "Check prices" : "Book"} <ExternalLink size={9} />
               </a>
             )}
           </div>

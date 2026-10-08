@@ -2,10 +2,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-const m = vi.hoisted(() => ({ rateLimit: vi.fn(), refreshRestaurant: vi.fn(), refreshActivity: vi.fn() }));
+const m = vi.hoisted(() => ({ rateLimit: vi.fn(), refreshRestaurant: vi.fn(), refreshActivity: vi.fn(), refreshHotel: vi.fn() }));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: m.rateLimit }));
 vi.mock("@/lib/search/googleRestaurants", () => ({ refreshRestaurant: m.refreshRestaurant }));
 vi.mock("@/lib/search/googleActivities", () => ({ refreshActivity: m.refreshActivity }));
+vi.mock("@/lib/search/googleHotels", () => ({ refreshHotel: m.refreshHotel }));
 
 import { POST } from "@/app/api/places/refresh/route";
 
@@ -20,14 +21,16 @@ beforeEach(() => {
 });
 
 describe("POST /api/places/refresh", () => {
-  it("returns the restaurants and activities Google could refresh, leaving out the rest", async () => {
+  it("returns the restaurants, activities and hotels Google could refresh, leaving out the rest", async () => {
     m.refreshRestaurant.mockImplementation(async (r: { id: string }) => (r.id === "a" ? { ...r, rating: 9.4 } : null));
     m.refreshActivity.mockImplementation(async (a: { id: string }) => ({ ...a, rating: 8.8 }));
-    const res = await post({ restaurants: [saved("a"), saved("b")], activities: [saved("m")] });
+    m.refreshHotel.mockImplementation(async (h: { id: string }) => ({ ...h, rating: 9 }));
+    const res = await post({ restaurants: [saved("a"), saved("b")], activities: [saved("m")], hotels: [saved("h")] });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       restaurants: [{ ...saved("a"), rating: 9.4 }],
       activities: [{ ...saved("m"), rating: 8.8 }],
+      hotels: [{ ...saved("h"), rating: 9 }],
     });
   });
 

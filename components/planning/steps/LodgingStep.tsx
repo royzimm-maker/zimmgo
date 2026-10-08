@@ -102,7 +102,9 @@ export function LodgingStep() {
     if (!destination) return [];
     setHotelsLoading(true);
     try {
-      const list = await fetchHotelSearch({ destination, minStars: stars, maxPricePerNight: budgetMax, types: typesOverride ?? effectiveTypes });
+      const dates = trip.preferences.dates;
+      const stay = dates?.type === "exact" ? { checkIn: dates.startDate, checkOut: dates.endDate } : {};
+      const list = await fetchHotelSearch({ destination, minStars: stars, maxPricePerNight: budgetMax, types: typesOverride ?? effectiveTypes, ...stay });
       setHotels(list);
       setVisibleHotelCount(3);
       return list;

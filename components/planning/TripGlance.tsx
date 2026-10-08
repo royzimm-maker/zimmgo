@@ -1,7 +1,7 @@
 "use client";
 
 import { Plane, Hotel, Users, Calendar, MapPin, Check, Ship } from "lucide-react";
-import { formatDate, formatCurrency, pairFlights } from "@/lib/utils";
+import { formatDate, formatCurrency, formatNightlyRate, pairFlights } from "@/lib/utils";
 import { itineraryCities } from "@/lib/location";
 import { chosenHotelForCity, type HotelChoice } from "@/lib/planning/hotelChoice";
 import { selectionsOf } from "@/lib/planning/selections";
@@ -148,7 +148,7 @@ export function TripGlance({ itinerary, preferences }: Props) {
                   {byTraveller && <Check size={11} className="text-sage-600 shrink-0" aria-label="Your choice" />}
                   {h.name}
                 </span>
-                <span className="text-slate-500">{h.location} · {formatCurrency(h.pricePerNight, preferences.preferredCurrency)}/night</span>
+                <span className="text-slate-500">{h.location} · {formatNightlyRate(h, preferences.preferredCurrency)}</span>
               </div>
             ))}
           </div>

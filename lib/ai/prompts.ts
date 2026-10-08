@@ -325,7 +325,7 @@ export function buildHotelPickPrompt(
   const hotelBudget = resolveBudget(preferences);
   const budgetStr = hotelBudget ? ` Lodging budget tier: ${hotelBudget.label}.` : "";
   const list = hotels.map((h) =>
-    `- id="${h.id}" | ${h.name} | ${h.stars}★ | $${h.pricePerNight}/night | ${h.location} | ${h.highlights.join(", ")}`
+    `- id="${h.id}" | ${h.name} | ${h.google ? `${(h.rating / 2).toFixed(1)}★ on Google (${h.reviewCount} reviews)` : `${h.stars}★`} | ${h.priceIsEstimate ? `about $${h.pricePerNight}/night (estimate)` : `$${h.pricePerNight}/night`} | ${h.location} | ${[...h.highlights, h.description].filter(Boolean).join(", ")}`
   ).join("\n");
 
   return `Pick the single best hotel in ${city} for this traveller.${vibeStr}${budgetStr}\n\nOptions:\n${list}\n\nCall make_selection with exactly one pick — its id and a one-sentence reason it's the right fit for this trip.`;

@@ -7,6 +7,9 @@ export async function fetchHotelSearch(query: {
   minStars: number;
   maxPricePerNight: number;
   types: LodgingType[];
+  // The stay, when known — real hotels link to prices for these dates.
+  checkIn?: string;
+  checkOut?: string;
 }): Promise<HotelOption[]> {
   const res = await fetch("/api/hotels/search", {
     method: "POST",
@@ -16,6 +19,8 @@ export async function fetchHotelSearch(query: {
       min_stars: query.minStars,
       max_price_per_night: query.maxPricePerNight,
       types: query.types.length > 0 ? query.types : undefined,
+      check_in: query.checkIn,
+      check_out: query.checkOut,
     }),
   });
   const data: unknown = await res.json();

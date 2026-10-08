@@ -4,7 +4,8 @@ import { rateLimit } from "@/lib/rateLimit";
 import { readJsonBody, tooMany } from "@/lib/http/readJsonBody";
 import { refreshRestaurant } from "@/lib/search/googleRestaurants";
 import { refreshActivity } from "@/lib/search/googleActivities";
-import type { ActivityOption, RestaurantOption } from "@/types/trip";
+import { refreshHotel } from "@/lib/search/googleHotels";
+import type { ActivityOption, HotelOption, RestaurantOption } from "@/types/trip";
 
 // Google's terms allow its place content to be kept for 30 days; a saved
 // trip's Google places are refreshed through here when it's opened after
@@ -32,20 +33,22 @@ export async function POST(request: NextRequest) {
   if (limited) return limited;
 
   try {
-    const parsed = await readJsonBody<{ restaurants?: unknown; activities?: unknown }>(request, 200_000);
+    const parsed = await readJsonBody<{ restaurants?: unknown; activities?: unknown; hotels?: unknown }>(request, 200_000);
     if (!parsed.ok) return parsed.response;
     const restaurants = listOf<RestaurantOption>(parsed.body?.restaurants);
     const activities = listOf<ActivityOption>(parsed.body?.activities);
-    if (!restaurants || !activities) {
-      return NextResponse.json({ error: "restaurants and activities must be lists of saved Google places" }, { status: 400 });
+    const hotels = listOf<HotelOption>(parsed.body?.hotels);
+    if (!restaurants || !activities || !hotels) {
+      return NextResponse.json({ error: "restaurants, activities and hotels must be lists of saved Google places" }, { status: 400 });
     }
-    if (restaurants.length + activities.length > MAX_PLACES) return tooMany("places", MAX_PLACES);
+    if (restaurants.length + activities.length + hotels.length > MAX_PLACES) return tooMany("places", MAX_PLACES);
 
-    const [freshRestaurants, freshActivities] = await Promise.all([
+    const [freshRestaurants, freshActivities, freshHotels] = await Promise.all([
       Promise.all(restaurants.map(refreshRestaurant)),
       Promise.all(activities.map(refreshActivity)),
+      Promise.all(hotels.map(refreshHotel)),
     ]);
-    return NextResponse.json({ restaurants: found(freshRestaurants), activities: found(freshActivities) });
+    return NextResponse.json({ restaurants: found(freshRestaurants), activities: found(freshActivities), hotels: found(freshHotels) });
   } catch (error: unknown) {
     return serverError("places/refresh", error);
   }

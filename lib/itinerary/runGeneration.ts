@@ -112,7 +112,8 @@ export function withCacheBreakpoint(messages: Anthropic.MessageParam[]): Anthrop
 // for the UI (the full results are kept for the itinerary) — dropping them
 // keeps every later round's re-sent context smaller.
 export function toolResultForModel(result: unknown): string {
-  return JSON.stringify(result, (key, value) => (/url$/i.test(key) ? undefined : value));
+  // Real hotels have no known star class (stars: 0) — left out so it is never read as "0-star".
+  return JSON.stringify(result, (key, value) => (/(url|uri)$/i.test(key) || (key === "stars" && value === 0) ? undefined : value));
 }
 
 // Per-round cap on an AI call when running against a job deadline.
