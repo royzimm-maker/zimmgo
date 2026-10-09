@@ -12,6 +12,15 @@ export interface PlannedDay {
   city: string;
 }
 
+// Writing every day in the final planning round takes longer than a round
+// may run for long trips, so past this many days the days are written
+// separately, a few at a time and in parallel (lib/itinerary/writeDaysInParts.ts).
+export const DAYS_IN_ONE_PASS = 8;
+
+export function writesDaysInParts(preferences: TripPreferences): boolean {
+  return tripSpan(preferences).numDays > DAYS_IN_ONE_PASS;
+}
+
 /** The trip's start date and number of days, from exact dates or a flexible month and length. */
 export function tripSpan(preferences: TripPreferences): { startDate: string; numDays: number } {
   if (preferences.dates?.type === "flexible") {

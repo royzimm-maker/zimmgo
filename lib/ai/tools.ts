@@ -3,6 +3,24 @@ import type Anthropic from "@anthropic-ai/sdk";
 // Tool definitions passed to the Claude API for structured outputs.
 // Each tool maps to a backend function in the API routes.
 
+// One day of the written day-by-day schedule — used by generate_itinerary
+// and, for long trips written in parts, by write_days.
+const WRITTEN_DAY_SCHEMA = {
+  type: "object",
+  properties: {
+    day_number: { type: "integer", description: "The day's number from the day plan (1 = first day)." },
+    theme: { type: "string", description: "A short, specific title for the day, e.g. \"Alfama, Fado & the Castle\"." },
+    morning: { type: "array", items: { type: "string" }, description: "1–3 things to do, in order. Short — under 15 words each." },
+    afternoon: { type: "array", items: { type: "string" }, description: "1–3 things to do, in order." },
+    evening: { type: "array", items: { type: "string" }, description: "1–3 things to do, in order." },
+    breakfast: { type: "string", description: "Where to eat and why, in one short line — a restaurant from search_restaurants by its exact name, or a plain suggestion if none fits." },
+    lunch: { type: "string", description: "As for breakfast." },
+    dinner: { type: "string", description: "As for breakfast." },
+    note: { type: "string", description: "Optional: one practical tip for the day (bookings, timing, what to bring)." },
+  },
+  required: ["day_number", "theme", "morning", "afternoon", "evening"],
+};
+
 export const TRAVEL_TOOLS: Anthropic.Tool[] = [
   {
     name: "search_flights",
@@ -144,21 +162,7 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
           type: "array",
           description:
             "The day-by-day schedule: one entry for every day in the day plan given in the prompt, in order. Name only places that came back from your searches (exactly as named there); keep each item short.",
-          items: {
-            type: "object",
-            properties: {
-              day_number: { type: "integer", description: "The day's number from the day plan (1 = first day)." },
-              theme: { type: "string", description: "A short, specific title for the day, e.g. \"Alfama, Fado & the Castle\"." },
-              morning: { type: "array", items: { type: "string" }, description: "1–3 things to do, in order. Short — under 15 words each." },
-              afternoon: { type: "array", items: { type: "string" }, description: "1–3 things to do, in order." },
-              evening: { type: "array", items: { type: "string" }, description: "1–3 things to do, in order." },
-              breakfast: { type: "string", description: "Where to eat and why, in one short line — a restaurant from search_restaurants by its exact name, or a plain suggestion if none fits." },
-              lunch: { type: "string", description: "As for breakfast." },
-              dinner: { type: "string", description: "As for breakfast." },
-              note: { type: "string", description: "Optional: one practical tip for the day (bookings, timing, what to bring)." },
-            },
-            required: ["day_number", "theme", "morning", "afternoon", "evening"],
-          },
+          items: WRITTEN_DAY_SCHEMA,
         },
         why_this_works: {
           type: "string",
@@ -174,6 +178,20 @@ export const TRAVEL_TOOLS: Anthropic.Tool[] = [
     },
   },
 ];
+
+// Long trips: the day-by-day schedule for a few days at a time, written in
+// parallel after the searches (lib/itinerary/writeDaysInParts.ts).
+export const WRITE_DAYS_TOOL: Anthropic.Tool = {
+  name: "write_days",
+  description: "Write the day-by-day schedule for the days given — one entry per day, in order.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      days: { type: "array", maxItems: 10, items: WRITTEN_DAY_SCHEMA },
+    },
+    required: ["days"],
+  },
+};
 
 // Forced-tool-call schema for parsing the Destination step's free-text input.
 // A regex heuristic (tuned for the curated "Country — City, City & City"

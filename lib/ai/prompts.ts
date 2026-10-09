@@ -1,4 +1,4 @@
-import { planDays } from "@/lib/itinerary/dayPlan";
+import { planDays, writesDaysInParts, type PlannedDay } from "@/lib/itinerary/dayPlan";
 import { describeVibes } from "@/lib/data/vibes";
 import { arrangedLodgingCities, routeSegments, routeStops, stopDates } from "@/lib/planning/route";
 import { tripSpan } from "@/lib/itinerary/dayPlan";
@@ -295,15 +295,60 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     (isMulti
       ? `Also include \`inter_city_travel\` in that same generate_itinerary call: one entry for each transfer between consecutive legs in this order (${cityList.map((c) => `"${c}"`).join(" → ")}) — how the traveller actually gets from each city to the next (mode + rough duration), based on real-world geography. This is shown to the traveller on the day they arrive in each new city, so it needs to be concrete and correct, not vague ("travel between cities").`
       : "") +
-    ` Also include \`days\` in that same generate_itinerary call — the day-by-day schedule the traveller sees, one entry per day of this fixed day plan (the dates and cities are set by the app; don't change them): ${planDays(preferences).map((d) => `Day ${d.dayNumber} (${d.date}) in ${d.city}`).join("; ")}. ` +
-    "For each day give a short, specific theme and 1–3 things for the morning, afternoon and evening, plus breakfast, lunch and dinner. " +
-    "Build it from what your searches returned — name activities and restaurants exactly as they appear there, put each in its own city's days, don't repeat a restaurant on the same day, and spread the best picks across the trip. Never name a place that didn't come back from a search; for a free slot, suggest something plain (\"wander the old town\", \"a market lunch\"). " +
-    "A day you arrive in a new city starts with getting there and settling in, and the very first day allows for a long flight. Keep every item short — under 15 words. " +
+    (writesDaysInParts(preferences)
+      ? " Leave `days` out of generate_itinerary: this is a long trip, and the app writes its day-by-day schedule separately from your searches. "
+      : ` Also include \`days\` in that same generate_itinerary call — the day-by-day schedule the traveller sees, one entry per day of this fixed day plan (the dates and cities are set by the app; don't change them): ${planDays(preferences).map((d) => `Day ${d.dayNumber} (${d.date}) in ${d.city}`).join("; ")}. ` +
+        DAY_WRITING_RULES) +
     "Also include `why_this_works`: 2–4 short bullet points on why this plan fits this traveller specifically. " +
     " Also check whether the traveller's arrival/departure airport is actually in one of their destination cities. If it isn't, decide honestly whether a same-day onward connection to the first destination (or a same-day return from the last one) is realistic — if not, set `gateway_advisory` on the same generate_itinerary call flagging that they should plan on a night in the gateway city first/last, with a brief real reason. Leave it unset if a same-day connection is genuinely fine."
   );
 
   return parts.join(" ");
+}
+
+// How a day-by-day schedule is written — shared by the one-pass schedule in
+// generate_itinerary and the long-trip schedule written in parts.
+const DAY_WRITING_RULES =
+  "For each day give a short, specific theme and 1–3 things for the morning, afternoon and evening, plus breakfast, lunch and dinner. " +
+  "Build it from what the searches returned — name activities and restaurants exactly as they appear there, put each in its own city's days, don't repeat a restaurant on the same day, and spread the best picks across the trip. Never name a place that didn't come back from a search; for a free slot, suggest something plain (\"wander the old town\", \"a market lunch\"). " +
+  "A day you arrive in a new city starts with getting there and settling in, and the very first day allows for a long flight. Keep every item short — under 15 words. ";
+
+// Long trips: one part of the day-by-day schedule (lib/itinerary/writeDaysInParts.ts).
+export function buildDayPartPrompt(input: {
+  preferences: TripPreferences;
+  days: PlannedDay[];
+  totalDays: number;
+  activities: ActivityOption[];
+  restaurants: RestaurantOption[];
+  travelNoteByCity: Record<string, string>;
+  /** The city of the day before this part, if any — to tell an arrival day from a continuing one. */
+  previousCity?: string;
+  lodgingArranged: boolean;
+}): string {
+  const { preferences, days, totalDays, activities, restaurants, travelNoteByCity, previousCity, lodgingArranged } = input;
+  const city = days[0].city;
+  const parts: string[] = [];
+  parts.push(`You're writing part of a ${totalDays}-day trip to ${preferences.destination?.displayName ?? city}. Write these days, all in ${city}:`);
+  parts.push(days.map((d) => {
+    const prev = d.dayNumber === days[0].dayNumber ? previousCity : city;
+    const tags = [
+      d.dayNumber === 1 ? "first day of the trip — they've just flown in" : "",
+      d.dayNumber > 1 && prev !== city ? `arrival day from ${prev}${travelNoteByCity[city] ? ` (${travelNoteByCity[city]})` : ""}` : "",
+      d.dayNumber === totalDays ? "last day — they head home" : "",
+    ].filter(Boolean);
+    return `- Day ${d.dayNumber} (${d.date})${tags.length ? `: ${tags.join("; ")}` : ""}`;
+  }).join("\n"));
+  if (lodgingArranged) parts.push(`They're staying at their own place in ${city} (already arranged) — never call it a hotel.`);
+  if (preferences.activities.length) parts.push(`They enjoy: ${preferences.activities.join(", ")}.`);
+  if (preferences.vibes.length) parts.push(`Trip vibe: ${describeVibes(preferences.vibes)}.`);
+  const pace = buildSchedulePaceLine(preferences.schedulePace);
+  if (pace) parts.push(pace);
+  const dietary = buildDietaryLine(preferences);
+  if (dietary) parts.push(dietary.trim());
+  parts.push(`Activities found in ${city}:\n${activities.length ? activities.map((a) => `- ${a.name} (${a.duration})`).join("\n") : "- none — suggest plain things to do"}`);
+  parts.push(`Restaurants found in ${city}:\n${restaurants.length ? restaurants.map((r) => `- ${r.name} (${r.cuisine}, ${r.priceRange})`).join("\n") : "- none — suggest plain meals"}`);
+  parts.push(`Call write_days with one entry per day above. ${DAY_WRITING_RULES}Day trips from ${city} to nearby towns are welcome when they suit the traveller.`);
+  return parts.join("\n\n");
 }
 
 // Prompt for the conversational advisor chat

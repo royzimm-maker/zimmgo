@@ -11,7 +11,8 @@ import { logApiUsage } from "@/lib/ai/usageLog";
 import { parseToolInput } from "@/lib/ai/toolInput";
 import { buildItineraryPrompt } from "@/lib/ai/prompts";
 import { searchFlights } from "@/lib/search/flights";
-import { planDays, tripSpan } from "@/lib/itinerary/dayPlan";
+import { planDays, tripSpan, writesDaysInParts } from "@/lib/itinerary/dayPlan";
+import { writeDaysInParts } from "@/lib/itinerary/writeDaysInParts";
 import { hasArrangedLodging } from "@/lib/planning/route";
 import { vibeLabel } from "@/lib/data/vibes";
 import { applyWrittenDays, type WrittenDay } from "@/lib/itinerary/writtenDays";
@@ -317,6 +318,14 @@ export async function runGeneration(
     if (result.length && "pricePerNight" in result[0]) hotels      = [...hotels,      ...(result as HotelOption[])];
     else if (result.length && "duration" in result[0]) activities  = [...activities,  ...(result as ActivityOption[])];
     else                                               restaurants = [...restaurants, ...(result as RestaurantOption[])];
+  }
+
+  // ── Long trips: the day-by-day schedule, written in parts ──
+  // Now that every city has its places, each stop's days are written by a
+  // short call of their own, in parallel (lib/itinerary/writeDaysInParts.ts).
+  if (writesDaysInParts(preferences)) {
+    await onStage("Writing your day-by-day plan…");
+    writtenDays = await writeDaysInParts({ client, preferences, activities, restaurants, travelNoteByCity, deadline });
   }
 
   // ── Ensure both flight legs exist ──
