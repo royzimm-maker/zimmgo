@@ -216,3 +216,32 @@ describe("AirlinesStep — Continue behavior", () => {
     expect(prefs?.preferNonstop).toBe(true);
   });
 });
+
+describe("AirlinesStep — flights already booked", () => {
+  it("needs no departure airport, and saves the landing day and times", async () => {
+    useTripStore.setState({
+      trip: freshTrip({
+        destination: barcelonaDestination({ flightsObviouslyRequired: true }),
+        dates: { type: "exact", startDate: "2027-05-24", endDate: "2027-06-15" },
+      }),
+    });
+    const user = userEvent.setup();
+    render(<AirlinesStep />);
+
+    expect(screen.getByRole("button", { name: /Continue/ })).toBeDisabled();
+    await user.click(screen.getByText("I’ve already booked my flights"));
+    expect(screen.queryByText(/Where are you flying from/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Continue/ })).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText("You land on"), { target: { value: "2027-05-25" } });
+    fireEvent.change(screen.getByLabelText(/at \(local time/), { target: { value: "14:30" } });
+    fireEvent.change(screen.getByLabelText(/Airport you land at/), { target: { value: "fco" } });
+    fireEvent.change(screen.getByLabelText(/Flight home leaves/), { target: { value: "10:15" } });
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+
+    const prefs = useTripStore.getState().trip.preferences;
+    expect(prefs.flightsBooked).toEqual({ arrivalTime: "14:30", departureTime: "10:15" });
+    expect(prefs.dates).toMatchObject({ startDate: "2027-05-24", arrivalDate: "2027-05-25" });
+    expect(prefs.destination?.arrivalAirport).toBe("FCO");
+  });
+});

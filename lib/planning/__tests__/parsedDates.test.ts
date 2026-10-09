@@ -23,3 +23,10 @@ describe("rollPastDatesForward", () => {
     expect(rollPastDatesForward(flexible, "2026-10-08")).toBe(flexible);
   });
 });
+
+describe("rollPastDatesForward — landing day", () => {
+  it("moves the landing day with the trip", () => {
+    const parsed = { ...base, dates: { type: "exact" as const, startDate: "2026-05-24", endDate: "2026-06-15", arrivalDate: "2026-05-25" } };
+    expect(rollPastDatesForward(parsed, "2026-10-08").dates?.arrivalDate).toBe("2027-05-25");
+  });
+});

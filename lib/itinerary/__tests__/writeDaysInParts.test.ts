@@ -82,7 +82,7 @@ describe("writeDaysInParts", () => {
     expect(ostuni).toContain("arrival day from Rome (Train to Bari, then drive.)");
     expect(tuscany).toContain("their own place in Tuscany");
     expect(romeFirst).toContain("first day of the trip");
-    expect(romeLast).toContain("last day");
+    expect(romeLast).toContain("last full day — they fly home the next day");
   });
 
   it("leaves a failed part to the template days", async () => {
@@ -100,5 +100,27 @@ describe("the planning round on a long trip", () => {
     const short = { ...prefs, stops: undefined, destination: { displayName: "Rome", cities: ["Rome"] }, dates: { type: "exact", startDate: "2027-05-01", endDate: "2027-05-05" } } as never;
     expect(writesDaysInParts(short)).toBe(false);
     expect(buildItineraryPrompt(short)).toContain("Also include `days`");
+  });
+});
+
+describe("booked flights", () => {
+  const booked = {
+    ...prefs,
+    flightsBooked: { arrivalTime: "14:30", departureTime: "10:15" },
+    dates: { type: "exact", startDate: "2027-05-24", endDate: "2027-06-15", arrivalDate: "2027-05-25" },
+  } as unknown as TripPreferences;
+
+  it("aren't searched, and their times reach the planning round", () => {
+    const prompt = buildItineraryPrompt(booked);
+    expect(prompt).toContain("Do NOT call search_flights — the traveller has already booked their flights");
+    expect(prompt).toContain("They land on 2027-05-25 at 14:30");
+    expect(prompt).toContain("Their flight home leaves on 2027-06-15 at 10:15");
+  });
+
+  it("shape the first and last days written in parts", async () => {
+    const { client, prompts } = fakeClient();
+    await writeDaysInParts({ client, preferences: booked, activities: [], restaurants: [], travelNoteByCity: {} });
+    expect(prompts[0]).toContain("landing at 14:30");
+    expect(prompts[prompts.length - 1]).toContain("they fly home the next day at 10:15");
   });
 });

@@ -104,7 +104,8 @@ export function estimateTripBudget(
   const baseCabin = normalizeCabinClass(pair?.outbound.cabinClass);
   const targetCabin = overrides.cabinClass ?? baseCabin;
   const cabinRatio = CABIN_CLASS_MULTIPLIERS[targetCabin] / CABIN_CLASS_MULTIPLIERS[baseCabin];
-  const flightCost = pair ? (pair.outbound.price + (pair.ret?.price ?? 0)) * travelers * cabinRatio : 0;
+  const flightsBooked = !!preferences.flightsBooked;
+  const flightCost = pair && !flightsBooked ? (pair.outbound.price + (pair.ret?.price ?? 0)) * travelers * cabinRatio : 0;
 
   // One night per day except the last, each at that day's city's stay —
   // except where the traveller's lodging is already arranged (a villa).
@@ -129,7 +130,7 @@ export function estimateTripBudget(
 
   const n = activities.list.length;
   const lines: BudgetLine[] = [
-    { id: "flights",    label: "Flights",                    amount: flightCost,    note: `${travelers} traveler${travelers > 1 ? "s" : ""}, outbound + return · ${CABIN_CLASS_LABELS[targetCabin]}${pair?.outbound.priceIsEstimate ? " · typical fare" : ""}` },
+    { id: "flights",    label: "Flights",                    amount: flightCost,    note: flightsBooked ? "already booked — not counted" : `${travelers} traveler${travelers > 1 ? "s" : ""}, outbound + return · ${CABIN_CLASS_LABELS[targetCabin]}${pair?.outbound.priceIsEstimate ? " · typical fare" : ""}` },
     { id: "hotels",     label: "Hotels",                     amount: hotelCost,     note: hotelNights ? `${hotelNights} night${hotelNights > 1 ? "s" : ""}, avg ${formatCurrency(avgNightly, preferences.preferredCurrency)}/night${rooms > 1 ? ` × ${rooms} rooms` : ""}${!overrides.lodgingTier && plan.days.some((d) => d.stay?.hotel.priceIsEstimate) ? " · estimated rates" : ""}${arrangedNote}` : "your own lodging" },
     { id: "activities", label: "Activities & Tours",         amount: activityCost,  note: `${n} ${activities.picked ? "" : "suggested "}experience${n !== 1 ? "s" : ""}${activityIntensity !== 1 ? ` · ${activityIntensity < 1 ? "lighter" : "packed"} pace` : ""}${activities.list.some((x) => x.priceIsEstimate) ? " · some entry fees estimated" : ""}` },
     { id: "food",       label: "Food & Dining",               amount: foodCost,      note: `~$${dailyFood}/person/day × ${numDays} days` },

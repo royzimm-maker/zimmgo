@@ -21,6 +21,7 @@ export function rollPastDatesForward(result: ParseFullTripResult, todayISO: stri
       ...result.dates!,
       startDate: shiftYear(start, years),
       endDate: result.dates!.endDate && shiftYear(result.dates!.endDate, years),
+      arrivalDate: result.dates!.arrivalDate && shiftYear(result.dates!.arrivalDate, years),
     },
     fixedStays: result.fixedStays?.map((f) => ({ ...f, startDate: shiftYear(f.startDate, years), endDate: shiftYear(f.endDate, years) })),
   };

@@ -162,3 +162,12 @@ describe("short stops", () => {
     expect(routeProblems(fitted, rules)).toEqual([]);
   });
 });
+
+describe("landing the day after flying", () => {
+  it("starts the trip on the ground on the landing day", () => {
+    const p = prefs(puglia, { dates: { type: "exact", startDate: "2027-05-24", endDate: "2027-06-15", arrivalDate: "2027-05-25" } });
+    const days = planDays(p);
+    expect(days).toHaveLength(21);
+    expect(days[0]).toMatchObject({ date: "2027-05-25", city: "Rome" });
+  });
+});

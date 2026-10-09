@@ -198,3 +198,29 @@ describe("LodgingStep — manual picking", () => {
     });
   });
 });
+
+describe("LodgingStep — lodging already arranged", () => {
+  it("picks for the first city that still needs a stay", async () => {
+    const fetchMock = mockFetchImplementation(() => [makeHotel({ id: "h1", name: "Masseria Uno", city: "Ostuni" })]);
+    vi.stubGlobal("fetch", fetchMock);
+    const trip = freshTrip();
+    trip.preferences.destination = { cities: ["Tuscany", "Ostuni"], displayName: "Italy" };
+    trip.preferences.stops = [{ city: "Tuscany", nights: 5, lodgingArranged: true }, { city: "Ostuni", nights: 4 }];
+    trip.preferences.lodging = { types: ["hotel"], minStars: 4, amenities: [] };
+    useTripStore.setState({ trip });
+    render(<LodgingStep />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.destination).toBe("Ostuni");
+    vi.unstubAllGlobals();
+  });
+
+  it("has nothing to choose when the whole trip is arranged", () => {
+    const trip = freshTrip();
+    trip.preferences.destination = { cities: ["Tuscany"], displayName: "Tuscany" };
+    trip.preferences.stops = [{ city: "Tuscany", nights: 5, lodgingArranged: true }];
+    useTripStore.setState({ trip });
+    render(<LodgingStep />);
+    expect(screen.getByText(/no hotel to choose/)).toBeInTheDocument();
+  });
+});

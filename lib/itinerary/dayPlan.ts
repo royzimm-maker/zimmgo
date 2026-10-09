@@ -32,8 +32,11 @@ export function tripSpan(preferences: TripPreferences): { startDate: string; num
       numDays: Math.max(1, preferences.dates.flexibleDuration ?? 10),
     };
   }
-  const startDate = preferences.dates?.startDate ?? new Date().toISOString().slice(0, 10);
+  const departs = preferences.dates?.startDate ?? new Date().toISOString().slice(0, 10);
   const endDate = preferences.dates?.endDate ?? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  // An overnight flight: the trip on the ground starts the day they land.
+  const arrival = preferences.dates?.arrivalDate;
+  const startDate = arrival && arrival > departs && arrival < endDate ? arrival : departs;
   // Rounded, not ceil()-ed: a daylight-saving change adds or removes an hour, which
   // must not become an extra day (the Dates step counts the same way).
   const days = Math.round((parseLocalDate(endDate).getTime() - parseLocalDate(startDate).getTime()) / 86400000);

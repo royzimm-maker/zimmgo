@@ -90,3 +90,12 @@ describe("estimateTripBudget — lodging already arranged", () => {
     expect(hotels.note).toContain("not counting your own lodging");
   });
 });
+
+describe("estimateTripBudget — flights already booked", () => {
+  it("leaves them out of the total", () => {
+    const booked = { ...prefs, flightsBooked: { arrivalTime: "14:30" } } as unknown as TripPreferences;
+    const flights = estimateTripBudget(itinerary(), booked).lines.find((l) => l.id === "flights")!;
+    expect(flights.amount).toBe(0);
+    expect(flights.note).toBe("already booked — not counted");
+  });
+});

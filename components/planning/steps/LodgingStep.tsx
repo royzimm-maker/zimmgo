@@ -15,6 +15,7 @@ import { assembleLodging, lodgingFromPicks, lodgingPickCandidates, type LodgingD
 import { chooseHotel, isAirbnbOnly } from "@/lib/planning/cityPicks";
 import { cn, scrollStepToTop } from "@/lib/utils";
 import { itineraryCities } from "@/lib/location";
+import { hasArrangedLodging } from "@/lib/planning/route";
 import { useTripStore } from "@/lib/store/tripStore";
 import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { HotelOption, LodgingStarRating, LodgingType } from "@/types/trip";
@@ -44,11 +45,16 @@ export function LodgingStep() {
   const [showMoreHotels, setShowMoreHotels] = useState(false);
   const [modeChoice, setModeChoice] = useState<ModeChoice | null>(null);
   const { picking, pickSummary, error: pickError, run: runSmartPick } = useSmartPick();
-  // This step picks the primary city's hotel, before there's an itinerary.
-  // Search by that city alone — avoids "Cultural district, Italy — Rome, &
-  // Amalfi Coast" strings. The pick is saved as a preference (lodgingPick);
-  // the itinerary's choice for this city starts from it.
-  const destination = itineraryCities(null, trip.preferences.destination)[0] ?? "";
+  // This step picks the primary city's hotel, before there's an itinerary:
+  // the first city where the traveller doesn't already have somewhere to
+  // stay (e.g. a rented villa — lib/planning/route.ts). Search by that city
+  // alone — avoids "Cultural district, Italy — Rome, & Amalfi Coast"
+  // strings. The pick is saved as a preference (lodgingPick); the
+  // itinerary's choice for this city starts from it.
+  const tripCities = itineraryCities(null, trip.preferences.destination);
+  const destination = tripCities.find((c) => !hasArrangedLodging(c, trip.preferences)) ?? "";
+  // Lodging arranged for the whole trip: nothing to choose here.
+  const allArranged = tripCities.length > 0 && !destination;
   const savedPick = trip.preferences.lodgingPick;
   const budgetMax = resolveBudget(trip.preferences)?.max ?? DEFAULT_BUDGET_MAX;
 
@@ -99,7 +105,7 @@ export function LodgingStep() {
     setHotelsLoading(true);
     try {
       const dates = trip.preferences.dates;
-      const stay = dates?.type === "exact" ? { checkIn: dates.startDate, checkOut: dates.endDate } : {};
+      const stay = dates?.type === "exact" ? { checkIn: dates.arrivalDate ?? dates.startDate, checkOut: dates.endDate } : {};
       const list = await fetchHotelSearch({ destination, minStars: stars, maxPricePerNight: budgetMax, types: typesOverride ?? effectiveTypes, ...stay });
       setHotels(list);
       setVisibleHotelCount(3);
@@ -259,7 +265,7 @@ export function LodgingStep() {
   // lands directly on the review screen instead of having to choose again.
   const autoPlanRef = useRef(false);
   useEffect(() => {
-    if (!trip.preferences.autoPlanEverything || existing || mode !== "prompt" || autoPlanRef.current) return;
+    if (!trip.preferences.autoPlanEverything || existing || mode !== "prompt" || autoPlanRef.current || allArranged) return;
     autoPlanRef.current = true;
     setModeChoice("zigy");
     (async () => {
@@ -277,6 +283,16 @@ export function LodgingStep() {
     }
     scrollStepToTop(); // switching views here doesn't remount the step
     return false; // stay on this step — just switches to the picker view
+  }
+
+  if (allArranged) {
+    return (
+      <StepShell stepId="lodging" subtitle="Your lodging is already arranged." headerImage="/zigy-lodging.png">
+        <p className="rounded-xl border border-sage-200 bg-sage-50 p-4 text-sm text-sage-800">
+          You already have somewhere to stay for the whole trip, so there&apos;s no hotel to choose — ZimmGo won&apos;t search or budget for one.
+        </p>
+      </StepShell>
+    );
   }
 
   if (mode === "prompt") {

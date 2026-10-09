@@ -276,9 +276,13 @@ export const PARSE_FULL_TRIP_TOOL: Anthropic.Tool = {
           endDate: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "ISO date YYYY-MM-DD. Required when type is \"exact\"." },
           flexibleMonth: { type: "string", pattern: "^\\d{4}-\\d{2}$", description: "\"YYYY-MM\", required when type is \"flexible\"." },
           flexibleDuration: { type: "integer", minimum: 1, maximum: 90, description: "Trip length in days, required when type is \"flexible\"." },
+          arrivalDate: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "ISO date they LAND, only when they said it's after the day they fly (an overnight flight: \"flying May 24, landing May 25\"). startDate stays the day they fly." },
         },
         required: ["type"],
       },
+      flightsBooked: { type: "boolean", description: "True ONLY if they said their flights are already booked or bought (\"I've booked\", \"we have our tickets\"). Planning to fly on certain dates is not enough." },
+      arrivalTime: { type: "string", pattern: "^([01]\\d|2[0-3]):[0-5]\\d$", description: "Local time their flight lands (24h \"HH:MM\"), only if stated." },
+      departureTime: { type: "string", pattern: "^([01]\\d|2[0-3]):[0-5]\\d$", description: "Local time their flight home leaves (24h \"HH:MM\"), only if stated." },
       budgetTier: {
         type: "string",
         enum: ["under_500", "500_750", "750_1000", "1000_plus"],

@@ -145,6 +145,17 @@ export interface DatePreference {
   // generation skips flight search entirely rather than searching a date
   // no real airline would have fares for yet.
   skipFlightSearch?: boolean;
+  // The day they land, when that's after startDate (an overnight flight out
+  // on the 24th, landing the 25th). startDate stays the day they fly; the
+  // itinerary starts here (lib/itinerary/dayPlan.ts tripSpan).
+  arrivalDate?: string;
+}
+
+// Flights the traveller has already booked — nothing to search or budget,
+// but their times shape the first and last days. Times are local "HH:MM".
+export interface BookedFlights {
+  arrivalTime?: string;   // when they land, on dates.arrivalDate (or startDate)
+  departureTime?: string; // when the flight home leaves, on dates.endDate
 }
 
 export interface LodgingPreference {
@@ -203,6 +214,8 @@ export interface TripPreferences {
   // when the traveller says they're driving. Suppresses the departure-
   // airport requirement and skips flight search entirely.
   noFlightsNeeded?: boolean;
+  // Set on the Flights step when the traveller already has their flights.
+  flightsBooked?: BookedFlights;
   transportation: TransportMode[];
   // ISO 4217 code, e.g. "EUR" — all displayed prices are converted to this
   // from their USD source value (see lib/currency.ts). Undefined = USD.
@@ -535,6 +548,11 @@ export const STEP_META: Record<StepId, Omit<PlanningStep, "completed">> = {
   itinerary:      { id: "itinerary",      label: "Itinerary",      description: "Your personalised day-by-day plan", skippable: false },
   refine:         { id: "refine",         label: "Review & Fine-Tune", description: "Check what's set, fill any gaps", skippable: true  },
 };
+
+/** No flights to search, pick or budget: a road trip, or flights already booked. */
+export function noFlightsToPlan(preferences: Pick<TripPreferences, "noFlightsNeeded" | "flightsBooked">): boolean {
+  return !!preferences.noFlightsNeeded || !!preferences.flightsBooked;
+}
 
 export function calcProgress(completedSteps: StepId[]): number {
   const required = ORDERED_STEPS.filter((s) => !STEP_META[s].skippable);

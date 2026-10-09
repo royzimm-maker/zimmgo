@@ -27,7 +27,11 @@ export interface ParseFullTripResult {
     endDate?: string;
     flexibleMonth?: string;
     flexibleDuration?: number;
+    arrivalDate?: string;
   };
+  flightsBooked?: boolean;
+  arrivalTime?: string;
+  departureTime?: string;
   budgetTier?: "under_500" | "500_750" | "750_1000" | "1000_plus";
   dietaryRestrictions?: string[];
   dietaryNotes?: string;

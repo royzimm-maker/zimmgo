@@ -264,7 +264,11 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     ? `For the return leg (open-jaw): call search_flights with origin = arrivalAirport (${preferences.destination.arrivalAirport ?? "destination airport"}) and destination = ${preferences.destination.returnAirport}. Do NOT use the departure airport as the return destination.`
     : `For the return leg: call search_flights with origin = arrivalAirport and destination = departureAirport (standard roundtrip), using the end date.`;
 
-  const flightInstruction = preferences.noFlightsNeeded
+  const booked = preferences.flightsBooked;
+  const flightInstruction = booked
+    ? `Do NOT call search_flights — the traveller has already booked their flights. ${bookedFlightsLine(preferences)} Don't suggest booking or comparing flights, and leave flights out of any costs. ` +
+      "ZimmGo doesn't book anything — never say you booked, reserved or confirmed a hotel or table; say what you suggest or planned instead."
+    : preferences.noFlightsNeeded
     ? "Do NOT call search_flights — this is a road trip / no-flight itinerary, the traveller is driving. Build the rest of the plan (hotels, activities, restaurants, day-by-day schedule, and local transport/driving logistics) as normal, with no flights anywhere in the itinerary."
     : skipFlightSearch
     ? "Do NOT call search_flights — these travel dates are further out than airlines typically open bookings for, so there are no real fares to search yet. Skip flights entirely and build the rest of the plan (hotels, activities, restaurants, day-by-day schedule) as normal; briefly note in your summary that flights should be booked once they're bookable closer to the trip."
@@ -298,12 +302,24 @@ export function buildItineraryPrompt(preferences: TripPreferences): string {
     (writesDaysInParts(preferences)
       ? " Leave `days` out of generate_itinerary: this is a long trip, and the app writes its day-by-day schedule separately from your searches. "
       : ` Also include \`days\` in that same generate_itinerary call — the day-by-day schedule the traveller sees, one entry per day of this fixed day plan (the dates and cities are set by the app; don't change them): ${planDays(preferences).map((d) => `Day ${d.dayNumber} (${d.date}) in ${d.city}`).join("; ")}. ` +
-        DAY_WRITING_RULES) +
+        DAY_WRITING_RULES + (preferences.flightsBooked ? `${bookedFlightsLine(preferences)} ` : "")) +
     "Also include `why_this_works`: 2–4 short bullet points on why this plan fits this traveller specifically. " +
     " Also check whether the traveller's arrival/departure airport is actually in one of their destination cities. If it isn't, decide honestly whether a same-day onward connection to the first destination (or a same-day return from the last one) is realistic — if not, set `gateway_advisory` on the same generate_itinerary call flagging that they should plan on a night in the gateway city first/last, with a brief real reason. Leave it unset if a same-day connection is genuinely fine."
   );
 
   return parts.join(" ");
+}
+
+/** When booked flights land and leave, for the first and last days — empty when no times are known. */
+export function bookedFlightsLine(preferences: Pick<TripPreferences, "flightsBooked" | "dates">): string {
+  const booked = preferences.flightsBooked;
+  const dates = preferences.dates;
+  if (!booked || dates?.type !== "exact") return "";
+  const landing = dates.arrivalDate ?? dates.startDate;
+  return [
+    booked.arrivalTime && landing ? `They land on ${landing} at ${booked.arrivalTime} — plan that first day around the arrival time.` : "",
+    booked.departureTime && dates.endDate ? `Their flight home leaves on ${dates.endDate} at ${booked.departureTime} — keep the last day easy and close to the airport.` : "",
+  ].filter(Boolean).join(" ");
 }
 
 // How a day-by-day schedule is written — shared by the one-pass schedule in
@@ -327,14 +343,17 @@ export function buildDayPartPrompt(input: {
 }): string {
   const { preferences, days, totalDays, activities, restaurants, travelNoteByCity, previousCity, lodgingArranged } = input;
   const city = days[0].city;
+  const landsAt = preferences.flightsBooked?.arrivalTime;
+  const homeTime = preferences.flightsBooked?.departureTime;
+  const flightHome = `the next day${homeTime ? ` at ${homeTime}` : ""}`;
   const parts: string[] = [];
   parts.push(`You're writing part of a ${totalDays}-day trip to ${preferences.destination?.displayName ?? city}. Write these days, all in ${city}:`);
   parts.push(days.map((d) => {
     const prev = d.dayNumber === days[0].dayNumber ? previousCity : city;
     const tags = [
-      d.dayNumber === 1 ? "first day of the trip — they've just flown in" : "",
+      d.dayNumber === 1 ? `first day of the trip — they've just flown in${landsAt ? `, landing at ${landsAt}` : ""}` : "",
       d.dayNumber > 1 && prev !== city ? `arrival day from ${prev}${travelNoteByCity[city] ? ` (${travelNoteByCity[city]})` : ""}` : "",
-      d.dayNumber === totalDays ? "last day — they head home" : "",
+      d.dayNumber === totalDays ? `last full day — they fly home ${flightHome}` : "",
     ].filter(Boolean);
     return `- Day ${d.dayNumber} (${d.date})${tags.length ? `: ${tags.join("; ")}` : ""}`;
   }).join("\n"));

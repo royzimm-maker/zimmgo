@@ -33,6 +33,7 @@ import type {
   SplurgePreference,
   WanderlogItem,
   SchedulePace,
+  BookedFlights,
   RouteOption,
   TripStop,
 } from "@/types/trip";
@@ -89,6 +90,7 @@ interface TripState {
   toggleSelectedActivity: (id: string) => void;
   setAirlines: (prefs: AirlinePreference) => void;
   setNoFlightsNeeded: (value: boolean) => void;
+  setFlightsBooked: (booked: BookedFlights | undefined) => void;
   setPreferredCurrency: (code: string | undefined) => void;
   setDietaryRestrictions: (restrictions: string[], notes: string | undefined) => void;
   setAvoidLongQueues: (value: boolean) => void;
@@ -430,6 +432,15 @@ export const useTripStore = create<TripState>()(
           trip: {
             ...s.trip,
             preferences: { ...s.trip.preferences, airlinePrefs },
+            updatedAt: new Date().toISOString(),
+          },
+        })),
+
+      setFlightsBooked: (flightsBooked) =>
+        set((s) => ({
+          trip: {
+            ...s.trip,
+            preferences: { ...s.trip.preferences, flightsBooked },
             updatedAt: new Date().toISOString(),
           },
         })),

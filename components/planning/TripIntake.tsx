@@ -94,10 +94,12 @@ export function TripIntake({ onBack }: { onBack: () => void }) {
     // ── Dates ──
     let datesCompleted = false;
     if (parsed.dates?.type === "exact" && parsed.dates.startDate && parsed.dates.endDate && parsed.dates.startDate <= parsed.dates.endDate) {
+      const { startDate, endDate, arrivalDate } = parsed.dates;
       store.setDates({
         type: "exact",
-        startDate: parsed.dates.startDate,
-        endDate: parsed.dates.endDate,
+        startDate,
+        endDate,
+        arrivalDate: arrivalDate && arrivalDate > startDate && arrivalDate < endDate ? arrivalDate : undefined,
       });
       datesCompleted = true;
     } else if (parsed.dates?.type === "flexible" && parsed.dates.flexibleMonth && parsed.dates.flexibleDuration) {
@@ -107,7 +109,10 @@ export function TripIntake({ onBack }: { onBack: () => void }) {
     if (datesCompleted) store.completeStep("dates");
 
     // ── Airlines ── (only what AirlinesStep itself requires to proceed)
-    if (parsed.likelyRoadTrip || parsed.departureAirport) {
+    if (parsed.flightsBooked && !parsed.likelyRoadTrip) {
+      store.setFlightsBooked({ arrivalTime: parsed.arrivalTime, departureTime: parsed.departureTime });
+    }
+    if (parsed.likelyRoadTrip || parsed.departureAirport || parsed.flightsBooked) {
       store.completeStep("airlines");
     }
 
@@ -191,6 +196,13 @@ export function TripIntake({ onBack }: { onBack: () => void }) {
       });
     } else if (parsed.dates?.type === "flexible" && parsed.dates.flexibleMonth) {
       rows.push({ label: "Dates", value: `~${parsed.dates.flexibleDuration ?? "?"} days in ${parsed.dates.flexibleMonth}`, step: "dates" });
+    }
+    if (parsed.flightsBooked) {
+      const times = [parsed.arrivalTime && `landing ${parsed.arrivalTime}`, parsed.departureTime && `home flight ${parsed.departureTime}`].filter(Boolean).join(", ");
+      rows.push({ label: "Flights", value: `Already booked${times ? ` — ${times}` : ""}`, step: "airlines" });
+    }
+    if (parsed.dates?.type === "exact" && parsed.dates.arrivalDate) {
+      rows.push({ label: "Landing", value: formatDate(parsed.dates.arrivalDate), step: "airlines" });
     }
     if (parsed.travelers) rows.push({ label: "Travelers", value: String(parsed.travelers), step: "budget" });
     if (parsed.budgetTier) rows.push({ label: "Budget", value: BUDGET_LABELS[parsed.budgetTier], step: "budget" });

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Plane, TrendingDown, Check, Search, X, Car } from "lucide-react";
+import { Plane, TrendingDown, Check, Search, X, Car, Ticket } from "lucide-react";
 import { StepShell } from "@/components/planning/StepShell";
 import { SelectChip } from "@/components/ui/SelectChip";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { useTripStore } from "@/lib/store/tripStore";
 import { getFilteredRoutingSuggestion, searchAirports } from "@/lib/data/airportRouting";
 import type { AirlinePreference, AirlineAlliance } from "@/types/trip";
@@ -39,7 +39,7 @@ export const CABIN_LABELS: Record<string, string> = {
 };
 
 export function AirlinesStep() {
-  const { trip, setAirlines, setDestination, setNoFlightsNeeded, defaultDepartureAirport, setDefaultDepartureAirport } = useTripStore();
+  const { trip, setAirlines, setDestination, setNoFlightsNeeded, setFlightsBooked, setDates, defaultDepartureAirport, setDefaultDepartureAirport } = useTripStore();
   const existing   = trip.preferences.airlinePrefs;
   const destination = trip.preferences.destination;
 
@@ -51,6 +51,16 @@ export function AirlinesStep() {
   // Road trips and other no-flight itineraries — skips the departure-airport
   // requirement below entirely and tells the AI not to search for flights.
   const [noFlights, setNoFlights] = useState((trip.preferences.noFlightsNeeded ?? false) && !flightsObviouslyRequired);
+
+  // Flights already booked — nothing to search or budget, but when they land
+  // and leave shapes the first and last days (BookedFlights in types/trip.ts).
+  const dates = trip.preferences.dates;
+  const exactDates = dates?.type === "exact" ? dates : undefined;
+  const [booked, setBooked] = useState(!!trip.preferences.flightsBooked);
+  const [landingDate, setLandingDate] = useState(exactDates?.arrivalDate ?? exactDates?.startDate ?? "");
+  const [landingTime, setLandingTime] = useState(trip.preferences.flightsBooked?.arrivalTime ?? "");
+  const [homeTime, setHomeTime] = useState(trip.preferences.flightsBooked?.departureTime ?? "");
+  const [landingAirport, setLandingAirport] = useState(destination?.arrivalAirport ?? "");
 
   // Defensive: if the destination was edited into something that obviously
   // needs flights while "no flights needed" was already set from an earlier
@@ -184,24 +194,34 @@ export function AirlinesStep() {
 
   function handleContinue() {
     setNoFlightsNeeded(noFlights);
+    const isBooked = booked && !noFlights;
+    setFlightsBooked(isBooked ? { arrivalTime: landingTime || undefined, departureTime: homeTime || undefined } : undefined);
+    if (exactDates) {
+      // Only a landing day after the day they fly changes the itinerary's start.
+      const arrivalDate = isBooked && exactDates.startDate && landingDate > exactDates.startDate ? landingDate : undefined;
+      if (arrivalDate !== exactDates.arrivalDate) setDates({ ...exactDates, arrivalDate });
+    }
+    const landingCode = landingAirport.trim().toUpperCase();
     if (destination) {
       setDestination({
         ...destination,
         departureAirport: noFlights ? undefined : departure.trim() || undefined,
-        arrivalAirport:   noFlights ? undefined : selectedCode,
+        arrivalAirport:   noFlights ? undefined : isBooked && /^[A-Z]{3}$/.test(landingCode) ? landingCode : selectedCode,
         // Open-jaw (returnAirport) is on hold — see Destination["returnAirport"] for the shelved implementation.
         returnAirport:    undefined,
       });
     }
-    if (!noFlights) setAirlines(assembleAirlines());
+    if (!noFlights && !isBooked) setAirlines(assembleAirlines());
   }
 
   return (
     <StepShell
       stepId="airlines"
       onContinue={handleContinue}
-      continueDisabled={!noFlights && !departure.trim()}
-      subtitle="Tell us where you're flying from — we'll use this to find the best routes."
+      continueDisabled={!noFlights && !booked && !departure.trim()}
+      subtitle={booked && !noFlights
+        ? "Tell us when you land and when your flight home leaves — ZimmGo plans your first and last days around them."
+        : "Tell us where you're flying from — we'll use this to find the best routes."}
     >
       <div className="flex flex-col gap-6">
 
@@ -211,7 +231,7 @@ export function AirlinesStep() {
         {!flightsObviouslyRequired && (
           <button
             type="button"
-            onClick={() => setNoFlights((v) => !v)}
+            onClick={() => { setNoFlights((v) => !v); setBooked(false); }}
             className={cn(
               "flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
               noFlights ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
@@ -240,10 +260,83 @@ export function AirlinesStep() {
           </p>
         )}
 
-        {/* ── Everything below is irrelevant once "I'm driving" is on — hidden
-            entirely rather than just dimmed, so the step doesn't turn into a
-            long scroll of inert content before reaching Continue. ── */}
+        {/* ── Flights already booked ── */}
         {!noFlights && (
+          <button
+            type="button"
+            onClick={() => setBooked((v) => !v)}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
+              booked ? "border-sage-500 bg-sage-50" : "border-slate-200 bg-white hover:border-slate-300"
+            )}
+          >
+            <span className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+              booked ? "bg-sage-500 text-white" : "bg-slate-100 text-slate-500"
+            )}>
+              {booked ? <Check size={16} /> : <Ticket size={16} />}
+            </span>
+            <div className="flex-1">
+              <p className={cn("font-semibold text-sm", booked ? "text-sage-800" : "text-slate-800")}>
+                I&rsquo;ve already booked my flights
+              </p>
+              <p className={cn("text-xs mt-0.5", booked ? "text-sage-700" : "text-slate-500")}>
+                ZimmGo skips flight search and plans your first and last days around them.
+              </p>
+            </div>
+          </button>
+        )}
+
+        {booked && !noFlights && (
+          <div className="-mt-2 grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+              You land on
+              <input
+                type="date"
+                value={landingDate}
+                min={exactDates?.startDate}
+                max={exactDates?.endDate}
+                onChange={(e) => setLandingDate(e.target.value)}
+                className="rounded-lg border border-slate-300 px-2.5 py-2 text-sm font-normal text-slate-900"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+              at (local time, optional)
+              <input
+                type="time"
+                value={landingTime}
+                onChange={(e) => setLandingTime(e.target.value)}
+                className="rounded-lg border border-slate-300 px-2.5 py-2 text-sm font-normal text-slate-900"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+              Airport you land at (optional)
+              <input
+                type="text"
+                value={landingAirport}
+                maxLength={3}
+                onChange={(e) => setLandingAirport(e.target.value.toUpperCase())}
+                placeholder="e.g. FCO"
+                className="rounded-lg border border-slate-300 px-2.5 py-2 text-sm font-normal uppercase text-slate-900"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+              {exactDates?.endDate ? `Flight home leaves ${formatDate(exactDates.endDate)} at` : "Flight home leaves at"} (optional)
+              <input
+                type="time"
+                value={homeTime}
+                onChange={(e) => setHomeTime(e.target.value)}
+                className="rounded-lg border border-slate-300 px-2.5 py-2 text-sm font-normal text-slate-900"
+              />
+            </label>
+          </div>
+        )}
+
+        {/* ── Everything below is irrelevant once "I'm driving" (or "already
+            booked") is on — hidden entirely rather than just dimmed, so the
+            step doesn't turn into a long scroll of inert content before
+            reaching Continue. ── */}
+        {!noFlights && !booked && (
         <>
         {/* ── Departure airport ── */}
         <div>

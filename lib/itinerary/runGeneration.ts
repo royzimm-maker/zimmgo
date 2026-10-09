@@ -23,7 +23,7 @@ import { searchGroundTransport } from "@/lib/search/groundTransport";
 import { getGroundTransportProvider } from "@/lib/data/groundTransportProviders";
 import { getNeighborhoodsByDestination } from "@/lib/data/destinationNeighborhoods";
 import { groupByLocation, extractIataCode } from "@/lib/utils";
-import { resolveBudget, DEFAULT_BUDGET_MAX } from "@/types/trip";
+import { resolveBudget, noFlightsToPlan, DEFAULT_BUDGET_MAX } from "@/types/trip";
 import type { TripPreferences, GeneratedItinerary, FlightOption, HotelOption, ActivityOption, RestaurantOption, ItineraryDay, TransportOption } from "@/types/trip";
 
 const TOOL_STAGES: Record<string, string> = {
@@ -291,7 +291,7 @@ export async function runGeneration(
 
   // Build hotel search params from preferences for supplemental searches
   const hotelParams = {
-    check_in:             preferences.dates?.type === "exact" ? preferences.dates.startDate : undefined,
+    check_in:             preferences.dates?.type === "exact" ? preferences.dates.arrivalDate ?? preferences.dates.startDate : undefined,
     check_out:            preferences.dates?.type === "exact" ? preferences.dates.endDate   : undefined,
     min_stars:            preferences.lodging?.minStars,
     types:                preferences.lodging?.types,
@@ -337,7 +337,7 @@ export async function runGeneration(
   const flightDest = preferences.destination;
   const flightDates = preferences.dates;
   if (
-    !preferences.noFlightsNeeded &&
+    !noFlightsToPlan(preferences) &&
     flightDest?.departureAirport && flightDest?.arrivalAirport &&
     flightDates?.type === "exact" && flightDates.startDate && flightDates.endDate && !flightDates.skipFlightSearch
   ) {
